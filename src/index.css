@@ -1,0 +1,46 @@
+:root {
+  /* Тёплая светлая «бумага», не глянцевый белый. */
+  --paper: #f3ede0;
+  --ink: #221c14;
+  --ink-soft: #4a4032;
+  --border: #8f8267;
+  --accent: #1f6e63; /* единственный спокойный акцент — приборный, не бренд */
+  --accent-tint: #dcebe6;
+  --alert: #6e2416;
+  --alert-bg: #ecdbd2;
+
+  color-scheme: light;
+  color: var(--ink);
+  background: var(--paper);
+
+  font: 500 1.125rem/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--paper);
+}
+
+h1,
+h2 {
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+:focus-visible {
+  outline: 0.1875rem solid var(--accent);
+  outline-offset: 0.125rem;
+}
