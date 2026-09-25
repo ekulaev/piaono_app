@@ -11,6 +11,9 @@ export interface LogEntry {
 interface Props {
   connectionState: ConnectionState
   devices: MidiDeviceInfo[]
+  /** Устройство, чьи ноты сейчас принимаются. */
+  activeDeviceId: string | null
+  onSelectDevice: (device: MidiDeviceInfo) => void
   log: LogEntry[]
   glissando: boolean
   onToggleGlissando: () => void
@@ -24,6 +27,8 @@ interface Props {
 function CheckScreen({
   connectionState,
   devices,
+  activeDeviceId,
+  onSelectDevice,
   log,
   glissando,
   onToggleGlissando,
@@ -54,10 +59,24 @@ function CheckScreen({
         {devices.length === 0 ? (
           <p className="devices__empty">Пока ничего не найдено.</p>
         ) : (
+          // Каждое устройство — кнопка: касание делает его активным (если их несколько).
           <ul className="devices__list">
-            {devices.map((device) => (
-              <li key={device.id}>{device.name}</li>
-            ))}
+            {devices.map((device) => {
+              const active = device.id === activeDeviceId
+              return (
+                <li key={device.id}>
+                  <button
+                    type="button"
+                    className={`device${active ? ' device--active' : ''}`}
+                    aria-pressed={active}
+                    onClick={() => onSelectDevice(device)}
+                  >
+                    <span className="device__name">{device.name}</span>
+                    {active && <span className="device__mark">слушаю</span>}
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>

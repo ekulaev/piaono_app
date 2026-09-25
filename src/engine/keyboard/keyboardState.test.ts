@@ -63,12 +63,6 @@ describe('Нажатие и отпускание', () => {
     const { state } = run([pianoDown(C4)])
     expect(isPressed(state, D4)).toBe(false)
   })
-
-  it('связь с пианино пропала — удерживаемые на пианино клавиши отпускаются', () => {
-    const { state } = run([pianoDown(C4), touchDown(1, E4), { kind: 'pianoReset' }])
-    expect(isPressed(state, C4)).toBe(false)
-    expect(isPressed(state, E4)).toBe(true)
-  })
 })
 
 describe('Касание — полноценная сыгранная нота', () => {

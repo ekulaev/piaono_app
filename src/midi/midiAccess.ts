@@ -1,13 +1,12 @@
+import { chooseActiveInput } from './inputChoice'
+import { parseMidiMessage } from './messages'
 import type {
   ConnectionState,
   MidiDeviceInfo,
   MidiMonitor,
   MidiMonitorCallbacks,
-  MidiNoteEvent,
+  MidiMonitorOptions,
 } from './types'
-
-const NOTE_ON = 0x90
-const NOTE_OFF = 0x80
 
 /**
  * Входы, которые сейчас реально на связи. Chrome может оставлять отключённый порт
@@ -27,38 +26,18 @@ function toDeviceInfo(input: MIDIInput): MidiDeviceInfo {
 }
 
 /**
- * Разбирает сырое MIDI-сообщение в понятное событие ноты.
- * velocity 0 у note-on — это тоже note-off (стандартное поведение MIDI-клавиатур).
- * Всё, что не note-on/note-off (control change, pitch bend, sustain и т.д.), молча
- * игнорируется — монитор не должен падать на неожиданных сообщениях.
+ * Запускает MIDI-монитор: запрашивает доступ и слушает ровно один вход — активный
+ * (см. chooseActiveInput). Пересматривает входы при любом statechange (в том числе после
+ * сна планшета — основной сигнал для авто-реконнекта) и когда страница снова становится
+ * видимой: страховка на случай, если какая-то сборка Android пропустит statechange.
  */
-function buildNoteEvent(data: Uint8Array, time: number): MidiNoteEvent | null {
-  if (data.length < 2) return null
-
-  const command = data[0] & 0xf0
-  const pitch = data[1]
-  const velocity = data.length > 2 ? data[2] : 0
-
-  if (command === NOTE_ON && velocity > 0) {
-    return { type: 'noteOn' as const, pitch, velocity, time }
-  }
-  if (command === NOTE_OFF || (command === NOTE_ON && velocity === 0)) {
-    return { type: 'noteOff' as const, pitch, time }
-  }
-  return null
-}
-
-/**
- * Запускает MIDI-монитор: запрашивает доступ, слушает подключённые входы и
- * переподписывается на них при любом statechange (в том числе после сна планшета —
- * основной сигнал для авто-реконнекта). Дополнительно пересматривает входы, когда
- * страница снова становится видимой: страховка на случай, если какая-то сборка
- * Android пропустит statechange после сна.
- */
-export function startMidiMonitor(callbacks: MidiMonitorCallbacks): MidiMonitor {
+export function startMidiMonitor(
+  callbacks: MidiMonitorCallbacks,
+  options: MidiMonitorOptions = {},
+): MidiMonitor {
   if (!navigator.requestMIDIAccess) {
-    callbacks.onConnectionChange('unsupported', [])
-    return { stop: () => {}, retry: () => {} }
+    callbacks.onConnectionChange('unsupported', [], null)
+    return { stop: () => {}, retry: () => {}, selectInput: () => {} }
   }
 
   let stopped = false
@@ -67,48 +46,79 @@ export function startMidiMonitor(callbacks: MidiMonitorCallbacks): MidiMonitor {
   let requestNumber = 0
   // Было ли пианино на связи в этой сессии. Отличает «потеряли» от «ещё не подключали».
   let hadDevice = false
-  const attachedInputs = new Set<MIDIInput>()
+  let preferred = options.preferred ?? null
+  let activeInput: MIDIInput | null = null
+  // Ноты, нажатые на активном входе и ещё не отпущенные.
+  const held = new Set<number>()
 
-  function detachAll() {
-    attachedInputs.forEach((input) => {
-      input.onmidimessage = null
-    })
-    attachedInputs.clear()
+  /** Передать событие наружу. Ошибка потребителя не должна обрывать приём следующих нот. */
+  function emitNote(event: Parameters<MidiMonitorCallbacks['onNoteEvent']>[0]) {
+    try {
+      callbacks.onNoteEvent(event)
+    } catch (error) {
+      console.error('Ошибка в обработчике ноты', error)
+    }
   }
 
-  function attachInputs(inputs: MIDIInput[]) {
-    detachAll()
-    inputs.forEach((input) => {
-      input.onmidimessage = (event) => {
-        if (!event.data) return
-        const parsed = buildNoteEvent(event.data, event.timeStamp)
-        if (parsed) callbacks.onNoteEvent(parsed)
-      }
-      attachedInputs.add(input)
-    })
+  /**
+   * Вход перестал быть активным (пропал, выбран другой, связь потеряна): его отпускания
+   * уже не придут, поэтому отпускаем зажатые ноты сами — иначе клавиши «залипнут».
+   */
+  function releaseHeld() {
+    const time = performance.now()
+    held.forEach((pitch) => emitNote({ type: 'noteOff', pitch, time }))
+    held.clear()
   }
 
-  /** Перечитать входы, переподписаться и сообщить актуальное состояние. */
+  function detachActive() {
+    if (activeInput) activeInput.onmidimessage = null
+    activeInput = null
+  }
+
+  function attach(input: MIDIInput) {
+    input.onmidimessage = (event) => {
+      if (!event.data) return
+      const note = parseMidiMessage(event.data, event.timeStamp)
+      if (!note) return
+      if (note.type === 'noteOn') held.add(note.pitch)
+      else held.delete(note.pitch)
+      emitNote(note)
+    }
+    // Явное открытие — на случай, когда после сна порт числится подключённым, но молчит.
+    // Для уже открытого порта это пустая операция; отказ не мешает остальной работе.
+    input.open?.().catch(() => {})
+    activeInput = input
+  }
+
+  /** Перечитать входы, выбрать активный, переподписаться и сообщить состояние. */
   function sync(current: MIDIAccess) {
     const inputs = connectedInputs(current)
-    attachInputs(inputs)
+    const devices = inputs.map(toDeviceInfo)
+    const nextId = chooseActiveInput(devices, preferred)
+    const next = inputs.find((input) => input.id === nextId) ?? null
+
+    if (next !== activeInput) releaseHeld()
+    detachActive()
+    if (next) attach(next)
     if (inputs.length > 0) hadDevice = true
 
     let state: ConnectionState
     if (inputs.length > 0) state = 'connected'
     else if (hadDevice) state = 'lost'
     else state = 'no-device'
-    callbacks.onConnectionChange(state, inputs.map(toDeviceInfo))
+    callbacks.onConnectionChange(state, devices, next?.id ?? null)
   }
 
   function requestAccess() {
     const thisRequest = ++requestNumber
-    callbacks.onConnectionChange('connecting', [])
+    callbacks.onConnectionChange('connecting', [], null)
 
     navigator.requestMIDIAccess().then(
       (granted) => {
         if (stopped || thisRequest !== requestNumber) return
         if (access) access.onstatechange = null
+        releaseHeld()
+        detachActive()
         access = granted
         granted.onstatechange = () => {
           if (!stopped && access) sync(access)
@@ -119,7 +129,7 @@ export function startMidiMonitor(callbacks: MidiMonitorCallbacks): MidiMonitor {
         // Отказ почти всегда означает «доступ запрещён». Прочие ошибки показываем так же:
         // действие для ученика одно — разрешить MIDI и попробовать снова.
         if (stopped || thisRequest !== requestNumber) return
-        callbacks.onConnectionChange('permission-denied', [])
+        callbacks.onConnectionChange('permission-denied', [], null)
       },
     )
   }
@@ -136,10 +146,15 @@ export function startMidiMonitor(callbacks: MidiMonitorCallbacks): MidiMonitor {
       stopped = true
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (access) access.onstatechange = null
-      detachAll()
+      releaseHeld()
+      detachActive()
     },
     retry: () => {
       if (!stopped) requestAccess()
+    },
+    selectInput: (input) => {
+      preferred = input
+      if (!stopped && access) sync(access)
     },
   }
 }
