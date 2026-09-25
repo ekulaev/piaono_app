@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createKeyboardState, reduce } from '../engine/keyboard/keyboardState'
 import type { KeyInput } from '../engine/keyboard/types'
 import { startMidiMonitor } from '../midi/midiAccess'
-import { pitchToNoteName } from '../midi/noteNames'
 import type { ConnectionState, MidiDeviceInfo, MidiMonitor } from '../midi/types'
 import { loadSettings, saveSettings, type Settings } from '../storage/settings'
 import CheckScreen, { type LogEntry } from './CheckScreen'
 import Keyboard from './keyboard/Keyboard'
+import StaffView from './staff/StaffView'
+import { useExercise } from './staff/useExercise'
 import WaitingScreen from './WaitingScreen'
 import { useAppUpdate } from './useAppUpdate'
 
@@ -26,7 +27,6 @@ function App() {
   const [devices, setDevices] = useState<MidiDeviceInfo[]>([])
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null)
   const [log, setLog] = useState<LogEntry[]>([])
-  const [lastNoteName, setLastNoteName] = useState<string | null>(null)
   const nextLogId = useRef(0)
   const monitorRef = useRef<MidiMonitor | null>(null)
   const { updateReady, applyUpdate } = useAppUpdate()
@@ -46,15 +46,22 @@ function App() {
   // Последнее состояние без ожидания рендера: события MIDI и касаний идут чаще кадров.
   const keyboardRef = useRef(keyboard)
 
+  // Упражнение на нотном стане: каждая сыгранная нота (пианино или касание) идёт в него.
+  const exercise = useExercise()
+  const playedInExercise = exercise.played
+
   /** Единая точка входа для нажатий с пианино и с экрана. */
-  const handleKeyInput = useCallback((input: KeyInput) => {
-    const { state, playedNote } = reduce(keyboardRef.current, input)
-    if (state !== keyboardRef.current) {
-      keyboardRef.current = state
-      setKeyboard(state)
-    }
-    if (playedNote) setLastNoteName(pitchToNoteName(playedNote.pitch))
-  }, [])
+  const handleKeyInput = useCallback(
+    (input: KeyInput) => {
+      const { state, playedNote } = reduce(keyboardRef.current, input)
+      if (state !== keyboardRef.current) {
+        keyboardRef.current = state
+        setKeyboard(state)
+      }
+      if (playedNote) playedInExercise(playedNote.pitch)
+    },
+    [playedInExercise],
+  )
 
   function toggleGlissando() {
     const enabled = !keyboardRef.current.glissando
@@ -113,10 +120,16 @@ function App() {
       connectionState={connectionState}
       devices={devices}
       activeDeviceId={activeDeviceId}
-      lastNoteName={lastNoteName}
       updateReady={updateReady}
       onRetry={() => monitorRef.current?.retry()}
-      onOpenCheck={() => setScreen('check')}
+      onOpenCheck={() => {
+        // Уход с главного экрана останавливает упражнение (C-STF-1, OB-20).
+        exercise.stop()
+        setScreen('check')
+      }}
+      exerciseRunning={exercise.running}
+      onToggleExercise={exercise.running ? exercise.stop : exercise.start}
+      staff={<StaffView exercise={exercise.state} />}
       onApplyUpdate={applyUpdate}
       keyboard={<Keyboard state={keyboard} onInput={handleKeyInput} />}
     />
