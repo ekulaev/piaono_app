@@ -1,68 +1,26 @@
-.monitor {
+.check {
   max-width: 60rem;
   margin: 0 auto;
-  min-height: 100svh;
+  height: 100svh;
   padding: clamp(1rem, 3vw, 2.5rem);
   display: flex;
   flex-direction: column;
   gap: clamp(1.25rem, 3vw, 2rem);
 }
 
-.monitor h1 {
+.check__header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.check h1 {
   font-size: clamp(1.75rem, 4vw, 2.75rem);
 }
 
-.monitor h2 {
+.check h2 {
   font-size: clamp(1.125rem, 2.5vw, 1.375rem);
   margin-bottom: 0.75rem;
-}
-
-.status {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  border: 0.1875rem solid var(--border);
-  border-radius: 1rem;
-}
-
-.status__dot {
-  flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  border: 0.1875rem solid var(--ink-soft);
-  background: transparent;
-}
-
-.status--connecting .status__dot {
-  border-style: dashed;
-}
-
-.status--connected {
-  border-color: var(--accent);
-  background: var(--accent-tint);
-}
-
-.status--connected .status__dot {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.status--unavailable {
-  border-color: var(--alert);
-  background: var(--alert-bg);
-}
-
-.status--unavailable .status__dot {
-  border-radius: 0.25rem;
-  background: var(--alert);
-  border-color: var(--alert);
-}
-
-.status__text {
-  font-size: clamp(1.125rem, 2vw, 1.375rem);
-  font-weight: 600;
 }
 
 .devices__empty,
@@ -96,6 +54,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 0.25rem;
 }

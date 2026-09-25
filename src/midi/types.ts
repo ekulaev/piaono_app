@@ -3,10 +3,12 @@
 
 /** Все состояния MIDI-соединения, которые нужно явно показывать пользователю. */
 export type ConnectionState =
-  | 'unavailable' // браузер не поддерживает Web MIDI (или нет разрешения)
+  | 'unsupported' // в браузере вообще нет Web MIDI (не Chrome) — поможет только другой браузер
+  | 'permission-denied' // Web MIDI есть, но браузер отказал в доступе — можно разрешить и повторить
   | 'connecting' // запросили доступ, ждём ответ браузера
-  | 'no-device' // доступ есть, но ни одно устройство не подключено
+  | 'no-device' // доступ есть, но ни одно устройство ещё не подключали в этой сессии
   | 'connected' // хотя бы одно устройство подключено и активно
+  | 'lost' // устройство было на связи и пропало (кабель, сон планшета) — ждём его возвращения
 
 export interface MidiDeviceInfo {
   id: string
@@ -31,4 +33,12 @@ export type MidiNoteEvent = NoteOnEvent | NoteOffEvent
 export interface MidiMonitorCallbacks {
   onConnectionChange: (state: ConnectionState, devices: MidiDeviceInfo[]) => void
   onNoteEvent: (event: MidiNoteEvent) => void
+}
+
+/** Управление запущенным монитором. */
+export interface MidiMonitor {
+  /** Отписаться от всего: входов, statechange, смены видимости страницы. */
+  stop: () => void
+  /** Заново запросить доступ к MIDI без перезагрузки (после того как его разрешили). */
+  retry: () => void
 }
