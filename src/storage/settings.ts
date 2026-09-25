@@ -1,12 +1,16 @@
 // Единственное место, где приложение обращается к localStorage. Остальной код работает
 // с типизированными настройками и не знает, где и как они лежат.
 
+import type { PreferredInput } from '../midi/types'
+
 export interface Settings {
   /** Скольжение пальцем по клавишам играет ноты. */
   glissando: boolean
+  /** MIDI-вход, который выбрал ученик; null — выбора не было. */
+  preferredInput: PreferredInput | null
 }
 
-const DEFAULT_SETTINGS: Settings = { glissando: false }
+const DEFAULT_SETTINGS: Settings = { glissando: false, preferredInput: null }
 
 /** Версия в ключе: если формат поменяется, старые данные не прочитаются как новые. */
 const STORAGE_KEY = 'piaono.settings.v1'
@@ -33,11 +37,21 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
     if (!raw) return { ...DEFAULT_SETTINGS }
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS }
-    const glissando = (parsed as Record<string, unknown>).glissando
-    return { glissando: typeof glissando === 'boolean' ? glissando : DEFAULT_SETTINGS.glissando }
+    const { glissando, preferredInput } = parsed as Record<string, unknown>
+    return {
+      glissando: typeof glissando === 'boolean' ? glissando : DEFAULT_SETTINGS.glissando,
+      preferredInput: readPreferredInput(preferredInput),
+    }
   } catch {
     return { ...DEFAULT_SETTINGS }
   }
+}
+
+/** Сохранённый вход: объект со строковыми id и name, иначе «выбора не было». */
+function readPreferredInput(value: unknown): PreferredInput | null {
+  if (typeof value !== 'object' || value === null) return null
+  const { id, name } = value as Record<string, unknown>
+  return typeof id === 'string' && typeof name === 'string' ? { id, name } : null
 }
 
 /**

@@ -71,6 +71,12 @@
   color: var(--ink-soft);
 }
 
+.waiting__device-hint {
+  margin: 0;
+  font-size: 1.125rem;
+  color: var(--ink-soft);
+}
+
 .waiting__invite {
   margin: 0;
   font-size: clamp(1.375rem, 3vw, 1.875rem);

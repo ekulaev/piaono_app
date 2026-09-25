@@ -11,8 +11,6 @@ export type NoteSource = 'piano' | 'touch'
 export type KeyInput =
   | { kind: 'pianoDown'; pitch: number; velocity: number }
   | { kind: 'pianoUp'; pitch: number }
-  /** Связь с пианино пропала: всё, что держали на пианино, считаем отпущенным. */
-  | { kind: 'pianoReset' }
   | { kind: 'touchDown'; pointerId: number; pitch: number; pressure: number }
   /** Палец сдвинулся; pitch — клавиша под ним сейчас или null, если палец вне клавиш. */
   | { kind: 'touchMove'; pointerId: number; pitch: number | null }

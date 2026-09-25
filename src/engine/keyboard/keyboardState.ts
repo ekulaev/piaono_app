@@ -42,11 +42,6 @@ export function reduce(state: KeyboardState, input: KeyInput): ReduceResult {
       return { state: { ...state, piano, touches }, playedNote: null }
     }
 
-    case 'pianoReset': {
-      if (state.piano.size === 0) return unchanged(state)
-      return { state: { ...state, piano: new Map() }, playedNote: null }
-    }
-
     case 'touchDown': {
       const level = levelFromPressure(input.pressure)
       const touches = new Map(state.touches)

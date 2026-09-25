@@ -6,6 +6,8 @@ import './WaitingScreen.css'
 interface Props {
   connectionState: ConnectionState
   devices: MidiDeviceInfo[]
+  /** Устройство, чьи ноты сейчас принимаются. */
+  activeDeviceId: string | null
   /** Имя последней нажатой ноты («C4») или null, если ещё ничего не играли. */
   lastNoteName: string | null
   updateReady: boolean
@@ -54,6 +56,7 @@ function Hint({ state }: { state: ConnectionState }) {
 function WaitingScreen({
   connectionState,
   devices,
+  activeDeviceId,
   lastNoteName,
   updateReady,
   onRetry,
@@ -74,7 +77,14 @@ function WaitingScreen({
           <section className="waiting__body">
             {isConnected ? (
               <>
-                <p className="waiting__device">{devices.map((device) => device.name).join(', ')}</p>
+                <p className="waiting__device">
+                  {devices.find((device) => device.id === activeDeviceId)?.name}
+                </p>
+                {devices.length > 1 && (
+                  <p className="waiting__device-hint">
+                    Устройств несколько — выбрать можно в «Проверке пианино»
+                  </p>
+                )}
                 <p className="waiting__invite">Сыграй любую ноту</p>
                 <p className="waiting__note" aria-live="polite">
                   {lastNoteName}

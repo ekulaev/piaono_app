@@ -15,6 +15,9 @@ export interface MidiDeviceInfo {
   name: string
 }
 
+/** Вход, который выбрал ученик. Запоминаются оба поля: id точнее, имя переживает смену id. */
+export type PreferredInput = MidiDeviceInfo
+
 export interface NoteOnEvent {
   type: 'noteOn'
   pitch: number
@@ -31,8 +34,18 @@ export interface NoteOffEvent {
 export type MidiNoteEvent = NoteOnEvent | NoteOffEvent
 
 export interface MidiMonitorCallbacks {
-  onConnectionChange: (state: ConnectionState, devices: MidiDeviceInfo[]) => void
+  /** activeId — вход, чьи ноты сейчас принимаются (null, если входов нет). */
+  onConnectionChange: (
+    state: ConnectionState,
+    devices: MidiDeviceInfo[],
+    activeId: string | null,
+  ) => void
   onNoteEvent: (event: MidiNoteEvent) => void
+}
+
+export interface MidiMonitorOptions {
+  /** Вход, который ученик выбрал раньше (из сохранённых настроек). */
+  preferred?: PreferredInput | null
 }
 
 /** Управление запущенным монитором. */
@@ -41,4 +54,6 @@ export interface MidiMonitor {
   stop: () => void
   /** Заново запросить доступ к MIDI без перезагрузки (после того как его разрешили). */
   retry: () => void
+  /** Слушать этот вход (выбор ученика). Сохранить выбор между запусками — забота вызывающего. */
+  selectInput: (input: PreferredInput) => void
 }

@@ -3,8 +3,8 @@ import { createKeyboardState, reduce } from '../engine/keyboard/keyboardState'
 import type { KeyInput } from '../engine/keyboard/types'
 import { startMidiMonitor } from '../midi/midiAccess'
 import { pitchToNoteName } from '../midi/noteNames'
-import type { ConnectionState, MidiDeviceInfo } from '../midi/types'
-import { loadSettings, saveSettings } from '../storage/settings'
+import type { ConnectionState, MidiDeviceInfo, MidiMonitor } from '../midi/types'
+import { loadSettings, saveSettings, type Settings } from '../storage/settings'
 import CheckScreen, { type LogEntry } from './CheckScreen'
 import Keyboard from './keyboard/Keyboard'
 import WaitingScreen from './WaitingScreen'
@@ -24,13 +24,25 @@ function App() {
   const [screen, setScreen] = useState<Screen>('waiting')
   const [connectionState, setConnectionState] = useState<ConnectionState>('connecting')
   const [devices, setDevices] = useState<MidiDeviceInfo[]>([])
+  const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null)
   const [log, setLog] = useState<LogEntry[]>([])
   const [lastNoteName, setLastNoteName] = useState<string | null>(null)
   const nextLogId = useRef(0)
-  const retryRef = useRef<() => void>(() => {})
+  const monitorRef = useRef<MidiMonitor | null>(null)
   const { updateReady, applyUpdate } = useAppUpdate()
 
-  const [keyboard, setKeyboard] = useState(() => createKeyboardState(loadSettings().glissando))
+  // Настройки читаются один раз при запуске; меняются и сохраняются целиком.
+  const settingsRef = useRef<Settings | null>(null)
+  settingsRef.current ??= loadSettings()
+  function updateSettings(change: Partial<Settings>) {
+    const next = { ...settingsRef.current!, ...change }
+    settingsRef.current = next
+    saveSettings(next)
+  }
+
+  const [keyboard, setKeyboard] = useState(() =>
+    createKeyboardState(settingsRef.current!.glissando),
+  )
   // Последнее состояние без ожидания рендера: события MIDI и касаний идут чаще кадров.
   const keyboardRef = useRef(keyboard)
 
@@ -46,30 +58,38 @@ function App() {
 
   function toggleGlissando() {
     const enabled = !keyboardRef.current.glissando
-    saveSettings({ glissando: enabled })
+    updateSettings({ glissando: enabled })
     handleKeyInput({ kind: 'setGlissando', enabled })
   }
 
+  /** Ученик выбрал, с какого устройства играть: слушаем его и запоминаем выбор. */
+  function selectDevice(device: MidiDeviceInfo) {
+    updateSettings({ preferredInput: device })
+    monitorRef.current?.selectInput(device)
+  }
+
   useEffect(() => {
-    const monitor = startMidiMonitor({
-      onConnectionChange: (state, devices) => {
-        setConnectionState(state)
-        setDevices(devices)
-        // Связи нет — клавиши, зажатые на пианино, уже не отпустятся: не оставляем их нажатыми.
-        if (state !== 'connected') handleKeyInput({ kind: 'pianoReset' })
+    const monitor = startMidiMonitor(
+      {
+        onConnectionChange: (state, devices, activeId) => {
+          setConnectionState(state)
+          setDevices(devices)
+          setActiveDeviceId(activeId)
+        },
+        onNoteEvent: (event) => {
+          if (event.type === 'noteOn') {
+            handleKeyInput({ kind: 'pianoDown', pitch: event.pitch, velocity: event.velocity })
+          } else {
+            handleKeyInput({ kind: 'pianoUp', pitch: event.pitch })
+          }
+          // Журнал «Проверки пианино» — только про железо, касаний в нём нет.
+          const id = nextLogId.current++
+          setLog((prev) => [{ id, event }, ...prev].slice(0, MAX_LOG_ENTRIES))
+        },
       },
-      onNoteEvent: (event) => {
-        if (event.type === 'noteOn') {
-          handleKeyInput({ kind: 'pianoDown', pitch: event.pitch, velocity: event.velocity })
-        } else {
-          handleKeyInput({ kind: 'pianoUp', pitch: event.pitch })
-        }
-        // Журнал «Проверки пианино» — только про железо, касаний в нём нет.
-        const id = nextLogId.current++
-        setLog((prev) => [{ id, event }, ...prev].slice(0, MAX_LOG_ENTRIES))
-      },
-    })
-    retryRef.current = monitor.retry
+      { preferred: settingsRef.current!.preferredInput },
+    )
+    monitorRef.current = monitor
     return monitor.stop
   }, [handleKeyInput])
 
@@ -78,6 +98,8 @@ function App() {
       <CheckScreen
         connectionState={connectionState}
         devices={devices}
+        activeDeviceId={activeDeviceId}
+        onSelectDevice={selectDevice}
         log={log}
         glissando={keyboard.glissando}
         onToggleGlissando={toggleGlissando}
@@ -90,9 +112,10 @@ function App() {
     <WaitingScreen
       connectionState={connectionState}
       devices={devices}
+      activeDeviceId={activeDeviceId}
       lastNoteName={lastNoteName}
       updateReady={updateReady}
-      onRetry={() => retryRef.current()}
+      onRetry={() => monitorRef.current?.retry()}
       onOpenCheck={() => setScreen('check')}
       onApplyUpdate={applyUpdate}
       keyboard={<Keyboard state={keyboard} onInput={handleKeyInput} />}
