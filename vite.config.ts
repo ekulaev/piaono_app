@@ -29,6 +29,9 @@ export default defineConfig({
         start_url: BASE,
         scope: BASE,
         display: 'standalone',
+        // Действует только в установленном приложении; во вкладке браузера раскладка
+        // остаётся адаптивной и в портрете.
+        orientation: 'landscape',
         background_color: PAPER,
         theme_color: PAPER,
         icons: [

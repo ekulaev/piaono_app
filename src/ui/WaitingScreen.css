@@ -1,19 +1,45 @@
 /*
- * Раскладка из трёх рядов фиксированной роли: состояние — середина — кнопки.
+ * Экран делится на две части: всё про связь сверху и зона клавиатуры снизу —
+ * 25 % высоты, но не меньше 8rem, во всю ширину. Размер зоны от состояния связи не зависит.
+ */
+.waiting-screen {
+  height: 100svh;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) max(25svh, 8rem);
+}
+
+.waiting-screen__keyboard {
+  min-height: 0;
+}
+
+/*
+ * Раскладка из рядов фиксированной роли: состояние — середина — кнопки.
  * Середина забирает всё свободное место, поэтому смена текста или появление ноты
- * не сдвигает ни индикатор, ни кнопки.
+ * не сдвигает ни индикатор, ни кнопки. Отступы сжимаются и по высоте: на телефоне
+ * в ландшафте над клавиатурой остаётся немного места.
  */
 .waiting {
   max-width: 64rem;
+  width: 100%;
   margin: 0 auto;
-  height: 100svh;
-  padding: clamp(1rem, 3vw, 2.5rem);
+  min-height: 0;
+  padding: clamp(0.5rem, min(3vw, 4svh), 2.5rem) clamp(1rem, 3vw, 2.5rem);
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: clamp(1rem, 3vw, 2rem);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(0.5rem, min(3vw, 3svh), 2rem);
+}
+
+/* Середина и кнопки. Если не помещаются — прокручиваются по вертикали только они. */
+.waiting__scroll {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, min(3vw, 3svh), 2rem);
 }
 
 .waiting__body {
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -54,7 +80,7 @@
 /* Имя последней ноты — самый крупный текст на экране. Высота зарезервирована заранее. */
 .waiting__note {
   margin: 0;
-  font-size: clamp(6rem, 22vh, 12rem);
+  font-size: clamp(4rem, 16svh, 12rem);
   font-weight: 600;
   line-height: 1;
   height: 1em;

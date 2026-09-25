@@ -12,6 +12,8 @@ interface Props {
   connectionState: ConnectionState
   devices: MidiDeviceInfo[]
   log: LogEntry[]
+  glissando: boolean
+  onToggleGlissando: () => void
   onBack: () => void
 }
 
@@ -19,7 +21,14 @@ interface Props {
  * «Проверка пианино» — диагностический экран (бывший MIDI-монитор этапа 0):
  * какие устройства видны и какие ноты приходят.
  */
-function CheckScreen({ connectionState, devices, log, onBack }: Props) {
+function CheckScreen({
+  connectionState,
+  devices,
+  log,
+  glissando,
+  onToggleGlissando,
+  onBack,
+}: Props) {
   return (
     <main className="check">
       <header className="check__header">
@@ -27,6 +36,15 @@ function CheckScreen({ connectionState, devices, log, onBack }: Props) {
           Назад
         </button>
         <h1>Проверка пианино</h1>
+        {/* Временное место, пока нет экрана настроек (этап 8). */}
+        <button
+          type="button"
+          className="button check__glissando"
+          aria-pressed={glissando}
+          onClick={onToggleGlissando}
+        >
+          Глиссандо: {glissando ? 'вкл' : 'выкл'}
+        </button>
       </header>
 
       <ConnectionStatus state={connectionState} />

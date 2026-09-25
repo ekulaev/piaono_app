@@ -87,3 +87,17 @@
   color: var(--ink-soft);
   font-weight: 500;
 }
+
+.check__header {
+  flex-wrap: wrap;
+}
+
+.check__glissando {
+  margin-left: auto;
+}
+
+.check__glissando[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
