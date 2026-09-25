@@ -1,18 +1,29 @@
-import type { ConnectionState, MidiDeviceInfo, MidiMonitorCallbacks, MidiNoteEvent } from './types'
+import type {
+  ConnectionState,
+  MidiDeviceInfo,
+  MidiMonitor,
+  MidiMonitorCallbacks,
+  MidiNoteEvent,
+} from './types'
 
 const NOTE_ON = 0x90
 const NOTE_OFF = 0x80
 
-function listDevices(access: MIDIAccess): MidiDeviceInfo[] {
-  const devices: MidiDeviceInfo[] = []
+/**
+ * Входы, которые сейчас реально на связи. Chrome может оставлять отключённый порт
+ * в access.inputs со state 'disconnected' — такой порт считать подключённым нельзя,
+ * иначе «связь потеряна» никогда не наступит.
+ */
+function connectedInputs(access: MIDIAccess): MIDIInput[] {
+  const inputs: MIDIInput[] = []
   access.inputs.forEach((input) => {
-    devices.push({ id: input.id, name: input.name ?? 'MIDI-устройство' })
+    if (input.state !== 'disconnected') inputs.push(input)
   })
-  return devices
+  return inputs
 }
 
-function connectionStateFor(devices: MidiDeviceInfo[]): ConnectionState {
-  return devices.length > 0 ? 'connected' : 'no-device'
+function toDeviceInfo(input: MIDIInput): MidiDeviceInfo {
+  return { id: input.id, name: input.name ?? 'MIDI-устройство' }
 }
 
 /**
@@ -40,17 +51,22 @@ function buildNoteEvent(data: Uint8Array, time: number): MidiNoteEvent | null {
 /**
  * Запускает MIDI-монитор: запрашивает доступ, слушает подключённые входы и
  * переподписывается на них при любом statechange (в том числе после сна планшета —
- * это единственный сигнал, на который можно опереться для авто-реконнекта).
- * Возвращает функцию отписки.
+ * основной сигнал для авто-реконнекта). Дополнительно пересматривает входы, когда
+ * страница снова становится видимой: страховка на случай, если какая-то сборка
+ * Android пропустит statechange после сна.
  */
-export function startMidiMonitor(callbacks: MidiMonitorCallbacks): () => void {
+export function startMidiMonitor(callbacks: MidiMonitorCallbacks): MidiMonitor {
   if (!navigator.requestMIDIAccess) {
-    callbacks.onConnectionChange('unavailable', [])
-    return () => {}
+    callbacks.onConnectionChange('unsupported', [])
+    return { stop: () => {}, retry: () => {} }
   }
 
-  let cancelled = false
+  let stopped = false
   let access: MIDIAccess | null = null
+  // Номер последнего запроса доступа: ответ на устаревший запрос (после retry) игнорируем.
+  let requestNumber = 0
+  // Было ли пианино на связи в этой сессии. Отличает «потеряли» от «ещё не подключали».
+  let hadDevice = false
   const attachedInputs = new Set<MIDIInput>()
 
   function detachAll() {
@@ -60,9 +76,9 @@ export function startMidiMonitor(callbacks: MidiMonitorCallbacks): () => void {
     attachedInputs.clear()
   }
 
-  function attachInputs(current: MIDIAccess) {
+  function attachInputs(inputs: MIDIInput[]) {
     detachAll()
-    current.inputs.forEach((input) => {
+    inputs.forEach((input) => {
       input.onmidimessage = (event) => {
         if (!event.data) return
         const parsed = buildNoteEvent(event.data, event.timeStamp)
@@ -72,34 +88,58 @@ export function startMidiMonitor(callbacks: MidiMonitorCallbacks): () => void {
     })
   }
 
-  function reportState(current: MIDIAccess) {
-    const devices = listDevices(current)
-    callbacks.onConnectionChange(connectionStateFor(devices), devices)
+  /** Перечитать входы, переподписаться и сообщить актуальное состояние. */
+  function sync(current: MIDIAccess) {
+    const inputs = connectedInputs(current)
+    attachInputs(inputs)
+    if (inputs.length > 0) hadDevice = true
+
+    let state: ConnectionState
+    if (inputs.length > 0) state = 'connected'
+    else if (hadDevice) state = 'lost'
+    else state = 'no-device'
+    callbacks.onConnectionChange(state, inputs.map(toDeviceInfo))
   }
 
-  callbacks.onConnectionChange('connecting', [])
+  function requestAccess() {
+    const thisRequest = ++requestNumber
+    callbacks.onConnectionChange('connecting', [])
 
-  navigator.requestMIDIAccess().then(
-    (granted) => {
-      if (cancelled) return
-      access = granted
-      attachInputs(granted)
-      reportState(granted)
+    navigator.requestMIDIAccess().then(
+      (granted) => {
+        if (stopped || thisRequest !== requestNumber) return
+        if (access) access.onstatechange = null
+        access = granted
+        granted.onstatechange = () => {
+          if (!stopped && access) sync(access)
+        }
+        sync(granted)
+      },
+      () => {
+        // Отказ почти всегда означает «доступ запрещён». Прочие ошибки показываем так же:
+        // действие для ученика одно — разрешить MIDI и попробовать снова.
+        if (stopped || thisRequest !== requestNumber) return
+        callbacks.onConnectionChange('permission-denied', [])
+      },
+    )
+  }
 
-      granted.onstatechange = () => {
-        if (cancelled || !access) return
-        attachInputs(access)
-        reportState(access)
-      }
+  function handleVisibilityChange() {
+    if (document.visibilityState === 'visible' && access && !stopped) sync(access)
+  }
+
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  requestAccess()
+
+  return {
+    stop: () => {
+      stopped = true
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      if (access) access.onstatechange = null
+      detachAll()
     },
-    () => {
-      if (!cancelled) callbacks.onConnectionChange('unavailable', [])
+    retry: () => {
+      if (!stopped) requestAccess()
     },
-  )
-
-  return () => {
-    cancelled = true
-    if (access) access.onstatechange = null
-    detachAll()
   }
 }

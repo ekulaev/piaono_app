@@ -1,0 +1,84 @@
+.status {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-height: 5rem;
+  padding: 1rem 1.5rem;
+  border: 0.1875rem solid var(--border);
+  border-radius: 1rem;
+}
+
+.status__title {
+  font-size: clamp(1.25rem, 2.6vw, 1.75rem);
+  font-weight: 600;
+}
+
+/* Значок: базовая форма — пустой круг («пианино не подключено»). */
+.status__icon {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 0.25rem solid var(--ink-soft);
+}
+
+/* Подключаемся: круг пунктиром. */
+.status--connecting .status__icon {
+  border-style: dashed;
+}
+
+/* На связи: сплошной залитый круг акцентного цвета. */
+.status--connected {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+
+.status--connected .status__icon {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Связь потеряна: залитый треугольник-предупреждение. */
+.status--lost {
+  border-color: var(--alert);
+  border-style: dashed;
+}
+
+.status--lost .status__icon {
+  border: none;
+  border-radius: 0;
+  background: var(--alert);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+/* Браузер не умеет MIDI: залитый квадрат. */
+.status--unsupported,
+.status--permission-denied {
+  border-color: var(--alert);
+  background: var(--alert-bg);
+}
+
+.status--unsupported .status__icon {
+  border-radius: 0.25rem;
+  background: var(--alert);
+  border-color: var(--alert);
+}
+
+/* Доступ запрещён: пустой квадрат, перечёркнутый толстой диагональю. */
+.status--permission-denied .status__icon {
+  border-radius: 0.25rem;
+  border-color: var(--alert);
+}
+
+.status--permission-denied .status__icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -0.25rem;
+  width: 0.3125rem;
+  height: 2.9rem;
+  margin-left: -0.15625rem;
+  background: var(--alert);
+  transform: rotate(45deg);
+}
