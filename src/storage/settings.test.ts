@@ -20,35 +20,65 @@ const brokenStorage: SettingsStorage = {
 
 describe('Глиссандо: хранение настройки', () => {
   it('по умолчанию выключено', () => {
-    expect(loadSettings(memoryStorage())).toEqual({ glissando: false, preferredInput: null })
+    expect(loadSettings(memoryStorage())).toEqual({
+      glissando: false,
+      preferredInput: null,
+      activeMode: 'warmup',
+    })
   })
 
   it('Настройка переживает перезапуск', () => {
     const storage = memoryStorage()
-    saveSettings({ glissando: true, preferredInput: null }, storage)
-    expect(loadSettings(storage)).toEqual({ glissando: true, preferredInput: null })
+    saveSettings({ glissando: true, preferredInput: null, activeMode: 'warmup' }, storage)
+    expect(loadSettings(storage)).toEqual({
+      glissando: true,
+      preferredInput: null,
+      activeMode: 'warmup',
+    })
   })
 
   it('битые данные → значения по умолчанию', () => {
     const storage = memoryStorage()
     storage.setItem('piaono.settings.v1', '{не json')
-    expect(loadSettings(storage)).toEqual({ glissando: false, preferredInput: null })
+    expect(loadSettings(storage)).toEqual({
+      glissando: false,
+      preferredInput: null,
+      activeMode: 'warmup',
+    })
     storage.setItem('piaono.settings.v1', '{"glissando":"да"}')
-    expect(loadSettings(storage)).toEqual({ glissando: false, preferredInput: null })
+    expect(loadSettings(storage)).toEqual({
+      glissando: false,
+      preferredInput: null,
+      activeMode: 'warmup',
+    })
     storage.setItem('piaono.settings.v1', 'null')
-    expect(loadSettings(storage)).toEqual({ glissando: false, preferredInput: null })
+    expect(loadSettings(storage)).toEqual({
+      glissando: false,
+      preferredInput: null,
+      activeMode: 'warmup',
+    })
   })
 
   it('хранилище бросает исключения — приложение не падает', () => {
-    expect(loadSettings(brokenStorage)).toEqual({ glissando: false, preferredInput: null })
+    expect(loadSettings(brokenStorage)).toEqual({
+      glissando: false,
+      preferredInput: null,
+      activeMode: 'warmup',
+    })
     expect(() =>
-      saveSettings({ glissando: true, preferredInput: null }, brokenStorage),
+      saveSettings({ glissando: true, preferredInput: null, activeMode: 'warmup' }, brokenStorage),
     ).not.toThrow()
   })
 
   it('хранилища нет вовсе', () => {
-    expect(loadSettings(null)).toEqual({ glissando: false, preferredInput: null })
-    expect(() => saveSettings({ glissando: true, preferredInput: null }, null)).not.toThrow()
+    expect(loadSettings(null)).toEqual({
+      glissando: false,
+      preferredInput: null,
+      activeMode: 'warmup',
+    })
+    expect(() =>
+      saveSettings({ glissando: true, preferredInput: null, activeMode: 'warmup' }, null),
+    ).not.toThrow()
   })
 })
 
@@ -56,14 +86,18 @@ describe('Выбор запоминается и узнаёт вход посл�
   it('Перезапуск: выбранный вход сохраняется', () => {
     const storage = memoryStorage()
     const synth = { id: 's1', name: 'Synth' }
-    saveSettings({ glissando: false, preferredInput: synth }, storage)
+    saveSettings({ glissando: false, preferredInput: synth, activeMode: 'warmup' }, storage)
     expect(loadSettings(storage).preferredInput).toEqual(synth)
   })
 
   it('старые данные без поля — выбора нет, глиссандо сохраняется', () => {
     const storage = memoryStorage()
     storage.setItem('piaono.settings.v1', '{"glissando":true}')
-    expect(loadSettings(storage)).toEqual({ glissando: true, preferredInput: null })
+    expect(loadSettings(storage)).toEqual({
+      glissando: true,
+      preferredInput: null,
+      activeMode: 'warmup',
+    })
   })
 
   it('битое значение входа — выбора нет', () => {
@@ -72,5 +106,31 @@ describe('Выбор запоминается и узнаёт вход посл�
     expect(loadSettings(storage).preferredInput).toBeNull()
     storage.setItem('piaono.settings.v1', '{"preferredInput":"Synth"}')
     expect(loadSettings(storage).preferredInput).toBeNull()
+  })
+})
+
+describe('Активный режим запоминается', () => {
+  it('Перезапуск: подтверждённый режим сохраняется', () => {
+    const storage = memoryStorage()
+    saveSettings({ glissando: false, preferredInput: null, activeMode: 'warmup' }, storage)
+    expect(loadSettings(storage).activeMode).toBe('warmup')
+  })
+
+  it('Повреждённые данные: неизвестный режим → «Разминка»', () => {
+    const storage = memoryStorage()
+    storage.setItem('piaono.settings.v1', '{"activeMode":"sequences"}')
+    expect(loadSettings(storage).activeMode).toBe('warmup')
+    storage.setItem('piaono.settings.v1', '{"activeMode":42}')
+    expect(loadSettings(storage).activeMode).toBe('warmup')
+  })
+
+  it('старые данные без поля — «Разминка», остальное сохраняется', () => {
+    const storage = memoryStorage()
+    storage.setItem('piaono.settings.v1', '{"glissando":true}')
+    expect(loadSettings(storage)).toEqual({
+      glissando: true,
+      preferredInput: null,
+      activeMode: 'warmup',
+    })
   })
 })

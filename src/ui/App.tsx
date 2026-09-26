@@ -8,6 +8,9 @@ import CheckScreen, { type LogEntry } from './CheckScreen'
 import Keyboard from './keyboard/Keyboard'
 import StaffView from './staff/StaffView'
 import { useExercise } from './staff/useExercise'
+import ModeMenu from './modes/ModeMenu'
+import * as modeMenu from '../engine/modes/modeMenu'
+import { modeInfo, type ModeId } from '../engine/modes/modes'
 import WaitingScreen from './WaitingScreen'
 import { useAppUpdate } from './useAppUpdate'
 
@@ -49,6 +52,30 @@ function App() {
   // Упражнение на нотном стане: каждая сыгранная нота (пианино или касание) идёт в него.
   const exercise = useExercise()
   const playedInExercise = exercise.played
+
+  // Режимы: какой запускает «Старт» и что показывает меню режимов (C-MODE-1).
+  const [activeMode, setActiveMode] = useState<ModeId>(() => settingsRef.current!.activeMode)
+  const [menu, setMenu] = useState<modeMenu.MenuState>(modeMenu.MENU_CLOSED)
+  const closeMenu = useCallback(() => setMenu(modeMenu.closeMenu()), [])
+
+  /** Запустить упражнение режима. Этап 4 добавит сюда ветку «Последовательностей». */
+  function startMode(mode: ModeId) {
+    switch (mode) {
+      case 'warmup':
+        exercise.start()
+        break
+    }
+  }
+
+  /** «Выбрать» или «Старт» в меню: режим экрана становится активным и запоминается. */
+  function confirmMode(andStart: boolean) {
+    const { menu: next, activeMode: chosen } = modeMenu.confirm(menu)
+    setMenu(next)
+    if (!chosen) return
+    setActiveMode(chosen)
+    updateSettings({ activeMode: chosen })
+    if (andStart) startMode(chosen)
+  }
 
   /** Единая точка входа для нажатий с пианино и с экрана. */
   const handleKeyInput = useCallback(
@@ -116,23 +143,40 @@ function App() {
   }
 
   return (
-    <WaitingScreen
-      connectionState={connectionState}
-      devices={devices}
-      activeDeviceId={activeDeviceId}
-      updateReady={updateReady}
-      onRetry={() => monitorRef.current?.retry()}
-      onOpenCheck={() => {
-        // Уход с главного экрана останавливает упражнение (C-STF-1, OB-20).
-        exercise.stop()
-        setScreen('check')
-      }}
-      exerciseRunning={exercise.running}
-      onToggleExercise={exercise.running ? exercise.stop : exercise.start}
-      staff={<StaffView exercise={exercise.state} />}
-      onApplyUpdate={applyUpdate}
-      keyboard={<Keyboard state={keyboard} onInput={handleKeyInput} />}
-    />
+    <>
+      <WaitingScreen
+        connectionState={connectionState}
+        devices={devices}
+        activeDeviceId={activeDeviceId}
+        updateReady={updateReady}
+        onRetry={() => monitorRef.current?.retry()}
+        onOpenCheck={() => {
+          // Уход с главного экрана останавливает упражнение (C-STF-1, OB-20).
+          exercise.stop()
+          setScreen('check')
+        }}
+        exerciseRunning={exercise.running}
+        onToggleExercise={exercise.running ? exercise.stop : () => startMode(activeMode)}
+        activeModeTitle={modeInfo(activeMode).title}
+        onOpenModes={() => {
+          // Пока меню открыто, упражнение не идёт (C-MODE-1, OB-3).
+          exercise.stop()
+          setMenu(modeMenu.openMenu())
+        }}
+        staff={<StaffView exercise={exercise.state} />}
+        onApplyUpdate={applyUpdate}
+        keyboard={<Keyboard state={keyboard} onInput={handleKeyInput} />}
+      />
+      <ModeMenu
+        menu={menu}
+        activeMode={activeMode}
+        onChoose={(mode) => setMenu(modeMenu.chooseMode(menu, mode))}
+        onBack={() => setMenu(modeMenu.back(menu))}
+        onClose={closeMenu}
+        onSelect={() => confirmMode(false)}
+        onStart={() => confirmMode(true)}
+      />
+    </>
   )
 }
 

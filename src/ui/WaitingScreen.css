@@ -105,27 +105,32 @@
 
 /*
  * Низкий экран (телефон в ландшафте): иначе индикатор и кнопки съедают всю высоту и стану
- * не остаётся места. Кнопки встают в одну строку с подсказкой, индикатор становится ниже.
- * Размер кнопок (цели касания) не меняется.
+ * не остаётся места. Индикатор становится ниже, кнопки — в один ряд, подсказка скрыта.
+ * Высота кнопок (цели касания) не меняется.
  */
 @media (max-height: 30rem) {
   .waiting {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-rows: auto auto minmax(0, 1fr);
-    grid-template-areas: 'status status' 'message actions' 'staff staff';
+    grid-template-areas: 'status status' 'actions actions' 'staff staff';
     max-width: none;
   }
   .waiting > .status {
     min-height: 3.5rem;
     padding-block: 0.25rem;
   }
+  /* Подсказка уступает место стану: состояние связи и так видно в индикаторе. */
   .waiting__message {
-    max-height: 3.5rem;
-    align-items: flex-start;
-    text-align: left;
+    display: none;
   }
+  /* Три кнопки в один ряд. Шрифт 20px — не меньше базовых 18px; высота целей та же. */
   .waiting__actions {
     flex-wrap: nowrap;
     align-items: center;
+  }
+  .waiting__actions .button {
+    font-size: 1.125rem;
+    padding-inline: 1rem;
+    white-space: nowrap;
   }
 }

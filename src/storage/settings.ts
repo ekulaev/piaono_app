@@ -1,6 +1,7 @@
 // Единственное место, где приложение обращается к localStorage. Остальной код работает
 // с типизированными настройками и не знает, где и как они лежат.
 
+import { DEFAULT_MODE, isModeId, type ModeId } from '../engine/modes/modes'
 import type { PreferredInput } from '../midi/types'
 
 export interface Settings {
@@ -8,9 +9,15 @@ export interface Settings {
   glissando: boolean
   /** MIDI-вход, который выбрал ученик; null — выбора не было. */
   preferredInput: PreferredInput | null
+  /** Режим, который запускает «Старт» на главном экране. */
+  activeMode: ModeId
 }
 
-const DEFAULT_SETTINGS: Settings = { glissando: false, preferredInput: null }
+const DEFAULT_SETTINGS: Settings = {
+  glissando: false,
+  preferredInput: null,
+  activeMode: DEFAULT_MODE,
+}
 
 /** Версия в ключе: если формат поменяется, старые данные не прочитаются как новые. */
 const STORAGE_KEY = 'piaono.settings.v1'
@@ -37,10 +44,12 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
     if (!raw) return { ...DEFAULT_SETTINGS }
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS }
-    const { glissando, preferredInput } = parsed as Record<string, unknown>
+    const { glissando, preferredInput, activeMode } = parsed as Record<string, unknown>
     return {
       glissando: typeof glissando === 'boolean' ? glissando : DEFAULT_SETTINGS.glissando,
       preferredInput: readPreferredInput(preferredInput),
+      // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
+      activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
     }
   } catch {
     return { ...DEFAULT_SETTINGS }
