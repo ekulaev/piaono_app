@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { isBlackKey } from '../keyboard/layout'
+import type { Clef } from '../staff/pickNote'
+import { anchorsIn, intervalBetween, MAX_INTERVAL, widestFitting } from './anchors'
 import { buildSequence, buildSession, RANGES } from './generate'
-import { DEFAULT_SEQUENCE_SETTINGS, type SequenceSettings } from './settings'
+import {
+  DEFAULT_SEQUENCE_SETTINGS,
+  type IntervalChoice,
+  type RangeChoice,
+  type SequenceSettings,
+} from './settings'
 
 function seeded(seed: number) {
   let value = seed
@@ -59,4 +66,48 @@ describe('Построение последовательности', () => {
       expect(step[0]).toBeLessThanOrEqual(67)
     }
   })
+
+  it('у аккордов нет опорной ноты', () => {
+    expect(buildSequence(settings({ notesPerStep: 2 }), seeded(5)).anchor).toBeNull()
+  })
+})
+
+describe('Ход интервалами (шаги из одной ноты)', () => {
+  const ranges: RangeChoice[] = ['position', 'octave', 'staff']
+  const choices: IntervalChoice[] = ['third', 'fifth', 'octave']
+  const clefs: Clef[] = ['treble', 'bass']
+
+  for (const clef of clefs)
+    for (const range of ranges)
+      for (const intervals of choices) {
+        it(`${clef}, ${range}, ${intervals}: интервалы из набора, все помещающиеся встречаются`, () => {
+          const random = seeded(clefs.indexOf(clef) * 100 + ranges.indexOf(range) * 10 + 7)
+          const { low, high } = RANGES[range][clef]
+          const seen = new Set<number>()
+          const anchorsSeen = new Set<number>()
+          for (let i = 0; i < 1000; i++) {
+            const sequence = buildSequence(settings({ clef, range, intervals }), random)
+            expect(anchorsIn(clef, low, high)).toContain(sequence.anchor)
+            anchorsSeen.add(sequence.anchor!)
+            let previous = sequence.anchor!
+            for (const step of sequence.steps) {
+              expect(step).toHaveLength(1)
+              const pitch = step[0]
+              expect(isBlackKey(pitch)).toBe(false)
+              expect(pitch).toBeGreaterThanOrEqual(low)
+              expect(pitch).toBeLessThanOrEqual(high)
+              const { size } = intervalBetween(previous, pitch)
+              expect(size).toBeGreaterThanOrEqual(2)
+              expect(size).toBeLessThanOrEqual(MAX_INTERVAL[intervals])
+              seen.add(size)
+              previous = pitch
+            }
+          }
+          const widest = widestFitting(low, high, intervals)
+          expect([...seen].sort((a, b) => a - b)).toEqual(
+            Array.from({ length: widest - 1 }, (_, i) => i + 2),
+          )
+          expect(anchorsSeen).toEqual(new Set(anchorsIn(clef, low, high)))
+        })
+      }
 })
