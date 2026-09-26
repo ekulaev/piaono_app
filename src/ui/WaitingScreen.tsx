@@ -8,17 +8,19 @@ interface Props {
   devices: MidiDeviceInfo[]
   /** Устройство, чьи ноты сейчас принимаются. */
   activeDeviceId: string | null
-  /** Имя последней нажатой ноты («C4») или null, если ещё ничего не играли. */
-  lastNoteName: string | null
   updateReady: boolean
   onRetry: () => void
   onOpenCheck: () => void
   onApplyUpdate: () => void
+  exerciseRunning: boolean
+  onToggleExercise: () => void
+  /** Нотный стан: между подсказкой и кнопками, занимает всё свободное место. */
+  staff: ReactNode
   /** Экранная клавиатура: видна внизу во всех состояниях связи. */
   keyboard: ReactNode
 }
 
-/** Подсказка «что делать» для каждого состояния, кроме «на связи» (там — нота). */
+/** Подсказка «что делать» для каждого состояния, кроме «на связи». */
 function Hint({ state }: { state: ConnectionState }) {
   switch (state) {
     case 'unsupported':
@@ -52,16 +54,21 @@ function Hint({ state }: { state: ConnectionState }) {
   }
 }
 
-/** Главный экран: состояние связи с пианино, что делать дальше и клавиатура внизу. */
+/**
+ * Главный экран сверху вниз: индикатор связи, строка подсказки, нотный стан, кнопки,
+ * клавиатура. Ноты — единственный крупный объект: имени сыгранной ноты здесь нет.
+ */
 function WaitingScreen({
   connectionState,
   devices,
   activeDeviceId,
-  lastNoteName,
   updateReady,
   onRetry,
   onOpenCheck,
   onApplyUpdate,
+  exerciseRunning,
+  onToggleExercise,
+  staff,
   keyboard,
 }: Props) {
   const isConnected = connectionState === 'connected'
@@ -71,46 +78,49 @@ function WaitingScreen({
       <main className="waiting">
         <ConnectionStatus state={connectionState} />
 
-        {/* На низком экране (телефон) не влезающее прокручивается здесь, а индикатор
-            и клавиатура остаются на месте. */}
-        <div className="waiting__scroll">
-          <section className="waiting__body">
-            {isConnected ? (
-              <>
-                <p className="waiting__device">
-                  {devices.find((device) => device.id === activeDeviceId)?.name}
+        {/* Если подсказка не влезает (телефон), прокручивается только она. */}
+        <section className="waiting__message">
+          {isConnected ? (
+            <>
+              <p className="waiting__device">
+                {devices.find((device) => device.id === activeDeviceId)?.name}
+              </p>
+              {devices.length > 1 && (
+                <p className="waiting__device-hint">
+                  Устройств несколько — выбрать можно в «Проверке пианино»
                 </p>
-                {devices.length > 1 && (
-                  <p className="waiting__device-hint">
-                    Устройств несколько — выбрать можно в «Проверке пианино»
-                  </p>
-                )}
-                <p className="waiting__invite">Сыграй любую ноту</p>
-                <p className="waiting__note" aria-live="polite">
-                  {lastNoteName}
-                </p>
-              </>
-            ) : (
-              <Hint state={connectionState} />
-            )}
-          </section>
+              )}
+              <p className="waiting__invite">Нажми «Старт»</p>
+            </>
+          ) : (
+            <Hint state={connectionState} />
+          )}
+        </section>
 
-          <nav className="waiting__actions">
-            <button type="button" className="button" onClick={onOpenCheck}>
-              Проверка пианино
+        {staff}
+
+        <nav className="waiting__actions">
+          <button type="button" className="button" onClick={onOpenCheck}>
+            Проверка пианино
+          </button>
+          <button
+            type="button"
+            className="button button--primary waiting__start"
+            onClick={onToggleExercise}
+          >
+            {exerciseRunning ? 'Стоп' : 'Старт'}
+          </button>
+          {connectionState === 'permission-denied' && (
+            <button type="button" className="button button--primary" onClick={onRetry}>
+              Попробовать снова
             </button>
-            {connectionState === 'permission-denied' && (
-              <button type="button" className="button button--primary" onClick={onRetry}>
-                Попробовать снова
-              </button>
-            )}
-            {updateReady && (
-              <button type="button" className="button waiting__update" onClick={onApplyUpdate}>
-                Обновить сейчас
-              </button>
-            )}
-          </nav>
-        </div>
+          )}
+          {updateReady && (
+            <button type="button" className="button waiting__update" onClick={onApplyUpdate}>
+              Обновить сейчас
+            </button>
+          )}
+        </nav>
       </main>
       <div className="waiting-screen__keyboard">{keyboard}</div>
     </div>

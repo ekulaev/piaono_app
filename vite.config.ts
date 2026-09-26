@@ -11,6 +11,11 @@ const BASE = '/piaono_app/'
 
 export default defineConfig({
   base: BASE,
+  build: {
+    // VexFlow со встроенным нотным шрифтом Bravura весит ~0,9 МБ. Это осознанно: шрифт
+    // внутри сборки работает офлайн. Грузится один раз, дальше — из кеша устройства.
+    chunkSizeWarningLimit: 1500,
+  },
   plugins: [
     react(),
     VitePWA({
@@ -49,6 +54,8 @@ export default defineConfig({
       workbox: {
         // Всё, что собрано, кладём в кэш устройства: оболочка, стили, иконки.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        // Запас для чанка с VexFlow и шрифтом: файл больше лимита не попал бы в офлайн-кеш.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
     }),
   ],

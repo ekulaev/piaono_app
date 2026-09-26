@@ -13,40 +13,31 @@
 }
 
 /*
- * Раскладка из рядов фиксированной роли: состояние — середина — кнопки.
- * Середина забирает всё свободное место, поэтому смена текста или появление ноты
- * не сдвигает ни индикатор, ни кнопки. Отступы сжимаются и по высоте: на телефоне
- * в ландшафте над клавиатурой остаётся немного места.
+ * Раскладка из рядов фиксированной роли: индикатор — подсказка — нотный стан — кнопки.
+ * Стан забирает всё свободное место, поэтому смена текста подсказки не сдвигает ни
+ * индикатор, ни кнопки. Отступы сжимаются и по высоте: на телефоне в ландшафте над
+ * клавиатурой остаётся немного места.
  */
 .waiting {
   max-width: 64rem;
   width: 100%;
   margin: 0 auto;
   min-height: 0;
-  padding: clamp(0.5rem, min(3vw, 4svh), 2.5rem) clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(0.5rem, min(3vw, 3svh), 2rem) clamp(1rem, 3vw, 2.5rem);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: clamp(0.5rem, min(3vw, 3svh), 2rem);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: clamp(0.5rem, min(2vw, 2svh), 1.5rem);
 }
 
-/* Середина и кнопки. Если не помещаются — прокручиваются по вертикали только они. */
-.waiting__scroll {
-  min-height: 0;
+/* Строка подсказки о связи. Ограничена по высоте, чтобы стан не остался без места. */
+.waiting__message {
+  max-height: 22svh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: clamp(0.5rem, min(3vw, 3svh), 2rem);
-}
-
-.waiting__body {
-  flex: 1 0 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
   text-align: center;
-  min-height: 0;
-  gap: 0.75rem;
+  gap: 0.25rem;
 }
 
 .hint {
@@ -83,16 +74,6 @@
   font-weight: 600;
 }
 
-/* Имя последней ноты — самый крупный текст на экране. Высота зарезервирована заранее. */
-.waiting__note {
-  margin: 0;
-  font-size: clamp(4rem, 16svh, 12rem);
-  font-weight: 600;
-  line-height: 1;
-  height: 1em;
-  font-variant-numeric: tabular-nums;
-}
-
 /* Ряд кнопок всегда занимает одну и ту же высоту — появление кнопки ничего не сдвигает. */
 .waiting__actions {
   display: flex;
@@ -103,4 +84,48 @@
 
 .waiting__update {
   margin-left: auto;
+}
+
+/* Ряды главного экрана по именам — чтобы на низком экране переставить их, не ужимая цели. */
+.waiting {
+  grid-template-areas: 'status' 'message' 'staff' 'actions';
+}
+.waiting > .status {
+  grid-area: status;
+}
+.waiting__message {
+  grid-area: message;
+}
+.waiting > .staff-zone {
+  grid-area: staff;
+}
+.waiting__actions {
+  grid-area: actions;
+}
+
+/*
+ * Низкий экран (телефон в ландшафте): иначе индикатор и кнопки съедают всю высоту и стану
+ * не остаётся места. Кнопки встают в одну строку с подсказкой, индикатор становится ниже.
+ * Размер кнопок (цели касания) не меняется.
+ */
+@media (max-height: 30rem) {
+  .waiting {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas: 'status status' 'message actions' 'staff staff';
+    max-width: none;
+  }
+  .waiting > .status {
+    min-height: 3.5rem;
+    padding-block: 0.25rem;
+  }
+  .waiting__message {
+    max-height: 3.5rem;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .waiting__actions {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
 }
