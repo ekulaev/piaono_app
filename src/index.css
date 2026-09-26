@@ -14,12 +14,18 @@
   /* Результат ноты на стане: цвет плюс форма кольца (сплошное / пунктир). Контраст > 7:1. */
   --note-correct: #1a5216;
   --note-wrong: #7a1a10;
+  /* Текущий шаг «Последовательностей»: затемнённый акцент (7,9:1), только для нот. */
+  --note-current: #145048;
 
   color-scheme: light;
   color: var(--ink);
   background: var(--paper);
 
-  font: 500 1.125rem/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  font:
+    500 1.125rem/1.5 system-ui,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

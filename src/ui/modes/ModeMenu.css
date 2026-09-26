@@ -109,3 +109,10 @@
   order: 2;
   flex-basis: 100%;
 }
+
+.sequence-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 0.5rem;
+}

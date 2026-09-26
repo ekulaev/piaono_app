@@ -82,6 +82,17 @@
   min-height: 3.5rem;
 }
 
+/* Слот «Проверка пианино / Пропустить / Далее (N)» не меняет ширину при смене надписи:
+   кнопки справа от него не сдвигаются. Ширина — по самой длинной надписи. */
+.waiting__slot {
+  min-width: 13.5em;
+}
+
+/* То же для «Старт» / «Стоп». */
+.waiting__start {
+  min-width: 6em;
+}
+
 .waiting__update {
   margin-left: auto;
 }
@@ -96,7 +107,8 @@
 .waiting__message {
   grid-area: message;
 }
-.waiting > .staff-zone {
+.waiting > .staff-zone,
+.waiting > .summary {
   grid-area: staff;
 }
 .waiting__actions {
@@ -132,5 +144,15 @@
     font-size: 1.125rem;
     padding-inline: 1rem;
     white-space: nowrap;
+  }
+  .waiting__actions .waiting__slot {
+    min-width: 13em;
+  }
+  /* Длинное название режима («Последовательности») переносится на вторую строку, а не
+     выталкивает кнопку за край экрана. */
+  .waiting__actions .waiting__mode {
+    white-space: normal;
+    line-height: 1.15;
+    min-width: 0;
   }
 }

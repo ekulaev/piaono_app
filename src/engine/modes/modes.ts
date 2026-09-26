@@ -1,8 +1,7 @@
 // Перечень режимов упражнения. Порядок массива — порядок в меню режимов.
 // В массиве только доступные (реализованные) режимы: чего здесь нет, того нет и в меню.
-// «Последовательности» (этап 4) встанут первыми.
 
-export type ModeId = 'warmup'
+export type ModeId = 'sequences' | 'warmup'
 
 export interface ModeInfo {
   id: ModeId
@@ -11,7 +10,10 @@ export interface ModeInfo {
   hasSettings: boolean
 }
 
-export const MODES: readonly ModeInfo[] = [{ id: 'warmup', title: 'Разминка', hasSettings: false }]
+export const MODES: readonly ModeInfo[] = [
+  { id: 'sequences', title: 'Последовательности', hasSettings: true },
+  { id: 'warmup', title: 'Разминка', hasSettings: false },
+]
 
 /** С этого режима начинает новый пользователь; к нему же возвращаемся при битых данных. */
 export const DEFAULT_MODE: ModeId = 'warmup'

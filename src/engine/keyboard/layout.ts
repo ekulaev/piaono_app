@@ -79,6 +79,17 @@ export function initialStart(count: number): number {
   return clampStart(WHITE_PITCHES.indexOf(MIDDLE_C) - centerOffset(count), count)
 }
 
+/**
+ * Центрирование на диапазоне нот (начало последовательности): в центр видимой части встаёт
+ * белая клавиша у середины диапазона, у краёв клавиатуры — насколько позволяют края.
+ */
+export function centerStartOn(low: number, high: number, count: number): number {
+  const middle = (low + high) / 2
+  const index = WHITE_PITCHES.findIndex((pitch) => pitch >= middle)
+  const center = index === -1 ? WHITE_KEY_COUNT - 1 : index
+  return clampStart(center - centerOffset(count), count)
+}
+
 /** После смены размера центральная клавиша остаётся в центре, насколько позволяют края. */
 export function resizeStart(start: number, oldCount: number, newCount: number): number {
   const center = start + centerOffset(oldCount)

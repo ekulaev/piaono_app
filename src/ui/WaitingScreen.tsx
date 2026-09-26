@@ -3,6 +3,12 @@ import type { ConnectionState, MidiDeviceInfo } from '../midi/types'
 import ConnectionStatus from './ConnectionStatus'
 import './WaitingScreen.css'
 
+/** Кнопка, которая на время упражнения встаёт на место «Проверки пианино». */
+export interface SlotButton {
+  label: string
+  onClick: () => void
+}
+
 interface Props {
   connectionState: ConnectionState
   devices: MidiDeviceInfo[]
@@ -17,6 +23,8 @@ interface Props {
   /** Название активного режима — на кнопке «Режим: …». */
   activeModeTitle: string
   onOpenModes: () => void
+  /** «Пропустить» / «Далее (N)»; null — на месте «Проверка пианино». */
+  slotButton: SlotButton | null
   /** Нотный стан: между подсказкой и кнопками, занимает всё свободное место. */
   staff: ReactNode
   /** Экранная клавиатура: видна внизу во всех состояниях связи. */
@@ -73,6 +81,7 @@ function WaitingScreen({
   onToggleExercise,
   activeModeTitle,
   onOpenModes,
+  slotButton,
   staff,
   keyboard,
 }: Props) {
@@ -105,9 +114,16 @@ function WaitingScreen({
         {staff}
 
         <nav className="waiting__actions">
-          <button type="button" className="button" onClick={onOpenCheck}>
-            Проверка пианино
-          </button>
+          {/* Число кнопок в ряду не меняется: слот занимает место «Проверки пианино». */}
+          {slotButton ? (
+            <button type="button" className="button waiting__slot" onClick={slotButton.onClick}>
+              {slotButton.label}
+            </button>
+          ) : (
+            <button type="button" className="button waiting__slot" onClick={onOpenCheck}>
+              Проверка пианино
+            </button>
+          )}
           <button
             type="button"
             className="button button--primary waiting__start"
