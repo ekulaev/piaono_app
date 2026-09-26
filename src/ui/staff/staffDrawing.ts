@@ -13,6 +13,11 @@ const VIRTUAL_HEIGHT = TOP_MARGIN * 2 + 4 * SPACING
 /** Линии стана и добавочные линии — вдвое толще, чем у VexFlow по умолчанию. */
 export const LINE_WIDTH = 2
 export const LEDGER_WIDTH = 3
+/**
+ * Полоса подсказок интервалов над станом (C-STF-3): 36 из 156 единиц высоты — меньше
+ * четверти зоны. Цифра подсказки высотой около двух промежутков стана помещается в неё.
+ */
+export const HINT_BAND = 36
 /** Отступ ноты от правого края стана в начале пути. */
 const RIGHT_PADDING = 12
 
@@ -25,14 +30,32 @@ export interface StaffGeometry {
   scale: number
   /** Ширина стана в условных единицах. */
   virtualWidth: number
+  /** Высота полосы подсказок над станом, условные единицы; 0 — полосы нет. */
+  hintBand: number
+  /** Где верхняя линия стана, условные единицы: под полосой и местом для добавочных линий. */
+  staveY: number
 }
 
-/** Размер стана под зону: 90 % ширины, вся высота (C-STF-1, OB-1). */
-export function staffGeometry(zoneWidthPx: number, zoneHeightPx: number): StaffGeometry {
+/**
+ * Размер стана под зону: 90 % ширины, вся высота (C-STF-1, OB-1). Если есть полоса подсказок,
+ * она занимает верх зоны, а стан с добавочными линиями — остальную высоту (C-STF-3, OB-10).
+ */
+export function staffGeometry(
+  zoneWidthPx: number,
+  zoneHeightPx: number,
+  hintBand = 0,
+): StaffGeometry {
   const widthPx = zoneWidthPx * 0.9
   const heightPx = zoneHeightPx
-  const scale = heightPx / VIRTUAL_HEIGHT
-  return { widthPx, heightPx, scale, virtualWidth: widthPx / scale }
+  const scale = heightPx / (hintBand + VIRTUAL_HEIGHT)
+  return {
+    widthPx,
+    heightPx,
+    scale,
+    virtualWidth: widthPx / scale,
+    hintBand,
+    staveY: hintBand + TOP_MARGIN,
+  }
 }
 
 /** Цвета берутся из CSS-переменных, чтобы палитра жила в одном месте (index.css). */
@@ -41,7 +64,7 @@ export function cssColor(name: string): string {
 }
 
 export function makeStave(geometry: StaffGeometry, clef: Clef | null): Stave {
-  const stave = new Stave(0, TOP_MARGIN, geometry.virtualWidth, {
+  const stave = new Stave(0, geometry.staveY, geometry.virtualWidth, {
     leftBar: false, // тактовых черт в упражнении нет
     rightBar: false,
     spaceAboveStaffLn: 0,

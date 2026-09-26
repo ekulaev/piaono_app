@@ -1,5 +1,5 @@
-// Единственное место, где приложение обращается к localStorage. Остальной код работает
-// с типизированными настройками и не знает, где и как они лежат.
+// Настройки на устройстве. Остальной код работает с типизированными настройками и не знает,
+// где и как они лежат.
 
 import { DEFAULT_MODE, isModeId, type ModeId } from '../engine/modes/modes'
 import {
@@ -8,6 +8,9 @@ import {
   type SequenceSettings,
 } from '../engine/sequences/settings'
 import type { PreferredInput } from '../midi/types'
+import { browserStorage, type SettingsStorage } from './browserStorage'
+
+export type { SettingsStorage }
 
 export interface Settings {
   /** Скольжение пальцем по клавишам играет ноты. */
@@ -29,18 +32,6 @@ const DEFAULT_SETTINGS: Settings = {
 
 /** Версия в ключе: если формат поменяется, старые данные не прочитаются как новые. */
 const STORAGE_KEY = 'piaono.settings.v1'
-
-/** Минимальная часть интерфейса Storage, которая нам нужна (удобно подменять в тестах). */
-export type SettingsStorage = Pick<Storage, 'getItem' | 'setItem'>
-
-function browserStorage(): SettingsStorage | null {
-  try {
-    return globalThis.localStorage ?? null
-  } catch {
-    // Некоторые браузеры бросают исключение при самом обращении к localStorage.
-    return null
-  }
-}
 
 /**
  * Настройки с устройства. Отсутствующие, битые или недоступные данные — не ошибка:

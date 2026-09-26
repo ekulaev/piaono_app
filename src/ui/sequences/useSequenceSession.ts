@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildSession } from '../../engine/sequences/generate'
 import * as session from '../../engine/sequences/session'
+import type { HintProgress } from '../../engine/sequences/hints'
 import type { SessionState } from '../../engine/sequences/session'
 import type { SequenceSettings } from '../../engine/sequences/settings'
 import type { KeyboardFocus } from '../keyboard/Keyboard'
@@ -47,13 +48,15 @@ export function useSequenceSession() {
     return () => cancelAnimationFrame(frame)
   }, [needsFrames, update])
 
+  /** hints — уровни подсказок; null — подсказки в этой сессии не действуют. */
   const start = useCallback(
-    (settings: SequenceSettings) =>
+    (settings: SequenceSettings, hints: HintProgress | null) =>
       update(
         session.startSession(
           buildSession(settings, Math.random),
           settings.autoAdvance,
           performance.now(),
+          hints,
         ),
       ),
     [update],

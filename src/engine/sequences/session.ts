@@ -1,5 +1,12 @@
 import { GROUP_MS } from '../staff/exercise'
 import type { Sequence } from './generate'
+import {
+  initialVisibility,
+  nextProgress,
+  revealStep,
+  type HintProgress,
+  type HintVisibility,
+} from './hints'
 
 /** Отсчёт перед автоматическим переходом к следующей последовательности. */
 export const COUNTDOWN_MS = 3000
@@ -12,6 +19,8 @@ export interface StepRecord {
   hadError: boolean
   /** От момента, когда шаг стал текущим, до верного нажатия; null — не сыгран верно. */
   reactionMs: number | null
+  /** Над шагом была подсказка интервала в момент верного нажатия (для «Без подсказки»). */
+  hinted: boolean
 }
 
 /** Нажатия в пределах GROUP_MS от первого — одна группа (аккорд). */
@@ -31,6 +40,8 @@ interface Common {
   /** Результаты завершённых последовательностей сессии. */
   history: StepRecord[][]
   autoAdvance: boolean
+  /** Уровни подсказок; null — подсказки в этой сессии не действуют. */
+  hints: HintProgress | null
 }
 
 export type SessionState =
@@ -44,14 +55,31 @@ export type SessionState =
       wrongPitches: number[]
       /** Растёт с каждой ошибкой — по нему UI перезапускает пульсацию. */
       errorCount: number
+      /** Что показано над станом; null — подсказок нет. */
+      visibility: HintVisibility | null
     })
-  | (Common & { phase: 'finished'; countdownUntil: number | null })
-  | { phase: 'summary'; sequences: Sequence[]; history: StepRecord[][]; autoAdvance: boolean }
+  | (Common & {
+      phase: 'finished'
+      countdownUntil: number | null
+      visibility: HintVisibility | null
+    })
+  | {
+      phase: 'summary'
+      sequences: Sequence[]
+      history: StepRecord[][]
+      autoAdvance: boolean
+      hints: HintProgress | null
+    }
 
 export const IDLE: SessionState = { phase: 'idle' }
 
 const pendingRecords = (sequence: Sequence): StepRecord[] =>
-  sequence.steps.map(() => ({ result: 'pending', hadError: false, reactionMs: null }))
+  sequence.steps.map(() => ({
+    result: 'pending',
+    hadError: false,
+    reactionMs: null,
+    hinted: false,
+  }))
 
 /**
  * Сессия режима «Последовательности» как автомат. Все функции чистые, время (мс, как
@@ -61,11 +89,22 @@ export function startSession(
   sequences: Sequence[],
   autoAdvance: boolean,
   now: number,
+  hints: HintProgress | null = null,
 ): SessionState {
-  return playSequence({ sequences, seqIndex: 0, records: [], history: [], autoAdvance }, 0, now)
+  return playSequence(
+    { sequences, seqIndex: 0, records: [], history: [], autoAdvance, hints },
+    0,
+    now,
+  )
 }
 
 function playSequence(common: Common, seqIndex: number, now: number): SessionState {
+  const sequence = common.sequences[seqIndex]
+  // Уровень берётся в начале последовательности и внутри неё не меняется.
+  const visibility =
+    common.hints && sequence.anchor !== null
+      ? initialVisibility(common.hints[sequence.clef].level, sequence.steps.length)
+      : null
   return {
     ...common,
     phase: 'playing',
@@ -76,6 +115,7 @@ function playSequence(common: Common, seqIndex: number, now: number): SessionSta
     group: null,
     wrongPitches: [],
     errorCount: 0,
+    visibility,
   }
 }
 
@@ -83,6 +123,11 @@ type Playing = Extract<SessionState, { phase: 'playing' }>
 
 function currentStep(state: Playing): number[] {
   return state.sequences[state.seqIndex].steps[state.stepIndex]
+}
+
+/** Ошибка на текущем шаге: над ним появляется подсказка (если подсказки действуют). */
+function revealCurrent(state: Playing): HintVisibility | null {
+  return state.visibility && revealStep(state.visibility, state.stepIndex)
 }
 
 function withRecord(state: Playing, change: Partial<StepRecord>): StepRecord[] {
@@ -97,7 +142,9 @@ function advance(state: Playing, records: StepRecord[], now: number): SessionSta
   if (next < state.sequences[state.seqIndex].steps.length) {
     return { ...state, records, stepIndex: next, stepStartedAt: now, group: null, wrongPitches: [] }
   }
-  const { sequences, seqIndex, history, autoAdvance } = state
+  const { sequences, seqIndex, history, autoAdvance, visibility } = state
+  // Уровни пересчитываются только у завершённой последовательности: «Стоп» их не трогает.
+  const hints = state.hints && nextProgress(state.hints, sequences[seqIndex].clef, records)
   return {
     phase: 'finished',
     sequences,
@@ -105,6 +152,8 @@ function advance(state: Playing, records: StepRecord[], now: number): SessionSta
     records,
     history,
     autoAdvance,
+    hints,
+    visibility,
     countdownUntil: autoAdvance ? now + COUNTDOWN_MS : null,
   }
 }
@@ -123,6 +172,7 @@ function closeGroup(state: Playing, now: number): Playing {
       records: withRecord(state, { hadError: true }),
       wrongPitches: [],
       errorCount: state.errorCount + 1,
+      visibility: revealCurrent(state),
     }
   }
   return { ...state, group: null }
@@ -145,6 +195,7 @@ export function played(state: SessionState, pitch: number, now: number): Session
       wrongPitches: wrong,
       records: withRecord(current, { hadError: true }),
       errorCount: firstInGroup ? current.errorCount + 1 : current.errorCount,
+      visibility: revealCurrent(current),
     }
   }
 
@@ -154,6 +205,7 @@ export function played(state: SessionState, pitch: number, now: number): Session
     const records = withRecord(current, {
       result: 'correct',
       reactionMs: now - current.stepStartedAt,
+      hinted: current.visibility?.steps[current.stepIndex] ?? false,
     })
     return advance(current, records, now)
   }
@@ -170,15 +222,15 @@ export function skip(state: SessionState, now: number): SessionState {
 export function next(state: SessionState, now: number): SessionState {
   if (state.phase !== 'finished') return state
   const history = [...state.history, state.records]
-  const { sequences, autoAdvance } = state
+  const { sequences, autoAdvance, hints } = state
   if (state.seqIndex + 1 < sequences.length) {
     return playSequence(
-      { sequences, seqIndex: 0, records: [], history, autoAdvance },
+      { sequences, seqIndex: 0, records: [], history, autoAdvance, hints },
       state.seqIndex + 1,
       now,
     )
   }
-  return { phase: 'summary', sequences, history, autoAdvance }
+  return { phase: 'summary', sequences, history, autoAdvance, hints }
 }
 
 /** Продвинуть по времени: закрыть группу, завершить отсчёт. */
@@ -210,10 +262,10 @@ export function stop(): SessionState {
   return IDLE
 }
 
-/** «Повторить»: те же последовательности в том же порядке. */
+/** «Повторить»: те же последовательности в том же порядке, с текущими уровнями подсказок. */
 export function repeat(state: SessionState, now: number): SessionState {
   if (state.phase !== 'summary') return state
-  return startSession(state.sequences, state.autoAdvance, now)
+  return startSession(state.sequences, state.autoAdvance, now, state.hints)
 }
 
 /** Сколько секунд показать на кнопке «Далее (N)»; null — отсчёта нет. */
@@ -230,9 +282,19 @@ export interface SessionSummary {
   accuracy: number | null
   /** До пяти нот с наибольшим средним временем реакции, по убыванию. */
   slowest: { pitch: number; averageMs: number }[]
+  /**
+   * «Без подсказки: count из of»: верные с первой попытки без подсказки над шагом среди
+   * непропущенных. null — сессия шла без подсказок.
+   */
+  withoutHint: { count: number; of: number } | null
 }
 
-export function summarize(sequences: Sequence[], history: StepRecord[][]): SessionSummary {
+export function summarize(
+  sequences: Sequence[],
+  history: StepRecord[][],
+  hintsUsed = false,
+): SessionSummary {
+  let withoutHintCount = 0
   let correctFirstTry = 0
   let withError = 0
   let skipped = 0
@@ -244,6 +306,7 @@ export function summarize(sequences: Sequence[], history: StepRecord[][]): Sessi
       else if (record.result === 'correct') {
         if (record.hadError) withError++
         else correctFirstTry++
+        if (!record.hadError && !record.hinted) withoutHintCount++
         // Время шага из нескольких нот относится к каждой его ноте.
         for (const pitch of sequences[seqIndex].steps[stepIndex]) {
           times.set(pitch, [...(times.get(pitch) ?? []), record.reactionMs ?? 0])
@@ -264,5 +327,6 @@ export function summarize(sequences: Sequence[], history: StepRecord[][]): Sessi
     skipped,
     accuracy: played === 0 ? null : correctFirstTry / played,
     slowest,
+    withoutHint: hintsUsed ? { count: withoutHintCount, of: played } : null,
   }
 }

@@ -9,6 +9,10 @@ interface ChoiceGroupProps<T extends string> {
   options: readonly { value: T; title: string }[]
   value: T
   onChange: (value: T) => void
+  /** Настройка сейчас не действует: кнопки не нажимаются, значение сохраняется. */
+  disabled?: boolean
+  /** Строка под кнопками: пояснение к настройке. */
+  note?: string
 }
 
 /** Выбор одного значения из нескольких — ряд кнопок. */
@@ -17,6 +21,8 @@ export function ChoiceGroup<T extends string>({
   options,
   value,
   onChange,
+  disabled = false,
+  note,
 }: ChoiceGroupProps<T>) {
   const labelId = useId()
   return (
@@ -34,6 +40,7 @@ export function ChoiceGroup<T extends string>({
               role="radio"
               aria-checked={selected}
               className={`choice__option${selected ? ' choice__option--selected' : ''}`}
+              disabled={disabled}
               onClick={() => onChange(option.value)}
             >
               {selected && <span aria-hidden="true">✓ </span>}
@@ -42,6 +49,7 @@ export function ChoiceGroup<T extends string>({
           )
         })}
       </div>
+      {note && <p className="control__note">{note}</p>}
     </div>
   )
 }
@@ -97,14 +105,26 @@ interface ToggleProps {
   icon?: ReactNode
   /** Короткий вид: квадрат и значок, подпись — только для экранного диктора и подсказки. */
   compact?: boolean
+  /** Настройка сейчас не действует: флажок не нажимается, значение сохраняется. */
+  disabled?: boolean
+  /** Строка под флажком: пояснение к настройке. */
+  note?: string
 }
 
 /** Флажок: квадрат с «✓», значок и подпись — вся кнопка является целью касания. */
-export function Toggle({ label, checked, onChange, icon, compact = false }: ToggleProps) {
+export function Toggle({
+  label,
+  checked,
+  onChange,
+  icon,
+  compact = false,
+  disabled = false,
+  note,
+}: ToggleProps) {
   const className = ['toggle', checked && 'toggle--on', compact && 'toggle--compact']
     .filter(Boolean)
     .join(' ')
-  return (
+  const toggle = (
     <button
       type="button"
       role="switch"
@@ -112,6 +132,7 @@ export function Toggle({ label, checked, onChange, icon, compact = false }: Togg
       aria-label={compact ? label : undefined}
       title={compact ? label : undefined}
       className={className}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
     >
       <span className="toggle__box" aria-hidden="true">
@@ -120,5 +141,12 @@ export function Toggle({ label, checked, onChange, icon, compact = false }: Togg
       {icon}
       {!compact && <span className="toggle__label">{label}</span>}
     </button>
+  )
+  if (!note) return toggle
+  return (
+    <div className="control">
+      {toggle}
+      <p className="control__note">{note}</p>
+    </div>
   )
 }

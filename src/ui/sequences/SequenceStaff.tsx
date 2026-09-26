@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 import type { SessionState } from '../../engine/sequences/session'
+import { HINT_BAND } from '../staff/staffDrawing'
 import { useMusicFont, useStaffGeometry } from '../staff/staffHooks'
 import { drawSequence, type StepMark } from './sequenceDrawing'
 import '../staff/StaffView.css'
@@ -13,7 +14,10 @@ interface Props {
 function SequenceStaff({ session }: Props) {
   const zoneRef = useRef<HTMLDivElement>(null)
   const staffRef = useRef<HTMLDivElement>(null)
-  const geometry = useStaffGeometry(zoneRef)
+  // Полоса подсказок держится всю сессию с подсказками: стан не прыгает (C-STF-3, OB-10).
+  const withHints =
+    (session.phase === 'playing' || session.phase === 'finished') && session.visibility !== null
+  const geometry = useStaffGeometry(zoneRef, withHints ? HINT_BAND : 0)
   const fontReady = useMusicFont()
   // Ключ последней отрисовки. Каждая отрисовка создаёт SVG заново и тем перезапускает
   // пульсацию, поэтому одинаковый вид (например, закрылась группа нажатий без ошибки) не
@@ -43,6 +47,8 @@ function SequenceStaff({ session }: Props) {
       currentHadError,
       pulse: currentHadError,
       wrongPitches: playing?.wrongPitches ?? [],
+      anchor: sequence.anchor,
+      visibility: session.visibility,
     }
     const key = JSON.stringify([view, playing?.errorCount, session.seqIndex, geometry])
     if (key === drawnKey.current) return
