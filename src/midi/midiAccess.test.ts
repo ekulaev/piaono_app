@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { startMidiMonitor } from './midiAccess'
+import { QUIET_RETRY_MS, startMidiMonitor } from './midiAccess'
 import type { ConnectionState, MidiMonitor, MidiNoteEvent, PreferredInput } from './types'
 
 /** Подменённый вход: только то, чем пользуется midiAccess. */
@@ -236,19 +236,6 @@ describe('Восстановление связи после сна', () => {
     expect(pitches('noteOn')).toEqual([60, 62])
   })
 
-  it('«Переподключить пианино»: входы закрываются, доступ запрашивается заново', async () => {
-    const piano = fakeInput('p1', 'Piano')
-    midi.access.inputs.set('p1', piano)
-    await start()
-    monitor!.reconnect()
-    expect(piano.closed).toBe(1)
-    expect(last.state).toBe('connecting')
-    await flush()
-    expect(last.state).toBe('connected')
-    midi.send(piano, 0x90, 60, 100)
-    expect(pitches('noteOn')).toEqual([60])
-  })
-
   it('Вход не открылся: модуль работает, состояние — по фактическому списку', async () => {
     const piano = fakeInput('p1', 'Piano', true)
     midi.access.inputs.set('p1', piano)
@@ -309,9 +296,56 @@ describe('Состояния связи', () => {
   })
 
   it('отказ в доступе — permission-denied', async () => {
-    vi.stubGlobal('navigator', { requestMIDIAccess: () => Promise.reject(new Error('denied')) })
+    const denied = new DOMException('Permission denied', 'NotAllowedError')
+    vi.stubGlobal('navigator', { requestMIDIAccess: () => Promise.reject(denied) })
     await start()
+    await flush()
     expect(last.state).toBe('permission-denied')
+  })
+
+  it('та же ошибка при разрешённом MIDI — unavailable, а не «запрещён»', async () => {
+    const error = new DOMException('Platform dependent initialization failed.', 'NotAllowedError')
+    vi.stubGlobal('navigator', {
+      requestMIDIAccess: () => Promise.reject(error),
+      permissions: { query: () => Promise.resolve({ state: 'granted' }) },
+    })
+    await start()
+    await flush()
+    expect(last.state).toBe('unavailable')
+  })
+
+  it('Пианино занято: unavailable, текст ошибки для проверки, тихий повтор восстанавливает', async () => {
+    vi.useFakeTimers()
+    try {
+      const piano = fakeInput('p1', 'Piano')
+      midi.access.inputs.set('p1', piano)
+      let busy = true
+      const states: ConnectionState[] = []
+      const errors: (string | null)[] = []
+      vi.stubGlobal('navigator', {
+        requestMIDIAccess: () =>
+          busy
+            ? Promise.reject(
+                new DOMException('Platform dependent initialization failed.', 'AbortError'),
+              )
+            : Promise.resolve(midi.access),
+      })
+      monitor = startMidiMonitor({
+        onConnectionChange: (state) => states.push(state),
+        onNoteEvent: () => {},
+        onAccessError: (detail) => errors.push(detail),
+      })
+      await flush()
+      expect(states).toEqual(['connecting', 'unavailable'])
+      expect(errors).toEqual(['AbortError: Platform dependent initialization failed.'])
+      busy = false
+      await vi.advanceTimersByTimeAsync(QUIET_RETRY_MS)
+      // Тихий повтор не показывает «Подключаемся».
+      expect(states).toEqual(['connecting', 'unavailable', 'connected'])
+      expect(errors.at(-1)).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('нет Web MIDI — unsupported', async () => {

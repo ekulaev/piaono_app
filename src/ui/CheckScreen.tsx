@@ -17,8 +17,10 @@ interface Props {
   log: LogEntry[]
   glissando: boolean
   onToggleGlissando: () => void
-  /** Переподключить пианино программно — вместо «выдернуть и вставить кабель». */
-  onReconnect: () => void
+  /** Текст последней ошибки запроса MIDI (для диагностики); null — ошибки нет. */
+  accessError: string | null
+  /** Перезапустить приложение — заново запустить MIDI, не трогая кабель. */
+  onRestart: () => void
   onBack: () => void
 }
 
@@ -34,7 +36,8 @@ function CheckScreen({
   log,
   glissando,
   onToggleGlissando,
-  onReconnect,
+  accessError,
+  onRestart,
   onBack,
 }: Props) {
   return (
@@ -82,16 +85,17 @@ function CheckScreen({
             })}
           </ul>
         )}
-        {devices.length > 0 && (
+        {connectionState !== 'unsupported' && (
           <div className="devices__reconnect">
             <p>
               Пианино на связи, а ноты не приходят? Например, его перехватило другое приложение.
             </p>
-            <button type="button" className="button" onClick={onReconnect}>
+            <button type="button" className="button" onClick={onRestart}>
               Переподключить пианино
             </button>
           </div>
         )}
+        {accessError && <p className="devices__error">Ответ системы: {accessError}</p>}
       </section>
 
       <section className="log">

@@ -37,6 +37,7 @@ function App() {
   const [devices, setDevices] = useState<MidiDeviceInfo[]>([])
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null)
   const [log, setLog] = useState<LogEntry[]>([])
+  const [accessError, setAccessError] = useState<string | null>(null)
   const nextLogId = useRef(0)
   const monitorRef = useRef<MidiMonitor | null>(null)
   const { updateReady, applyUpdate } = useAppUpdate()
@@ -138,6 +139,15 @@ function App() {
     handleKeyInput({ kind: 'setGlissando', enabled })
   }
 
+  /**
+   * Перезапуск приложения. Chrome запускает MIDI один раз на страницу и запоминает неудачу:
+   * повторный запрос доступа без перезагрузки получает тот же отказ. Перезагрузка — это
+   * новый запуск MIDI, как будто кабель переподключили. Оболочка берётся из кеша, это быстро.
+   */
+  function restartApp() {
+    window.location.reload()
+  }
+
   /** Ученик выбрал, с какого устройства играть: слушаем его и запоминаем выбор. */
   function selectDevice(device: MidiDeviceInfo) {
     updateSettings({ preferredInput: device })
@@ -152,6 +162,7 @@ function App() {
           setDevices(devices)
           setActiveDeviceId(activeId)
         },
+        onAccessError: setAccessError,
         onNoteEvent: (event) => {
           if (event.type === 'noteOn') {
             handleKeyInput({ kind: 'pianoDown', pitch: event.pitch, velocity: event.velocity })
@@ -203,7 +214,8 @@ function App() {
         log={log}
         glissando={keyboard.glissando}
         onToggleGlissando={toggleGlissando}
-        onReconnect={() => monitorRef.current?.reconnect()}
+        accessError={accessError}
+        onRestart={restartApp}
         onBack={() => setScreen('waiting')}
       />
     )
@@ -217,6 +229,7 @@ function App() {
         activeDeviceId={activeDeviceId}
         updateReady={updateReady}
         onRetry={() => monitorRef.current?.retry()}
+        onRestart={restartApp}
         onOpenCheck={() => {
           // Уход с главного экрана останавливает упражнение (C-STF-1, OB-20).
           stopExercises()

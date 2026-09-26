@@ -82,3 +82,16 @@
   background: var(--alert);
   transform: rotate(45deg);
 }
+
+/* Пианино занято (система MIDI не отдала его): залитый ромб. */
+.status--unavailable {
+  border-color: var(--alert);
+  background: var(--alert-bg);
+}
+
+.status--unavailable .status__icon {
+  border: none;
+  border-radius: 0;
+  background: var(--alert);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}

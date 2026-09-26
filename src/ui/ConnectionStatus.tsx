@@ -5,6 +5,7 @@ import './ConnectionStatus.css'
 const STATUS_TITLE: Record<ConnectionState, string> = {
   unsupported: 'Этот браузер не умеет работать с пианино',
   'permission-denied': 'Доступ к пианино запрещён',
+  unavailable: 'Пианино занято',
   connecting: 'Подключаемся…',
   'no-device': 'Пианино не подключено',
   connected: 'Пианино на связи',

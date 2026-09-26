@@ -140,3 +140,11 @@
   margin: 0;
   font-size: 1.125rem;
 }
+
+/* Техническая строка для владельца: что ответил Chrome на запрос MIDI. */
+.devices__error {
+  margin: 1rem 0 0;
+  font-size: 1.125rem;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}

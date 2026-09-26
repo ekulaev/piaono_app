@@ -25,6 +25,34 @@ function toDeviceInfo(input: MIDIInput): MidiDeviceInfo {
   return { id: input.id, name: input.name ?? 'MIDI-устройство' }
 }
 
+/** Как часто тихо повторять запрос доступа, пока система MIDI недоступна. */
+export const QUIET_RETRY_MS = 5000
+
+function describeError(error: unknown): string {
+  if (error && typeof error === 'object') {
+    const { name, message } = error as { name?: unknown; message?: unknown }
+    return [name, message].filter((part) => typeof part === 'string' && part).join(': ')
+  }
+  return String(error)
+}
+
+/**
+ * Настоящий ли это отказ в разрешении. Chrome отвечает на отказ SecurityError или
+ * NotAllowedError, но той же ошибкой может ответить и при занятом устройстве — поэтому,
+ * где можно, сверяемся с состоянием разрешения сайта: если оно «granted», это не отказ.
+ */
+async function isPermissionDenied(error: unknown): Promise<boolean> {
+  const name = error && typeof error === 'object' ? (error as { name?: unknown }).name : null
+  if (name !== 'SecurityError' && name !== 'NotAllowedError') return false
+  try {
+    const status = await navigator.permissions?.query({ name: 'midi' as PermissionName })
+    if (status?.state === 'granted') return false
+  } catch {
+    // Браузер не знает разрешения «midi» — полагаемся на имя ошибки.
+  }
+  return true
+}
+
 /**
  * Запускает MIDI-монитор: запрашивает доступ и слушает ровно один вход — активный
  * (см. chooseActiveInput). Пересматривает входы при любом statechange (в том числе после
@@ -38,7 +66,7 @@ export function startMidiMonitor(
 ): MidiMonitor {
   if (!navigator.requestMIDIAccess) {
     callbacks.onConnectionChange('unsupported', [], null)
-    return { stop: () => {}, retry: () => {}, reconnect: () => {}, selectInput: () => {} }
+    return { stop: () => {}, retry: () => {}, selectInput: () => {} }
   }
 
   let stopped = false
@@ -110,13 +138,25 @@ export function startMidiMonitor(
     callbacks.onConnectionChange(state, devices, next?.id ?? null)
   }
 
-  function requestAccess() {
+  // Тихий повтор запроса, пока система MIDI недоступна (пианино держит другое приложение):
+  // как только его отпустят, связь восстановится сама.
+  let quietRetryTimer: ReturnType<typeof setTimeout> | null = null
+
+  function cancelQuietRetry() {
+    if (quietRetryTimer !== null) clearTimeout(quietRetryTimer)
+    quietRetryTimer = null
+  }
+
+  /** quiet — не показывать «Подключаемся» (тихий повтор каждые несколько секунд). */
+  function requestAccess(quiet = false) {
     const thisRequest = ++requestNumber
-    callbacks.onConnectionChange('connecting', [], null)
+    cancelQuietRetry()
+    if (!quiet) callbacks.onConnectionChange('connecting', [], null)
 
     navigator.requestMIDIAccess().then(
       (granted) => {
         if (stopped || thisRequest !== requestNumber) return
+        callbacks.onAccessError?.(null)
         if (access) access.onstatechange = null
         releaseHeld()
         detachActive()
@@ -126,11 +166,21 @@ export function startMidiMonitor(
         }
         sync(granted)
       },
-      () => {
-        // Отказ почти всегда означает «доступ запрещён». Прочие ошибки показываем так же:
-        // действие для ученика одно — разрешить MIDI и попробовать снова.
+      async (error: unknown) => {
         if (stopped || thisRequest !== requestNumber) return
-        callbacks.onConnectionChange('permission-denied', [], null)
+        callbacks.onAccessError?.(describeError(error))
+        const denied = await isPermissionDenied(error)
+        if (stopped || thisRequest !== requestNumber) return
+        if (denied) {
+          callbacks.onConnectionChange('permission-denied', [], null)
+          return
+        }
+        // Разрешение есть, а доступа нет: Chrome не смог запустить MIDI — обычно пианино
+        // занято другим приложением. Раньше это ошибочно показывалось как «доступ запрещён».
+        callbacks.onConnectionChange('unavailable', [], null)
+        quietRetryTimer = setTimeout(() => {
+          if (!stopped) requestAccess(true)
+        }, QUIET_RETRY_MS)
       },
     )
   }
@@ -173,6 +223,7 @@ export function startMidiMonitor(
   return {
     stop: () => {
       stopped = true
+      cancelQuietRetry()
       document.removeEventListener('visibilitychange', handleReturn)
       if (typeof window !== 'undefined') window.removeEventListener('focus', handleReturn)
       if (access) access.onstatechange = null
@@ -181,17 +232,6 @@ export function startMidiMonitor(
     },
     retry: () => {
       if (!stopped) requestAccess()
-    },
-    reconnect: () => {
-      if (stopped) return
-      // Закрыть все входы и запросить доступ заново — самое полное переподключение без
-      // перезагрузки. Ответ на запрос сам откроет активный вход.
-      releaseHeld()
-      detachActive()
-      access?.inputs.forEach((input) => {
-        input.close?.().catch(() => {})
-      })
-      requestAccess()
     },
     selectInput: (input) => {
       preferred = input

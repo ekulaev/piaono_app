@@ -16,6 +16,8 @@ interface Props {
   activeDeviceId: string | null
   updateReady: boolean
   onRetry: () => void
+  /** Перезапустить приложение — единственный способ заново запустить MIDI в Chrome. */
+  onRestart: () => void
   onOpenCheck: () => void
   onApplyUpdate: () => void
   exerciseRunning: boolean
@@ -45,6 +47,13 @@ function Hint({ state }: { state: ConnectionState }) {
         <p className="hint">
           Нажми на значок замка рядом с адресом (в установленном приложении — «Настройки сайта»),
           разреши MIDI-устройства и нажми «Попробовать снова».
+        </p>
+      )
+    case 'unavailable':
+      return (
+        <p className="hint">
+          Разрешение есть, но пианино держит другое приложение. Закрой его — связь вернётся сама
+          через несколько секунд. Если нет — нажми «Перезапустить».
         </p>
       )
     case 'connecting':
@@ -79,6 +88,7 @@ function WaitingScreen({
   activeDeviceId,
   updateReady,
   onRetry,
+  onRestart,
   onOpenCheck,
   onApplyUpdate,
   exerciseRunning,
@@ -151,6 +161,11 @@ function WaitingScreen({
           {connectionState === 'permission-denied' && (
             <button type="button" className="button button--primary" onClick={onRetry}>
               Попробовать снова
+            </button>
+          )}
+          {connectionState === 'unavailable' && (
+            <button type="button" className="button button--primary" onClick={onRestart}>
+              Перезапустить
             </button>
           )}
           {updateReady && (
