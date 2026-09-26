@@ -10,6 +10,13 @@
   font-weight: 600;
 }
 
+/* Пояснение под настройкой: тот же тёмный цвет, что у текста, — контраст не ниже 7:1. */
+.control__note {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
 /* Группа кнопок с одним выбором. */
 .choice {
   display: flex;
@@ -54,10 +61,29 @@
   line-height: 1;
 }
 
-.stepper__button:disabled {
+.stepper__button:disabled,
+.choice__option:disabled,
+.toggle:disabled {
   border-style: dashed;
   color: var(--ink-soft);
   cursor: default;
+}
+
+/* Выбранное значение недоступной настройки: без заливки, но с отметкой «✓» — видно, что
+   значение сохранено, и видно, что нажать нельзя. */
+.choice__option--selected:disabled {
+  background: var(--paper);
+  border-color: var(--ink-soft);
+}
+
+.toggle:disabled .toggle__box {
+  border-style: dashed;
+  border-color: var(--ink-soft);
+}
+
+.toggle--on:disabled .toggle__box {
+  background: var(--ink-soft);
+  color: var(--paper);
 }
 
 .stepper__value {

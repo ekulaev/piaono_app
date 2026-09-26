@@ -74,7 +74,12 @@ export type SessionState =
 export const IDLE: SessionState = { phase: 'idle' }
 
 const pendingRecords = (sequence: Sequence): StepRecord[] =>
-  sequence.steps.map(() => ({ result: 'pending', hadError: false, reactionMs: null, hinted: false }))
+  sequence.steps.map(() => ({
+    result: 'pending',
+    hadError: false,
+    reactionMs: null,
+    hinted: false,
+  }))
 
 /**
  * Сессия режима «Последовательности» как автомат. Все функции чистые, время (мс, как

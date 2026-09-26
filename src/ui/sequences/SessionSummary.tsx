@@ -31,6 +31,16 @@ function SessionSummary({ summary, onRepeat, onNew }: Props) {
           <dt>Точность</dt>
           <dd>{summary.accuracy === null ? '—' : `${Math.round(summary.accuracy * 100)} %`}</dd>
         </div>
+        {summary.withoutHint && (
+          <div>
+            <dt>Без подсказки</dt>
+            <dd>
+              {summary.withoutHint.of === 0
+                ? '—'
+                : `${summary.withoutHint.count} из ${summary.withoutHint.of}`}
+            </dd>
+          </div>
+        )}
       </dl>
       <div className="summary__slow">
         <h3>Самые медленные ноты</h3>

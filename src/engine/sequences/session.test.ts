@@ -289,7 +289,11 @@ describe('Подсказки в сессии', () => {
 
   it('видимость в начале последовательности — по уровню её ключа', () => {
     const state = playing(startSession([seq([E4], [F4], [G4])], false, T0, level(1)))
-    expect(state.visibility).toEqual({ anchor: true, anchorLabel: false, steps: [true, false, false] })
+    expect(state.visibility).toEqual({
+      anchor: true,
+      anchorLabel: false,
+      steps: [true, false, false],
+    })
   })
 
   it('Ошибка на первом шаге при уровне 0: якорь, подпись и подсказка остаются после верного', () => {
@@ -319,7 +323,11 @@ describe('Подсказки в сессии', () => {
     // На завершённой последовательности подсказки прежние.
     expect(state.phase === 'finished' && state.visibility!.anchorLabel).toBe(true)
     state = next(state, T0 + 300)
-    expect(playing(state).visibility).toEqual({ anchor: true, anchorLabel: false, steps: [true, true] })
+    expect(playing(state).visibility).toEqual({
+      anchor: true,
+      anchorLabel: false,
+      steps: [true, true],
+    })
   })
 
   it('Стоп посреди последовательности не меняет уровни', () => {

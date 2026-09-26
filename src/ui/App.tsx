@@ -16,6 +16,7 @@ import AutoAdvanceIcon from './sequences/AutoAdvanceIcon'
 import { Toggle } from './controls/Controls'
 import { summarize } from '../engine/sequences/session'
 import type { SequenceSettings } from '../engine/sequences/settings'
+import { loadHintProgress, saveHintProgress } from '../storage/progress'
 import * as modeMenu from '../engine/modes/modeMenu'
 import { modeInfo, type ModeId } from '../engine/modes/modes'
 import WaitingScreen, { type SlotButton } from './WaitingScreen'
@@ -93,7 +94,11 @@ function App() {
     stopExercises()
     switch (mode) {
       case 'sequences':
-        sequences.start(settings)
+        // Подсказки «якорь + интервал» — только для шагов из одной ноты (C-STF-3, OB-8).
+        sequences.start(
+          settings,
+          settings.hints && settings.notesPerStep === 1 ? loadHintProgress() : null,
+        )
         break
       case 'warmup':
         exercise.start()
@@ -181,6 +186,12 @@ function App() {
   }, [handleKeyInput])
 
   const session = sequences.state
+  // Уровни подсказок меняются только при завершении последовательности — тогда и сохраняем.
+  const sessionHints = session.phase === 'idle' ? null : session.hints
+  useEffect(() => {
+    if (sessionHints) saveHintProgress(sessionHints)
+  }, [sessionHints])
+
   let slotButton: SlotButton | null = null
   if (session.phase === 'playing') {
     slotButton = { label: 'Пропустить', onClick: sequences.skip }
@@ -193,7 +204,7 @@ function App() {
   if (session.phase === 'summary') {
     staff = (
       <SessionSummary
-        summary={summarize(session.sequences, session.history)}
+        summary={summarize(session.sequences, session.history, session.hints !== null)}
         onRepeat={sequences.repeat}
         onNew={() => startMode('sequences')}
       />

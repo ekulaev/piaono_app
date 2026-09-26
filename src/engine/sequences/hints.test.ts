@@ -28,7 +28,11 @@ describe('Уровни подсказок', () => {
   })
 
   it('уровень 2: якорь без подписи, подсказки над всеми шагами', () => {
-    expect(initialVisibility(2, 2)).toEqual({ anchor: true, anchorLabel: false, steps: [true, true] })
+    expect(initialVisibility(2, 2)).toEqual({
+      anchor: true,
+      anchorLabel: false,
+      steps: [true, true],
+    })
   })
 
   it('Уровень 1: якорь без подписи, подсказка только над первым шагом', () => {
@@ -40,7 +44,11 @@ describe('Уровни подсказок', () => {
   })
 
   it('уровень 0: ничего', () => {
-    expect(initialVisibility(0, 2)).toEqual({ anchor: false, anchorLabel: false, steps: [false, false] })
+    expect(initialVisibility(0, 2)).toEqual({
+      anchor: false,
+      anchorLabel: false,
+      steps: [false, false],
+    })
   })
 })
 
@@ -110,9 +118,9 @@ describe('Сохранённые уровни', () => {
 
   it('Повреждённые данные — уровень 3 и нулевой счёт', () => {
     expect(readHintProgress('мусор')).toEqual(DEFAULT_HINT_PROGRESS)
-    expect(readHintProgress({ treble: { level: 5, streak: 0 }, bass: { level: 2, streak: -1 } })).toEqual(
-      DEFAULT_HINT_PROGRESS,
-    )
+    expect(
+      readHintProgress({ treble: { level: 5, streak: 0 }, bass: { level: 2, streak: -1 } }),
+    ).toEqual(DEFAULT_HINT_PROGRESS)
     expect(readHintProgress({ bass: { level: 1, streak: 0 } })).toEqual({
       treble: { level: 3, streak: 0 },
       bass: { level: 1, streak: 0 },
