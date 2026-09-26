@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  centerStartOn,
   BLACK_HEIGHT_RATIO,
   computeLayout,
   hitTest,
@@ -181,5 +182,23 @@ describe('Подсветка кнопок прокрутки', () => {
   it('чёрная клавиша у края считается скрытой', () => {
     const fromD4 = visibleRange(WHITE_PITCHES.indexOf(62), 7)
     expect(scrollHints([61], fromD4)).toEqual({ left: true, right: false })
+  })
+})
+
+describe('Центрирование на диапазоне', () => {
+  it('Басовая позиция C3–G3: при 7 видимых клавишах в центре E3, видны B2…A3', () => {
+    const range = visibleRange(centerStartOn(48, 55, 7), 7)
+    expect(range.low).toBe(47)
+    expect(range.high).toBe(57)
+  })
+
+  it('весь диапазон помещается, если видимых клавиш хватает', () => {
+    const range = visibleRange(centerStartOn(40, 60, 14), 14)
+    expect(range.low).toBeLessThanOrEqual(40)
+    expect(range.high).toBeGreaterThanOrEqual(60)
+  })
+
+  it('у края клавиатуры прижимается к A0', () => {
+    expect(centerStartOn(21, 23, 10)).toBe(0)
   })
 })

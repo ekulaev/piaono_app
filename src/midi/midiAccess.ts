@@ -25,11 +25,40 @@ function toDeviceInfo(input: MIDIInput): MidiDeviceInfo {
   return { id: input.id, name: input.name ?? 'MIDI-устройство' }
 }
 
+/** Как часто тихо повторять запрос доступа, пока система MIDI недоступна. */
+export const QUIET_RETRY_MS = 5000
+
+function describeError(error: unknown): string {
+  if (error && typeof error === 'object') {
+    const { name, message } = error as { name?: unknown; message?: unknown }
+    return [name, message].filter((part) => typeof part === 'string' && part).join(': ')
+  }
+  return String(error)
+}
+
+/**
+ * Настоящий ли это отказ в разрешении. Chrome отвечает на отказ SecurityError или
+ * NotAllowedError, но той же ошибкой может ответить и при занятом устройстве — поэтому,
+ * где можно, сверяемся с состоянием разрешения сайта: если оно «granted», это не отказ.
+ */
+async function isPermissionDenied(error: unknown): Promise<boolean> {
+  const name = error && typeof error === 'object' ? (error as { name?: unknown }).name : null
+  if (name !== 'SecurityError' && name !== 'NotAllowedError') return false
+  try {
+    const status = await navigator.permissions?.query({ name: 'midi' as PermissionName })
+    if (status?.state === 'granted') return false
+  } catch {
+    // Браузер не знает разрешения «midi» — полагаемся на имя ошибки.
+  }
+  return true
+}
+
 /**
  * Запускает MIDI-монитор: запрашивает доступ и слушает ровно один вход — активный
  * (см. chooseActiveInput). Пересматривает входы при любом statechange (в том числе после
- * сна планшета — основной сигнал для авто-реконнекта) и когда страница снова становится
- * видимой: страховка на случай, если какая-то сборка Android пропустит statechange.
+ * сна планшета — основной сигнал для авто-реконнекта). Когда приложение снова на экране
+ * или в фокусе, переоткрывает активный вход: страховка на случай, если statechange
+ * пропущен или вход молча перехватило другое приложение.
  */
 export function startMidiMonitor(
   callbacks: MidiMonitorCallbacks,
@@ -109,13 +138,25 @@ export function startMidiMonitor(
     callbacks.onConnectionChange(state, devices, next?.id ?? null)
   }
 
-  function requestAccess() {
+  // Тихий повтор запроса, пока система MIDI недоступна (пианино держит другое приложение):
+  // как только его отпустят, связь восстановится сама.
+  let quietRetryTimer: ReturnType<typeof setTimeout> | null = null
+
+  function cancelQuietRetry() {
+    if (quietRetryTimer !== null) clearTimeout(quietRetryTimer)
+    quietRetryTimer = null
+  }
+
+  /** quiet — не показывать «Подключаемся» (тихий повтор каждые несколько секунд). */
+  function requestAccess(quiet = false) {
     const thisRequest = ++requestNumber
-    callbacks.onConnectionChange('connecting', [], null)
+    cancelQuietRetry()
+    if (!quiet) callbacks.onConnectionChange('connecting', [], null)
 
     navigator.requestMIDIAccess().then(
       (granted) => {
         if (stopped || thisRequest !== requestNumber) return
+        callbacks.onAccessError?.(null)
         if (access) access.onstatechange = null
         releaseHeld()
         detachActive()
@@ -125,26 +166,66 @@ export function startMidiMonitor(
         }
         sync(granted)
       },
-      () => {
-        // Отказ почти всегда означает «доступ запрещён». Прочие ошибки показываем так же:
-        // действие для ученика одно — разрешить MIDI и попробовать снова.
+      async (error: unknown) => {
         if (stopped || thisRequest !== requestNumber) return
-        callbacks.onConnectionChange('permission-denied', [], null)
+        callbacks.onAccessError?.(describeError(error))
+        const denied = await isPermissionDenied(error)
+        if (stopped || thisRequest !== requestNumber) return
+        if (denied) {
+          callbacks.onConnectionChange('permission-denied', [], null)
+          return
+        }
+        // Разрешение есть, а доступа нет: Chrome не смог запустить MIDI — обычно пианино
+        // занято другим приложением. Раньше это ошибочно показывалось как «доступ запрещён».
+        callbacks.onConnectionChange('unavailable', [], null)
+        quietRetryTimer = setTimeout(() => {
+          if (!stopped) requestAccess(true)
+        }, QUIET_RETRY_MS)
       },
     )
   }
 
-  function handleVisibilityChange() {
-    if (document.visibilityState === 'visible' && access && !stopped) sync(access)
+  // Идёт ли сейчас переоткрытие: возврат в приложение даёт сразу два сигнала (видимость
+  // и фокус), а переоткрыть вход достаточно один раз.
+  let reopening = false
+
+  /**
+   * Переоткрыть активный вход — программный аналог «выдернуть и вставить кабель». Нужен,
+   * когда вход перехватило другое приложение на планшете: Chrome по-прежнему считает порт
+   * открытым и подключённым, statechange не приходит, но ноты больше не доставляются.
+   * Ноты, зажатые в этот момент, отпускаем сами: их отпускания во время закрытия потеряются.
+   */
+  function reopenActive(current: MIDIAccess) {
+    if (reopening) return
+    reopening = true
+    const input = activeInput
+    releaseHeld()
+    detachActive()
+    const closing = input?.close ? input.close() : Promise.resolve()
+    closing
+      .catch(() => {})
+      .then(() => {
+        reopening = false
+        if (!stopped && access === current) sync(current)
+      })
   }
 
-  document.addEventListener('visibilitychange', handleVisibilityChange)
+  /** Приложение снова на экране или снова в фокусе: переоткрываем вход. */
+  function handleReturn() {
+    if (document.visibilityState === 'visible' && access && !stopped) reopenActive(access)
+  }
+
+  document.addEventListener('visibilitychange', handleReturn)
+  // Фокус возвращается и без смены видимости: например, в режиме двух окон на Android.
+  if (typeof window !== 'undefined') window.addEventListener('focus', handleReturn)
   requestAccess()
 
   return {
     stop: () => {
       stopped = true
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      cancelQuietRetry()
+      document.removeEventListener('visibilitychange', handleReturn)
+      if (typeof window !== 'undefined') window.removeEventListener('focus', handleReturn)
       if (access) access.onstatechange = null
       releaseHeld()
       detachActive()

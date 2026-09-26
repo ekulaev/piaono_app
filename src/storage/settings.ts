@@ -2,6 +2,11 @@
 // с типизированными настройками и не знает, где и как они лежат.
 
 import { DEFAULT_MODE, isModeId, type ModeId } from '../engine/modes/modes'
+import {
+  DEFAULT_SEQUENCE_SETTINGS,
+  readSequenceSettings,
+  type SequenceSettings,
+} from '../engine/sequences/settings'
 import type { PreferredInput } from '../midi/types'
 
 export interface Settings {
@@ -11,12 +16,15 @@ export interface Settings {
   preferredInput: PreferredInput | null
   /** Режим, который запускает «Старт» на главном экране. */
   activeMode: ModeId
+  /** Подтверждённые настройки режимов (у «Разминки» их нет). */
+  modeSettings: { sequences: SequenceSettings }
 }
 
 const DEFAULT_SETTINGS: Settings = {
   glissando: false,
   preferredInput: null,
   activeMode: DEFAULT_MODE,
+  modeSettings: { sequences: DEFAULT_SEQUENCE_SETTINGS },
 }
 
 /** Версия в ключе: если формат поменяется, старые данные не прочитаются как новые. */
@@ -44,12 +52,19 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
     if (!raw) return { ...DEFAULT_SETTINGS }
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS }
-    const { glissando, preferredInput, activeMode } = parsed as Record<string, unknown>
+    const { glissando, preferredInput, activeMode, modeSettings } = parsed as Record<
+      string,
+      unknown
+    >
+    const savedModes = typeof modeSettings === 'object' && modeSettings !== null ? modeSettings : {}
     return {
       glissando: typeof glissando === 'boolean' ? glissando : DEFAULT_SETTINGS.glissando,
       preferredInput: readPreferredInput(preferredInput),
       // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
       activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
+      modeSettings: {
+        sequences: readSequenceSettings((savedModes as Record<string, unknown>).sequences),
+      },
     }
   } catch {
     return { ...DEFAULT_SETTINGS }

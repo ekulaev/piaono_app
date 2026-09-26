@@ -1,0 +1,27 @@
+/* Имена групп даёт VexFlow с приставкой «vf-» (см. sequenceDrawing.ts).
+   Пульсация текущего шага при ошибке: два увеличения, около 0,8 с. Единственная анимация режима. */
+.vf-seq-step-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: seq-pulse 0.4s ease-in-out 2;
+}
+
+@keyframes seq-pulse {
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+/* Пунктирная рамка ошибки — только при «уменьшить движение», вместо пульсации. */
+.vf-seq-step-error-frame {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vf-seq-step-pulse {
+    animation: none;
+  }
+  .vf-seq-step-error-frame {
+    display: inline;
+  }
+}

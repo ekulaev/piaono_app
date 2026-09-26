@@ -5,6 +5,7 @@
 export type ConnectionState =
   | 'unsupported' // в браузере вообще нет Web MIDI (не Chrome) — поможет только другой браузер
   | 'permission-denied' // Web MIDI есть, но браузер отказал в доступе — можно разрешить и повторить
+  | 'unavailable' // доступ разрешён, но система MIDI не отдала пианино (часто его держит другое приложение)
   | 'connecting' // запросили доступ, ждём ответ браузера
   | 'no-device' // доступ есть, но ни одно устройство ещё не подключали в этой сессии
   | 'connected' // хотя бы одно устройство подключено и активно
@@ -41,6 +42,8 @@ export interface MidiMonitorCallbacks {
     activeId: string | null,
   ) => void
   onNoteEvent: (event: MidiNoteEvent) => void
+  /** Текст ошибки запроса доступа («имя: сообщение») — для «Проверки пианино»; null — ошибки нет. */
+  onAccessError?: (detail: string | null) => void
 }
 
 export interface MidiMonitorOptions {

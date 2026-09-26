@@ -3,6 +3,12 @@ import type { ConnectionState, MidiDeviceInfo } from '../midi/types'
 import ConnectionStatus from './ConnectionStatus'
 import './WaitingScreen.css'
 
+/** Кнопка, которая на время упражнения встаёт на место «Проверки пианино». */
+export interface SlotButton {
+  label: string
+  onClick: () => void
+}
+
 interface Props {
   connectionState: ConnectionState
   devices: MidiDeviceInfo[]
@@ -10,6 +16,8 @@ interface Props {
   activeDeviceId: string | null
   updateReady: boolean
   onRetry: () => void
+  /** Перезапустить приложение — единственный способ заново запустить MIDI в Chrome. */
+  onRestart: () => void
   onOpenCheck: () => void
   onApplyUpdate: () => void
   exerciseRunning: boolean
@@ -17,6 +25,12 @@ interface Props {
   /** Название активного режима — на кнопке «Режим: …». */
   activeModeTitle: string
   onOpenModes: () => void
+  /** Меню режимов открыто: кнопка режима недоступна, чтобы меню не открылось повторно. */
+  modeMenuOpen: boolean
+  /** Быстрая настройка активного режима на главном экране (флажок «Последовательностей»). */
+  modeControl: ReactNode
+  /** «Пропустить» / «Далее (N)»; null — на месте «Проверка пианино». */
+  slotButton: SlotButton | null
   /** Нотный стан: между подсказкой и кнопками, занимает всё свободное место. */
   staff: ReactNode
   /** Экранная клавиатура: видна внизу во всех состояниях связи. */
@@ -33,6 +47,13 @@ function Hint({ state }: { state: ConnectionState }) {
         <p className="hint">
           Нажми на значок замка рядом с адресом (в установленном приложении — «Настройки сайта»),
           разреши MIDI-устройства и нажми «Попробовать снова».
+        </p>
+      )
+    case 'unavailable':
+      return (
+        <p className="hint">
+          Разрешение есть, но пианино держит другое приложение. Закрой его — связь вернётся сама
+          через несколько секунд. Если нет — нажми «Перезапустить».
         </p>
       )
     case 'connecting':
@@ -67,12 +88,16 @@ function WaitingScreen({
   activeDeviceId,
   updateReady,
   onRetry,
+  onRestart,
   onOpenCheck,
   onApplyUpdate,
   exerciseRunning,
   onToggleExercise,
   activeModeTitle,
   onOpenModes,
+  modeMenuOpen,
+  modeControl,
+  slotButton,
   staff,
   keyboard,
 }: Props) {
@@ -105,9 +130,16 @@ function WaitingScreen({
         {staff}
 
         <nav className="waiting__actions">
-          <button type="button" className="button" onClick={onOpenCheck}>
-            Проверка пианино
-          </button>
+          {/* Число кнопок в ряду не меняется: слот занимает место «Проверки пианино». */}
+          {slotButton ? (
+            <button type="button" className="button waiting__slot" onClick={slotButton.onClick}>
+              {slotButton.label}
+            </button>
+          ) : (
+            <button type="button" className="button waiting__slot" onClick={onOpenCheck}>
+              Проверка пианино
+            </button>
+          )}
           <button
             type="button"
             className="button button--primary waiting__start"
@@ -115,12 +147,25 @@ function WaitingScreen({
           >
             {exerciseRunning ? 'Стоп' : 'Старт'}
           </button>
-          <button type="button" className="button waiting__mode" onClick={onOpenModes}>
+          <button
+            type="button"
+            className="button waiting__mode"
+            // aria-disabled, а не disabled: заблокированная кнопка остаётся в фокусе, и меню
+            // вернёт фокус на неё при закрытии.
+            onClick={modeMenuOpen ? undefined : onOpenModes}
+            aria-disabled={modeMenuOpen}
+            aria-expanded={modeMenuOpen}
+          >
             Режим: {activeModeTitle}
           </button>
           {connectionState === 'permission-denied' && (
             <button type="button" className="button button--primary" onClick={onRetry}>
               Попробовать снова
+            </button>
+          )}
+          {connectionState === 'unavailable' && (
+            <button type="button" className="button button--primary" onClick={onRestart}>
+              Перезапустить
             </button>
           )}
           {updateReady && (
@@ -129,6 +174,7 @@ function WaitingScreen({
             </button>
           )}
         </nav>
+        {modeControl && <div className="waiting__mode-control">{modeControl}</div>}
       </main>
       <div className="waiting-screen__keyboard">{keyboard}</div>
     </div>

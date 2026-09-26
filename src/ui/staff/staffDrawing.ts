@@ -5,14 +5,14 @@
 import { Renderer, Stave, StaveNote, TickContext, type RenderContext } from 'vexflow/bravura'
 import type { Clef, StaffNote } from '../../engine/staff/pickNote'
 
-const SPACING = 10 // между линиями стана, условные единицы
+export const SPACING = 10 // между линиями стана, условные единицы
 /** Над станом: две добавочные линии, головка ноты над второй и поле. */
-const TOP_MARGIN = 40
+export const TOP_MARGIN = 40
 /** Высота по вертикали: 4 промежутка стана + по 3 сверху и снизу + поля. */
 const VIRTUAL_HEIGHT = TOP_MARGIN * 2 + 4 * SPACING
 /** Линии стана и добавочные линии — вдвое толще, чем у VexFlow по умолчанию. */
-const LINE_WIDTH = 2
-const LEDGER_WIDTH = 3
+export const LINE_WIDTH = 2
+export const LEDGER_WIDTH = 3
 /** Отступ ноты от правого края стана в начале пути. */
 const RIGHT_PADDING = 12
 
@@ -36,11 +36,11 @@ export function staffGeometry(zoneWidthPx: number, zoneHeightPx: number): StaffG
 }
 
 /** Цвета берутся из CSS-переменных, чтобы палитра жила в одном месте (index.css). */
-function cssColor(name: string): string {
+export function cssColor(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
-function makeStave(geometry: StaffGeometry, clef: Clef | null): Stave {
+export function makeStave(geometry: StaffGeometry, clef: Clef | null): Stave {
   const stave = new Stave(0, TOP_MARGIN, geometry.virtualWidth, {
     leftBar: false, // тактовых черт в упражнении нет
     rightBar: false,
@@ -50,7 +50,7 @@ function makeStave(geometry: StaffGeometry, clef: Clef | null): Stave {
   return stave
 }
 
-function prepareContext(host: HTMLElement, geometry: StaffGeometry): RenderContext {
+export function prepareContext(host: HTMLElement, geometry: StaffGeometry): RenderContext {
   host.replaceChildren()
   const renderer = new Renderer(host as HTMLDivElement, Renderer.Backends.SVG)
   renderer.resize(geometry.widthPx, geometry.heightPx)
@@ -81,7 +81,7 @@ export function notePath(geometry: StaffGeometry, clef: Clef, headWidth: number)
 }
 
 /** Имя ноты для VexFlow: 64 → "e/4". Упражнение даёт только белые клавиши. */
-function vexKey(pitch: number): string {
+export function vexKey(pitch: number): string {
   const names = ['c', 'c', 'd', 'd', 'e', 'f', 'f', 'g', 'g', 'a', 'a', 'b']
   return `${names[pitch % 12]}/${Math.floor(pitch / 12) - 1}`
 }

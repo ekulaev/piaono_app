@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { startMidiMonitor } from './midiAccess'
+import { QUIET_RETRY_MS, startMidiMonitor } from './midiAccess'
 import type { ConnectionState, MidiMonitor, MidiNoteEvent, PreferredInput } from './types'
 
 /** Подменённый вход: только то, чем пользуется midiAccess. */
@@ -9,7 +9,9 @@ interface FakeInput {
   state: 'connected' | 'disconnected'
   onmidimessage: ((event: { data: Uint8Array; timeStamp: number }) => void) | null
   open: () => Promise<unknown>
+  close: () => Promise<unknown>
   opened: number
+  closed: number
 }
 
 function fakeInput(id: string, name: string, openFails = false): FakeInput {
@@ -19,6 +21,11 @@ function fakeInput(id: string, name: string, openFails = false): FakeInput {
     state: 'connected',
     onmidimessage: null,
     opened: 0,
+    closed: 0,
+    close: () => {
+      input.closed++
+      return Promise.resolve(input)
+    },
     open: () => {
       input.opened++
       return openFails ? Promise.reject(new Error('InvalidAccessError')) : Promise.resolve(input)
@@ -86,6 +93,11 @@ async function start(preferred: PreferredInput | null = null) {
   await Promise.resolve()
   await Promise.resolve()
   return monitor
+}
+
+/** Дождаться цепочки промисов (закрытие, запрос доступа). */
+async function flush() {
+  for (let i = 0; i < 5; i++) await Promise.resolve()
 }
 
 const pitches = (type: MidiNoteEvent['type']) =>
@@ -187,7 +199,7 @@ describe('Зажатые ноты отпускаются при смене вх�
     midi.access.inputs.set('p1', piano)
     await start()
     midi.send(piano, 0x90, 60, 100)
-    visibilityListener?.()
+    midi.access.onstatechange?.()
     expect(pitches('noteOff')).toEqual([])
     midi.send(piano, 0x80, 60, 0)
     expect(pitches('noteOff')).toEqual([60])
@@ -201,9 +213,27 @@ describe('Восстановление связи после сна', () => {
     await start()
     const openedBefore = piano.opened
     visibilityListener?.()
+    await flush()
     expect(piano.opened).toBe(openedBefore + 1)
     midi.send(piano, 0x90, 60, 100)
     expect(pitches('noteOn')).toEqual([60])
+  })
+
+  it('Перехват другим приложением: при возвращении вход закрывается и открывается заново', async () => {
+    const piano = fakeInput('p1', 'Piano')
+    midi.access.inputs.set('p1', piano)
+    await start()
+    midi.send(piano, 0x90, 60, 100)
+    const openedBefore = piano.opened
+    visibilityListener?.()
+    visibilityListener?.() // второй сигнал возврата (фокус) не переоткрывает ещё раз
+    await flush()
+    expect(piano.closed).toBe(1)
+    expect(piano.opened).toBe(openedBefore + 1)
+    expect(pitches('noteOff')).toEqual([60])
+    expect(last.state).toBe('connected')
+    midi.send(piano, 0x90, 62, 100)
+    expect(pitches('noteOn')).toEqual([60, 62])
   })
 
   it('Вход не открылся: модуль работает, состояние — по фактическому списку', async () => {
@@ -266,9 +296,56 @@ describe('Состояния связи', () => {
   })
 
   it('отказ в доступе — permission-denied', async () => {
-    vi.stubGlobal('navigator', { requestMIDIAccess: () => Promise.reject(new Error('denied')) })
+    const denied = new DOMException('Permission denied', 'NotAllowedError')
+    vi.stubGlobal('navigator', { requestMIDIAccess: () => Promise.reject(denied) })
     await start()
+    await flush()
     expect(last.state).toBe('permission-denied')
+  })
+
+  it('та же ошибка при разрешённом MIDI — unavailable, а не «запрещён»', async () => {
+    const error = new DOMException('Platform dependent initialization failed.', 'NotAllowedError')
+    vi.stubGlobal('navigator', {
+      requestMIDIAccess: () => Promise.reject(error),
+      permissions: { query: () => Promise.resolve({ state: 'granted' }) },
+    })
+    await start()
+    await flush()
+    expect(last.state).toBe('unavailable')
+  })
+
+  it('Пианино занято: unavailable, текст ошибки для проверки, тихий повтор восстанавливает', async () => {
+    vi.useFakeTimers()
+    try {
+      const piano = fakeInput('p1', 'Piano')
+      midi.access.inputs.set('p1', piano)
+      let busy = true
+      const states: ConnectionState[] = []
+      const errors: (string | null)[] = []
+      vi.stubGlobal('navigator', {
+        requestMIDIAccess: () =>
+          busy
+            ? Promise.reject(
+                new DOMException('Platform dependent initialization failed.', 'AbortError'),
+              )
+            : Promise.resolve(midi.access),
+      })
+      monitor = startMidiMonitor({
+        onConnectionChange: (state) => states.push(state),
+        onNoteEvent: () => {},
+        onAccessError: (detail) => errors.push(detail),
+      })
+      await flush()
+      expect(states).toEqual(['connecting', 'unavailable'])
+      expect(errors).toEqual(['AbortError: Platform dependent initialization failed.'])
+      busy = false
+      await vi.advanceTimersByTimeAsync(QUIET_RETRY_MS)
+      // Тихий повтор не показывает «Подключаемся».
+      expect(states).toEqual(['connecting', 'unavailable', 'connected'])
+      expect(errors.at(-1)).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('нет Web MIDI — unsupported', async () => {

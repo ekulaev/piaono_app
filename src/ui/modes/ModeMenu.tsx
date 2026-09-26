@@ -1,12 +1,16 @@
 import { useEffect, useRef } from 'react'
 import type { MenuState } from '../../engine/modes/modeMenu'
 import { MODES, modeInfo, type ModeId } from '../../engine/modes/modes'
+import type { SequenceSettings } from '../../engine/sequences/settings'
+import SequenceSettingsForm from '../sequences/SequenceSettingsForm'
 import './ModeMenu.css'
 
 interface Props {
   menu: MenuState
   activeMode: ModeId
   onChoose: (modeId: ModeId) => void
+  /** Изменение настройки на экране режима (меняет только черновик). */
+  onEditDraft: (draft: SequenceSettings) => void
   onBack: () => void
   onClose: () => void
   /** «Выбрать»: сделать режим активным, не запуская. */
@@ -26,7 +30,16 @@ function ModeMenu(props: Props) {
   return props.menu.screen === 'closed' ? null : <OpenMenu {...props} />
 }
 
-function OpenMenu({ menu, activeMode, onChoose, onBack, onClose, onSelect, onStart }: Props) {
+function OpenMenu({
+  menu,
+  activeMode,
+  onChoose,
+  onEditDraft,
+  onBack,
+  onClose,
+  onSelect,
+  onStart,
+}: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Фокус клавиатуры — в меню (первая кнопка экрана), а после закрытия — туда, где был.
@@ -35,9 +48,11 @@ function OpenMenu({ menu, activeMode, onChoose, onBack, onClose, onSelect, onSta
     const previous = document.activeElement as HTMLElement | null
     return () => previous?.focus()
   }, [])
+  // Только при смене экрана: правка настроек не должна уводить фокус с нажатой кнопки.
+  const screenKey = menu.screen === 'mode' ? `mode:${menu.modeId}` : menu.screen
   useEffect(() => {
     panelRef.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
-  }, [menu])
+  }, [screenKey])
 
   // Esc закрывает меню с любого экрана.
   useEffect(() => {
@@ -58,11 +73,14 @@ function OpenMenu({ menu, activeMode, onChoose, onBack, onClose, onSelect, onSta
     <>
       <div
         className="mode-menu__backdrop"
+        // Касание вне меню целиком достаётся подложке: клавиши под ней не нажимаются.
+        // Закрываем по click, а не по pointerdown: иначе подложка исчезала бы до конца
+        // касания, и click доставался бы кнопке под ней — «Режим» открывал меню снова.
         onPointerDown={(event) => {
           event.preventDefault()
           event.stopPropagation()
-          onClose()
         }}
+        onClick={onClose}
       />
       <div ref={panelRef} className="mode-menu" role="dialog" aria-modal="true" aria-label="Режимы">
         {menu.screen !== 'mode' ? (
@@ -102,8 +120,12 @@ function OpenMenu({ menu, activeMode, onChoose, onBack, onClose, onSelect, onSta
             </header>
             {/* Если настройки не влезут по высоте, прокручивается только эта область. */}
             <div className="mode-menu__settings">
-              {!modeInfo(menu.modeId).hasSettings && (
-                <p className="mode-menu__empty">У этого режима нет настроек</p>
+              {menu.modeId === 'sequences' && menu.draft ? (
+                <SequenceSettingsForm settings={menu.draft} onChange={onEditDraft} />
+              ) : (
+                !modeInfo(menu.modeId).hasSettings && (
+                  <p className="mode-menu__empty">У этого режима нет настроек</p>
+                )
               )}
             </div>
             <footer className="mode-menu__actions">

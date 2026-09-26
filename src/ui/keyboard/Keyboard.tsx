@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { heldPitches, levelOf } from '../../engine/keyboard/keyboardState'
 import {
+  centerStartOn,
   computeLayout,
   hitTest,
   initialStart,
@@ -25,9 +26,17 @@ import type { KeyboardState, KeyInput, Level } from '../../engine/keyboard/types
 import { useAutoRepeat } from './useAutoRepeat'
 import './Keyboard.css'
 
+/** Диапазон, на котором центрировать видимую часть. Новый token — новое центрирование. */
+export interface KeyboardFocus {
+  low: number
+  high: number
+  token: number
+}
+
 interface Props {
   state: KeyboardState
   onInput: (input: KeyInput) => void
+  focus?: KeyboardFocus | null
 }
 
 interface ZoneSize {
@@ -47,7 +56,7 @@ interface VisibleWindow {
  * и превращает касания в события для него. Своё у неё только одно — какая часть
  * клавиатуры сейчас видна.
  */
-function Keyboard({ state, onInput }: Props) {
+function Keyboard({ state, onInput, focus }: Props) {
   const zoneRef = useRef<HTMLDivElement>(null)
   const keysRef = useRef<HTMLDivElement>(null)
   const size = useZoneSize(zoneRef)
@@ -61,6 +70,14 @@ function Keyboard({ state, onInput }: Props) {
     const count = layout.visibleWhiteCount
     const start = visible ? resizeStart(visible.start, visible.count, count) : initialStart(count)
     setVisible({ start, count })
+  }
+  // Центрирование по запросу (начало последовательности) — один раз на token, дальше
+  // видимую часть двигает только ученик.
+  const [focusToken, setFocusToken] = useState<number | null>(null)
+  if (layout && focus && focus.token !== focusToken) {
+    const count = layout.visibleWhiteCount
+    setFocusToken(focus.token)
+    setVisible({ start: centerStartOn(focus.low, focus.high, count), count })
   }
 
   // Актуальное окно для автоповтора: таймер срабатывает между рендерами.

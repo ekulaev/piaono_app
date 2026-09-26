@@ -26,6 +26,7 @@
   padding: clamp(0.5rem, min(3vw, 3svh), 2rem) clamp(1rem, 3vw, 2.5rem);
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: clamp(0.5rem, min(2vw, 2svh), 1.5rem);
 }
 
@@ -82,13 +83,25 @@
   min-height: 3.5rem;
 }
 
+/* Слот «Проверка пианино / Пропустить / Далее (N)» не меняет ширину при смене надписи:
+   кнопки справа от него не сдвигаются. Ширина — по самой длинной надписи. */
+.waiting__slot {
+  min-width: 13.5em;
+}
+
+/* То же для «Старт» / «Стоп». */
+.waiting__start {
+  min-width: 6em;
+}
+
 .waiting__update {
   margin-left: auto;
 }
 
 /* Ряды главного экрана по именам — чтобы на низком экране переставить их, не ужимая цели. */
 .waiting {
-  grid-template-areas: 'status' 'message' 'staff' 'actions';
+  /* Флажок режима — справа в ряду кнопок. */
+  grid-template-areas: 'status status' 'message message' 'staff staff' 'actions control';
 }
 .waiting > .status {
   grid-area: status;
@@ -96,11 +109,17 @@
 .waiting__message {
   grid-area: message;
 }
-.waiting > .staff-zone {
+.waiting > .staff-zone,
+.waiting > .summary {
   grid-area: staff;
 }
 .waiting__actions {
   grid-area: actions;
+}
+.waiting__mode-control {
+  grid-area: control;
+  display: flex;
+  align-items: center;
 }
 
 /*
@@ -112,7 +131,8 @@
   .waiting {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-rows: auto auto minmax(0, 1fr);
-    grid-template-areas: 'status status' 'actions actions' 'staff staff';
+    /* В ряду кнопок места нет — флажок режима встаёт справа от индикатора. */
+    grid-template-areas: 'status control' 'actions actions' 'staff staff';
     max-width: none;
   }
   .waiting > .status {
@@ -132,5 +152,15 @@
     font-size: 1.125rem;
     padding-inline: 1rem;
     white-space: nowrap;
+  }
+  .waiting__actions .waiting__slot {
+    min-width: 13em;
+  }
+  /* Длинное название режима («Последовательности») переносится на вторую строку, а не
+     выталкивает кнопку за край экрана. */
+  .waiting__actions .waiting__mode {
+    white-space: normal;
+    line-height: 1.15;
+    min-width: 0;
   }
 }
