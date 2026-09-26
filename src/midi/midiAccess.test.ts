@@ -9,7 +9,9 @@ interface FakeInput {
   state: 'connected' | 'disconnected'
   onmidimessage: ((event: { data: Uint8Array; timeStamp: number }) => void) | null
   open: () => Promise<unknown>
+  close: () => Promise<unknown>
   opened: number
+  closed: number
 }
 
 function fakeInput(id: string, name: string, openFails = false): FakeInput {
@@ -19,6 +21,11 @@ function fakeInput(id: string, name: string, openFails = false): FakeInput {
     state: 'connected',
     onmidimessage: null,
     opened: 0,
+    closed: 0,
+    close: () => {
+      input.closed++
+      return Promise.resolve(input)
+    },
     open: () => {
       input.opened++
       return openFails ? Promise.reject(new Error('InvalidAccessError')) : Promise.resolve(input)
@@ -86,6 +93,11 @@ async function start(preferred: PreferredInput | null = null) {
   await Promise.resolve()
   await Promise.resolve()
   return monitor
+}
+
+/** Дождаться цепочки промисов (закрытие, запрос доступа). */
+async function flush() {
+  for (let i = 0; i < 5; i++) await Promise.resolve()
 }
 
 const pitches = (type: MidiNoteEvent['type']) =>
@@ -187,7 +199,7 @@ describe('Зажатые ноты отпускаются при смене вх�
     midi.access.inputs.set('p1', piano)
     await start()
     midi.send(piano, 0x90, 60, 100)
-    visibilityListener?.()
+    midi.access.onstatechange?.()
     expect(pitches('noteOff')).toEqual([])
     midi.send(piano, 0x80, 60, 0)
     expect(pitches('noteOff')).toEqual([60])
@@ -201,7 +213,38 @@ describe('Восстановление связи после сна', () => {
     await start()
     const openedBefore = piano.opened
     visibilityListener?.()
+    await flush()
     expect(piano.opened).toBe(openedBefore + 1)
+    midi.send(piano, 0x90, 60, 100)
+    expect(pitches('noteOn')).toEqual([60])
+  })
+
+  it('Перехват другим приложением: при возвращении вход закрывается и открывается заново', async () => {
+    const piano = fakeInput('p1', 'Piano')
+    midi.access.inputs.set('p1', piano)
+    await start()
+    midi.send(piano, 0x90, 60, 100)
+    const openedBefore = piano.opened
+    visibilityListener?.()
+    visibilityListener?.() // второй сигнал возврата (фокус) не переоткрывает ещё раз
+    await flush()
+    expect(piano.closed).toBe(1)
+    expect(piano.opened).toBe(openedBefore + 1)
+    expect(pitches('noteOff')).toEqual([60])
+    expect(last.state).toBe('connected')
+    midi.send(piano, 0x90, 62, 100)
+    expect(pitches('noteOn')).toEqual([60, 62])
+  })
+
+  it('«Переподключить пианино»: входы закрываются, доступ запрашивается заново', async () => {
+    const piano = fakeInput('p1', 'Piano')
+    midi.access.inputs.set('p1', piano)
+    await start()
+    monitor!.reconnect()
+    expect(piano.closed).toBe(1)
+    expect(last.state).toBe('connecting')
+    await flush()
+    expect(last.state).toBe('connected')
     midi.send(piano, 0x90, 60, 100)
     expect(pitches('noteOn')).toEqual([60])
   })

@@ -58,6 +58,10 @@ export function useSequenceSession() {
       ),
     [update],
   )
+  const setAutoAdvance = useCallback(
+    (on: boolean) => update(session.setAutoAdvance(stateRef.current, on, performance.now())),
+    [update],
+  )
   const stop = useCallback(() => update(session.stop()), [update])
   const played = useCallback(
     (pitch: number) => update(session.played(stateRef.current, pitch, performance.now())),
@@ -87,5 +91,6 @@ export function useSequenceSession() {
     skip,
     next,
     repeat,
+    setAutoAdvance,
   }
 }

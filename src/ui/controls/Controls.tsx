@@ -1,7 +1,7 @@
 // Элементы настроек в стиле приложения: крупные цели касания (≥ 56 px), выбранное значение
 // отличается заливкой и отметкой, а не только цветом. Только обычные кнопки — без системных
 // ползунков и флажков браузера, у которых мелкие цели и чужое оформление.
-import { useId } from 'react'
+import { useId, type ReactNode } from 'react'
 import './Controls.css'
 
 interface ChoiceGroupProps<T extends string> {
@@ -93,22 +93,32 @@ interface ToggleProps {
   label: string
   checked: boolean
   onChange: (checked: boolean) => void
+  /** Значок между квадратом и подписью. */
+  icon?: ReactNode
+  /** Короткий вид: квадрат и значок, подпись — только для экранного диктора и подсказки. */
+  compact?: boolean
 }
 
-/** Флажок: квадрат с «✓» и подпись — вся строка является целью касания. */
-export function Toggle({ label, checked, onChange }: ToggleProps) {
+/** Флажок: квадрат с «✓», значок и подпись — вся кнопка является целью касания. */
+export function Toggle({ label, checked, onChange, icon, compact = false }: ToggleProps) {
+  const className = ['toggle', checked && 'toggle--on', compact && 'toggle--compact']
+    .filter(Boolean)
+    .join(' ')
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
-      className={`toggle${checked ? ' toggle--on' : ''}`}
+      aria-label={compact ? label : undefined}
+      title={compact ? label : undefined}
+      className={className}
       onClick={() => onChange(!checked)}
     >
       <span className="toggle__box" aria-hidden="true">
         {checked ? '✓' : ''}
       </span>
-      <span className="toggle__label">{label}</span>
+      {icon}
+      {!compact && <span className="toggle__label">{label}</span>}
     </button>
   )
 }

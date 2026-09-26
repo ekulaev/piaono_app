@@ -95,3 +95,16 @@
   background: var(--ink);
   color: var(--paper);
 }
+
+/* Короткий флажок на главном экране: только квадрат и значок, ширина по содержимому. */
+.toggle--compact {
+  width: auto;
+  min-width: 3.5rem;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  fill: currentColor;
+}

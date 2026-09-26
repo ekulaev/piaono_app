@@ -4,6 +4,7 @@ import {
   type SequenceSettings,
 } from '../../engine/sequences/settings'
 import { ChoiceGroup, Stepper, Toggle } from '../controls/Controls'
+import AutoAdvanceIcon from './AutoAdvanceIcon'
 
 interface Props {
   settings: SequenceSettings
@@ -53,6 +54,7 @@ function SequenceSettingsForm({ settings, onChange }: Props) {
         label="Переключать автоматически"
         checked={settings.autoAdvance}
         onChange={(value) => set('autoAdvance', value)}
+        icon={<AutoAdvanceIcon />}
       />
     </div>
   )

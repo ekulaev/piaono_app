@@ -23,6 +23,10 @@ interface Props {
   /** Название активного режима — на кнопке «Режим: …». */
   activeModeTitle: string
   onOpenModes: () => void
+  /** Меню режимов открыто: кнопка режима недоступна, чтобы меню не открылось повторно. */
+  modeMenuOpen: boolean
+  /** Быстрая настройка активного режима на главном экране (флажок «Последовательностей»). */
+  modeControl: ReactNode
   /** «Пропустить» / «Далее (N)»; null — на месте «Проверка пианино». */
   slotButton: SlotButton | null
   /** Нотный стан: между подсказкой и кнопками, занимает всё свободное место. */
@@ -81,6 +85,8 @@ function WaitingScreen({
   onToggleExercise,
   activeModeTitle,
   onOpenModes,
+  modeMenuOpen,
+  modeControl,
   slotButton,
   staff,
   keyboard,
@@ -131,7 +137,15 @@ function WaitingScreen({
           >
             {exerciseRunning ? 'Стоп' : 'Старт'}
           </button>
-          <button type="button" className="button waiting__mode" onClick={onOpenModes}>
+          <button
+            type="button"
+            className="button waiting__mode"
+            // aria-disabled, а не disabled: заблокированная кнопка остаётся в фокусе, и меню
+            // вернёт фокус на неё при закрытии.
+            onClick={modeMenuOpen ? undefined : onOpenModes}
+            aria-disabled={modeMenuOpen}
+            aria-expanded={modeMenuOpen}
+          >
             Режим: {activeModeTitle}
           </button>
           {connectionState === 'permission-denied' && (
@@ -145,6 +159,7 @@ function WaitingScreen({
             </button>
           )}
         </nav>
+        {modeControl && <div className="waiting__mode-control">{modeControl}</div>}
       </main>
       <div className="waiting-screen__keyboard">{keyboard}</div>
     </div>

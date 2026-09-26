@@ -12,7 +12,10 @@ import ModeMenu from './modes/ModeMenu'
 import SequenceStaff from './sequences/SequenceStaff'
 import SessionSummary from './sequences/SessionSummary'
 import { useSequenceSession } from './sequences/useSequenceSession'
+import AutoAdvanceIcon from './sequences/AutoAdvanceIcon'
+import { Toggle } from './controls/Controls'
 import { summarize } from '../engine/sequences/session'
+import type { SequenceSettings } from '../engine/sequences/settings'
 import * as modeMenu from '../engine/modes/modeMenu'
 import { modeInfo, type ModeId } from '../engine/modes/modes'
 import WaitingScreen, { type SlotButton } from './WaitingScreen'
@@ -71,13 +74,25 @@ function App() {
   const [activeMode, setActiveMode] = useState<ModeId>(() => settingsRef.current!.activeMode)
   const [menu, setMenu] = useState<modeMenu.MenuState>(modeMenu.MENU_CLOSED)
   const closeMenu = useCallback(() => setMenu(modeMenu.closeMenu()), [])
+  // Подтверждённые настройки «Последовательностей» — в состоянии, потому что их флажок
+  // виден и на главном экране.
+  const [sequenceSettings, setSequenceSettings] = useState(
+    () => settingsRef.current!.modeSettings.sequences,
+  )
+  function saveSequenceSettings(next: SequenceSettings) {
+    setSequenceSettings(next)
+    updateSettings({ modeSettings: { ...settingsRef.current!.modeSettings, sequences: next } })
+  }
 
-  /** Запустить упражнение режима с его подтверждёнными настройками. */
-  function startMode(mode: ModeId) {
+  /**
+   * Запустить упражнение режима с его подтверждёнными настройками. Настройки передаются явно,
+   * когда их только что подтвердили в меню и состояние ещё не обновилось.
+   */
+  function startMode(mode: ModeId, settings: SequenceSettings = sequenceSettings) {
     stopExercises()
     switch (mode) {
       case 'sequences':
-        sequences.start(settingsRef.current!.modeSettings.sequences)
+        sequences.start(settings)
         break
       case 'warmup':
         exercise.start()
@@ -87,7 +102,7 @@ function App() {
 
   /** Подтверждённые настройки режима — с них меню начинает черновик. */
   function confirmedSettings(mode: ModeId): modeMenu.ModeSettings {
-    return mode === 'sequences' ? settingsRef.current!.modeSettings.sequences : null
+    return mode === 'sequences' ? sequenceSettings : null
   }
 
   /** «Выбрать» или «Старт» в меню: режим и его настройки становятся активными и запоминаются. */
@@ -96,12 +111,9 @@ function App() {
     setMenu(next)
     if (!chosen) return
     setActiveMode(chosen)
-    const modeSettings =
-      chosen === 'sequences' && settings
-        ? { ...settingsRef.current!.modeSettings, sequences: settings }
-        : settingsRef.current!.modeSettings
-    updateSettings({ activeMode: chosen, modeSettings })
-    if (andStart) startMode(chosen)
+    updateSettings({ activeMode: chosen })
+    if (chosen === 'sequences' && settings) saveSequenceSettings(settings)
+    if (andStart) startMode(chosen, settings ?? sequenceSettings)
   }
 
   /** Единая точка входа для нажатий с пианино и с экрана. */
@@ -191,6 +203,7 @@ function App() {
         log={log}
         glissando={keyboard.glissando}
         onToggleGlissando={toggleGlissando}
+        onReconnect={() => monitorRef.current?.reconnect()}
         onBack={() => setScreen('waiting')}
       />
     )
@@ -217,6 +230,21 @@ function App() {
           stopExercises()
           setMenu(modeMenu.openMenu())
         }}
+        modeMenuOpen={menu.screen !== 'closed'}
+        modeControl={
+          activeMode === 'sequences' && (
+            <Toggle
+              compact
+              label="Переключать автоматически"
+              icon={<AutoAdvanceIcon />}
+              checked={sequenceSettings.autoAdvance}
+              onChange={(autoAdvance) => {
+                saveSequenceSettings({ ...sequenceSettings, autoAdvance })
+                sequences.setAutoAdvance(autoAdvance)
+              }}
+            />
+          )
+        }
         slotButton={slotButton}
         staff={staff}
         onApplyUpdate={applyUpdate}

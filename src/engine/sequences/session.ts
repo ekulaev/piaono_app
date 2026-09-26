@@ -190,6 +190,22 @@ export function tick(state: SessionState, now: number): SessionState {
   return state
 }
 
+/**
+ * Флажок «Переключать автоматически» переключили во время сессии. Если последовательность
+ * уже завершена, отсчёт запускается сразу (включили) или снимается (выключили).
+ */
+export function setAutoAdvance(
+  state: SessionState,
+  autoAdvance: boolean,
+  now: number,
+): SessionState {
+  if (state.phase === 'idle' || state.autoAdvance === autoAdvance) return state
+  if (state.phase === 'finished') {
+    return { ...state, autoAdvance, countdownUntil: autoAdvance ? now + COUNTDOWN_MS : null }
+  }
+  return { ...state, autoAdvance }
+}
+
 export function stop(): SessionState {
   return IDLE
 }

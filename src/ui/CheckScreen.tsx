@@ -17,6 +17,8 @@ interface Props {
   log: LogEntry[]
   glissando: boolean
   onToggleGlissando: () => void
+  /** Переподключить пианино программно — вместо «выдернуть и вставить кабель». */
+  onReconnect: () => void
   onBack: () => void
 }
 
@@ -32,6 +34,7 @@ function CheckScreen({
   log,
   glissando,
   onToggleGlissando,
+  onReconnect,
   onBack,
 }: Props) {
   return (
@@ -78,6 +81,16 @@ function CheckScreen({
               )
             })}
           </ul>
+        )}
+        {devices.length > 0 && (
+          <div className="devices__reconnect">
+            <p>
+              Пианино на связи, а ноты не приходят? Например, его перехватило другое приложение.
+            </p>
+            <button type="button" className="button" onClick={onReconnect}>
+              Переподключить пианино
+            </button>
+          </div>
         )}
       </section>
 

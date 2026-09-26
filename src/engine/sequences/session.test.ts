@@ -7,6 +7,7 @@ import {
   next,
   played,
   repeat,
+  setAutoAdvance,
   skip,
   startSession,
   stop,
@@ -219,5 +220,28 @@ describe('Остановка и нажатия', () => {
 
   it('нажатия вне упражнения ничего не меняют', () => {
     expect(played(IDLE, E4, T0)).toBe(IDLE)
+  })
+})
+
+describe('Флажок на главном экране', () => {
+  const done = () => skip(skip(skip(startSession([seq([E4], [F4], [G4])], false, T0), T0), T0), T0)
+
+  it('включили после конца последовательности — отсчёт 3 с от момента включения', () => {
+    const state = setAutoAdvance(done(), true, T0 + 500)
+    expect(countdownSeconds(state, T0 + 500)).toBe(3)
+    expect(tick(state, T0 + 500 + COUNTDOWN_MS).phase).toBe('summary')
+  })
+
+  it('выключили во время отсчёта — отсчёта нет, ждём «Далее»', () => {
+    const counting = setAutoAdvance(done(), true, T0)
+    const state = setAutoAdvance(counting, false, T0 + 1000)
+    expect(countdownSeconds(state, T0 + 1000)).toBeNull()
+    expect(tick(state, T0 + 60_000)).toBe(state)
+  })
+
+  it('включили посреди последовательности — отсчёт начнётся в её конце', () => {
+    let state = setAutoAdvance(startSession([seq([E4], [F4], [G4])], false, T0), true, T0)
+    state = skip(skip(skip(state, T0), T0), T0 + 200)
+    expect(countdownSeconds(state, T0 + 200)).toBe(3)
   })
 })

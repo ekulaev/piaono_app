@@ -73,11 +73,14 @@ function OpenMenu({
     <>
       <div
         className="mode-menu__backdrop"
+        // Касание вне меню целиком достаётся подложке: клавиши под ней не нажимаются.
+        // Закрываем по click, а не по pointerdown: иначе подложка исчезала бы до конца
+        // касания, и click доставался бы кнопке под ней — «Режим» открывал меню снова.
         onPointerDown={(event) => {
           event.preventDefault()
           event.stopPropagation()
-          onClose()
         }}
+        onClick={onClose}
       />
       <div ref={panelRef} className="mode-menu" role="dialog" aria-modal="true" aria-label="Режимы">
         {menu.screen !== 'mode' ? (

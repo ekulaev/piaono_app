@@ -28,8 +28,9 @@ function toDeviceInfo(input: MIDIInput): MidiDeviceInfo {
 /**
  * Запускает MIDI-монитор: запрашивает доступ и слушает ровно один вход — активный
  * (см. chooseActiveInput). Пересматривает входы при любом statechange (в том числе после
- * сна планшета — основной сигнал для авто-реконнекта) и когда страница снова становится
- * видимой: страховка на случай, если какая-то сборка Android пропустит statechange.
+ * сна планшета — основной сигнал для авто-реконнекта). Когда приложение снова на экране
+ * или в фокусе, переоткрывает активный вход: страховка на случай, если statechange
+ * пропущен или вход молча перехватило другое приложение.
  */
 export function startMidiMonitor(
   callbacks: MidiMonitorCallbacks,
@@ -37,7 +38,7 @@ export function startMidiMonitor(
 ): MidiMonitor {
   if (!navigator.requestMIDIAccess) {
     callbacks.onConnectionChange('unsupported', [], null)
-    return { stop: () => {}, retry: () => {}, selectInput: () => {} }
+    return { stop: () => {}, retry: () => {}, reconnect: () => {}, selectInput: () => {} }
   }
 
   let stopped = false
@@ -134,23 +135,63 @@ export function startMidiMonitor(
     )
   }
 
-  function handleVisibilityChange() {
-    if (document.visibilityState === 'visible' && access && !stopped) sync(access)
+  // Идёт ли сейчас переоткрытие: возврат в приложение даёт сразу два сигнала (видимость
+  // и фокус), а переоткрыть вход достаточно один раз.
+  let reopening = false
+
+  /**
+   * Переоткрыть активный вход — программный аналог «выдернуть и вставить кабель». Нужен,
+   * когда вход перехватило другое приложение на планшете: Chrome по-прежнему считает порт
+   * открытым и подключённым, statechange не приходит, но ноты больше не доставляются.
+   * Ноты, зажатые в этот момент, отпускаем сами: их отпускания во время закрытия потеряются.
+   */
+  function reopenActive(current: MIDIAccess) {
+    if (reopening) return
+    reopening = true
+    const input = activeInput
+    releaseHeld()
+    detachActive()
+    const closing = input?.close ? input.close() : Promise.resolve()
+    closing
+      .catch(() => {})
+      .then(() => {
+        reopening = false
+        if (!stopped && access === current) sync(current)
+      })
   }
 
-  document.addEventListener('visibilitychange', handleVisibilityChange)
+  /** Приложение снова на экране или снова в фокусе: переоткрываем вход. */
+  function handleReturn() {
+    if (document.visibilityState === 'visible' && access && !stopped) reopenActive(access)
+  }
+
+  document.addEventListener('visibilitychange', handleReturn)
+  // Фокус возвращается и без смены видимости: например, в режиме двух окон на Android.
+  if (typeof window !== 'undefined') window.addEventListener('focus', handleReturn)
   requestAccess()
 
   return {
     stop: () => {
       stopped = true
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      document.removeEventListener('visibilitychange', handleReturn)
+      if (typeof window !== 'undefined') window.removeEventListener('focus', handleReturn)
       if (access) access.onstatechange = null
       releaseHeld()
       detachActive()
     },
     retry: () => {
       if (!stopped) requestAccess()
+    },
+    reconnect: () => {
+      if (stopped) return
+      // Закрыть все входы и запросить доступ заново — самое полное переподключение без
+      // перезагрузки. Ответ на запрос сам откроет активный вход.
+      releaseHeld()
+      detachActive()
+      access?.inputs.forEach((input) => {
+        input.close?.().catch(() => {})
+      })
+      requestAccess()
     },
     selectInput: (input) => {
       preferred = input
