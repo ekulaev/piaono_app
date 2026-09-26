@@ -14,6 +14,9 @@ interface Props {
   onApplyUpdate: () => void
   exerciseRunning: boolean
   onToggleExercise: () => void
+  /** Название активного режима — на кнопке «Режим: …». */
+  activeModeTitle: string
+  onOpenModes: () => void
   /** Нотный стан: между подсказкой и кнопками, занимает всё свободное место. */
   staff: ReactNode
   /** Экранная клавиатура: видна внизу во всех состояниях связи. */
@@ -68,6 +71,8 @@ function WaitingScreen({
   onApplyUpdate,
   exerciseRunning,
   onToggleExercise,
+  activeModeTitle,
+  onOpenModes,
   staff,
   keyboard,
 }: Props) {
@@ -109,6 +114,9 @@ function WaitingScreen({
             onClick={onToggleExercise}
           >
             {exerciseRunning ? 'Стоп' : 'Старт'}
+          </button>
+          <button type="button" className="button waiting__mode" onClick={onOpenModes}>
+            Режим: {activeModeTitle}
           </button>
           {connectionState === 'permission-denied' && (
             <button type="button" className="button button--primary" onClick={onRetry}>
