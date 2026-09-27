@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
-import type { MenuState } from '../../engine/modes/modeMenu'
+import type { MenuState, ModeSettings } from '../../engine/modes/modeMenu'
 import { MODES, modeInfo, type ModeId } from '../../engine/modes/modes'
+import type { RhythmSettings } from '../../engine/rhythm/settings'
 import type { SequenceSettings } from '../../engine/sequences/settings'
+import RhythmSettingsForm from '../rhythm/RhythmSettingsForm'
 import SequenceSettingsForm from '../sequences/SequenceSettingsForm'
 import './ModeMenu.css'
 
@@ -10,7 +12,7 @@ interface Props {
   activeMode: ModeId
   onChoose: (modeId: ModeId) => void
   /** Изменение настройки на экране режима (меняет только черновик). */
-  onEditDraft: (draft: SequenceSettings) => void
+  onEditDraft: (draft: ModeSettings) => void
   onBack: () => void
   onClose: () => void
   /** «Выбрать»: сделать режим активным, не запуская. */
@@ -120,9 +122,14 @@ function OpenMenu({
             </header>
             {/* Если настройки не влезут по высоте, прокручивается только эта область. */}
             <div className="mode-menu__settings">
-              {menu.modeId !== 'warmup' && menu.draft ? (
+              {menu.modeId === 'rhythm' && menu.draft ? (
+                <RhythmSettingsForm
+                  settings={menu.draft as RhythmSettings}
+                  onChange={onEditDraft}
+                />
+              ) : menu.modeId !== 'warmup' && menu.draft ? (
                 <SequenceSettingsForm
-                  settings={menu.draft}
+                  settings={menu.draft as SequenceSettings}
                   onChange={onEditDraft}
                   variant={menu.modeId === 'contour' ? 'contour' : 'sequences'}
                 />

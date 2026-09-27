@@ -7,13 +7,16 @@ export type Level = 1 | 2 | 3
 /** Откуда пришло нажатие. Для отображения источник не важен, но движку нужен (пианино главнее). */
 export type NoteSource = 'piano' | 'touch'
 
-/** Всё, что может изменить состояние клавиатуры. */
+/**
+ * Всё, что может изменить состояние клавиатуры. time — момент самого события (MIDI или касания)
+ * в шкале performance.now: ритму нужно время нажатия, а не время его обработки (C-STF-6).
+ */
 export type KeyInput =
-  | { kind: 'pianoDown'; pitch: number; velocity: number }
+  | { kind: 'pianoDown'; pitch: number; velocity: number; time: number }
   | { kind: 'pianoUp'; pitch: number }
-  | { kind: 'touchDown'; pointerId: number; pitch: number; pressure: number }
+  | { kind: 'touchDown'; pointerId: number; pitch: number; pressure: number; time: number }
   /** Палец сдвинулся; pitch — клавиша под ним сейчас или null, если палец вне клавиш. */
-  | { kind: 'touchMove'; pointerId: number; pitch: number | null }
+  | { kind: 'touchMove'; pointerId: number; pitch: number | null; time: number }
   | { kind: 'touchUp'; pointerId: number }
   | { kind: 'setGlissando'; enabled: boolean }
 
@@ -41,4 +44,6 @@ export interface PlayedNote {
   pitch: number
   level: Level
   source: NoteSource
+  /** Момент нажатия (performance.now), взятый из самого события. */
+  time: number
 }

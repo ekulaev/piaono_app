@@ -1,5 +1,6 @@
 // Трудность места и веса для подбора нот (C-STF-4, OB-7, OB-8, OB-9, OB-10).
 
+import type { FigureId } from '../rhythm/figures'
 import type { Direction } from '../sequences/anchors'
 import type { Clef } from '../staff/pickNote'
 import { intervalKey, noteKey, type ItemStats, type ModeStats } from './stats'
@@ -56,6 +57,14 @@ export function weightsFor(stats: ModeStats): Weights {
     interval: (size, direction) =>
       weightOf(difficulty(stats.intervals[intervalKey(size, direction)], intervalMedian)),
   }
+}
+
+/**
+ * Вес ритмической фигуры по статистике «Ритма» (C-STF-6, OB-4). Времени у фигур нет — трудность
+ * только по доле ошибок.
+ */
+export function figureWeights(stats: ModeStats): (id: FigureId) => number {
+  return (id) => weightOf(difficulty(stats.figures[id], null))
 }
 
 /**

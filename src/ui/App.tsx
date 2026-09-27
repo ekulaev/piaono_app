@@ -13,6 +13,11 @@ import SequenceStaff from './sequences/SequenceStaff'
 import SessionSummary from './sequences/SessionSummary'
 import { useSequenceSession } from './sequences/useSequenceSession'
 import AutoAdvanceIcon from './sequences/AutoAdvanceIcon'
+import RhythmStaff from './rhythm/RhythmStaff'
+import RhythmSummary from './rhythm/RhythmSummary'
+import { useRhythmSession } from './rhythm/useRhythmSession'
+import { summarizeRhythm } from '../engine/rhythm/session'
+import type { RhythmSettings } from '../engine/rhythm/settings'
 import { Toggle } from './controls/Controls'
 import { summarize } from '../engine/sequences/session'
 import type { SequenceSettings } from '../engine/sequences/settings'
@@ -71,18 +76,23 @@ function App() {
   const playedInExercise = exercise.played
   const sequences = useSequenceSession()
   const playedInSequences = sequences.played
-  const exerciseRunning = exercise.running || sequences.running
+  // «Ритму» нужна не высота, а момент нажатия (C-STF-6).
+  const rhythm = useRhythmSession()
+  const playedInRhythm = rhythm.played
+  const exerciseRunning = exercise.running || sequences.running || rhythm.running
 
   /** Остановить любое упражнение и закрыть итог без нового итога (Режим, Проверка пианино). */
   function stopExercises() {
     exercise.stop()
     sequences.stop()
+    rhythm.stop()
   }
 
-  /** «Стоп»: «Разминка» показывает итог (C-STF-4, OB-12), «Последовательности» — нет. */
+  /** «Стоп»: «Разминка» показывает итог (C-STF-4, OB-12), остальные режимы — нет. */
   function finishExercises() {
     exercise.finish()
     sequences.stop()
+    rhythm.stop()
   }
 
   // Статистика режимов (C-STF-4): что уже записано — для приглашения «Ещё нет прогресса».
@@ -94,10 +104,11 @@ function App() {
   const [activeMode, setActiveMode] = useState<ModeId>(() => settingsRef.current!.activeMode)
   const [menu, setMenu] = useState<modeMenu.MenuState>(modeMenu.MENU_CLOSED)
   const closeMenu = useCallback(() => setMenu(modeMenu.closeMenu()), [])
-  // Подтверждённые настройки «Последовательностей» и «Контура» — в состоянии, потому что их
-  // флажок «Переключать автоматически» виден и на главном экране.
+  // Подтверждённые настройки режимов — в состоянии, потому что флажок «Переключать
+  // автоматически» «Последовательностей» и «Контура» виден и на главном экране.
   const [modeSettings, setModeSettings] = useState(() => settingsRef.current!.modeSettings)
-  function saveModeSettings(mode: 'sequences' | 'contour', next: SequenceSettings) {
+  type AllModeSettings = Settings['modeSettings']
+  function saveModeSettings<M extends keyof AllModeSettings>(mode: M, next: AllModeSettings[M]) {
     const all = { ...settingsRef.current!.modeSettings, [mode]: next }
     setModeSettings(all)
     updateSettings({ modeSettings: all })
@@ -107,17 +118,23 @@ function App() {
    * Запустить упражнение режима с его подтверждёнными настройками. Настройки передаются явно,
    * когда их только что подтвердили в меню и состояние ещё не обновилось.
    */
-  function startMode(mode: ModeId, settings?: SequenceSettings) {
+  function startMode(mode: ModeId, confirmed?: modeMenu.ModeSettings) {
     stopExercises()
     switch (mode) {
+      case 'rhythm': {
+        // «Ритм»: рисунки из фигур уровня, своя статистика фигур (C-STF-6).
+        const settings = (confirmed as RhythmSettings | undefined) ?? modeSettings.rhythm
+        rhythm.start(settings, loadProgress().stats.rhythm)
+        break
+      }
       case 'contour': {
         // «Контур»: только направление, без подсказок, своя статистика (C-STF-5).
-        const progress = loadProgress()
-        sequences.start(settings ?? modeSettings.contour, null, progress.stats.contour, 'contour')
+        const settings = (confirmed as SequenceSettings | undefined) ?? modeSettings.contour
+        sequences.start(settings, null, loadProgress().stats.contour, 'contour')
         break
       }
       case 'sequences': {
-        settings ??= modeSettings.sequences
+        const settings = (confirmed as SequenceSettings | undefined) ?? modeSettings.sequences
         const progress = loadProgress()
         // Подсказки «якорь + интервал» — только для шагов из одной ноты (C-STF-3, OB-8).
         sequences.start(
@@ -146,7 +163,8 @@ function App() {
     if (!chosen) return
     setActiveMode(chosen)
     updateSettings({ activeMode: chosen })
-    if (chosen !== 'warmup' && settings) saveModeSettings(chosen, settings)
+    if (chosen === 'rhythm' && settings) saveModeSettings(chosen, settings as RhythmSettings)
+    else if (chosen !== 'warmup' && settings) saveModeSettings(chosen, settings as SequenceSettings)
     if (andStart) startMode(chosen, settings ?? undefined)
   }
 
@@ -161,9 +179,10 @@ function App() {
       if (playedNote) {
         playedInExercise(playedNote.pitch)
         playedInSequences(playedNote.pitch)
+        playedInRhythm(playedNote.time)
       }
     },
-    [playedInExercise, playedInSequences],
+    [playedInExercise, playedInSequences, playedInRhythm],
   )
 
   function toggleGlissando() {
@@ -198,7 +217,12 @@ function App() {
         onAccessError: setAccessError,
         onNoteEvent: (event) => {
           if (event.type === 'noteOn') {
-            handleKeyInput({ kind: 'pianoDown', pitch: event.pitch, velocity: event.velocity })
+            handleKeyInput({
+              kind: 'pianoDown',
+              pitch: event.pitch,
+              velocity: event.velocity,
+              time: event.time,
+            })
           } else {
             handleKeyInput({ kind: 'pianoUp', pitch: event.pitch })
           }
@@ -232,6 +256,17 @@ function App() {
     setPractice((prev) => ({ ...prev, [statsMode]: stats }))
   }, [sequenceStats, statsMode])
 
+  // «Ритм»: события добавляются при оценке каждой попытки (C-STF-6, OB-11).
+  const rhythmState = rhythm.state
+  const rhythmStats =
+    rhythmState.phase === 'idle' || rhythmState.phase === 'summary' ? null : rhythmState.stats
+  useEffect(() => {
+    if (!rhythmStats || rhythmStats.events.length === 0) return
+    const stats = applyEvents(rhythmStats.before, rhythmStats.events)
+    saveModeStats('rhythm', stats)
+    setPractice((prev) => ({ ...prev, rhythm: stats }))
+  }, [rhythmStats])
+
   const warmupResults = exercise.state.phase === 'idle' ? null : exercise.state.results
   useEffect(() => {
     if (!warmupResults || warmupResults.length === 0) return
@@ -241,7 +276,14 @@ function App() {
   }, [warmupResults])
 
   let slotButton: SlotButton | null = null
-  if (session.phase === 'playing') {
+  // «Ритм»: одна кнопка по ходу рисунка (C-STF-6, OB-9).
+  if (rhythmState.phase === 'ready') {
+    slotButton = { label: 'Пропустить', onClick: rhythm.skip }
+  } else if (rhythmState.phase === 'tapping') {
+    slotButton = { label: 'Сначала', onClick: rhythm.restart }
+  } else if (rhythmState.phase === 'evaluated') {
+    slotButton = { label: 'Далее', onClick: rhythm.next }
+  } else if (session.phase === 'playing') {
     slotButton = { label: 'Пропустить', onClick: sequences.skip }
   } else if (session.phase === 'finished') {
     const label = sequences.countdown === null ? 'Далее' : `Далее (${sequences.countdown})`
@@ -264,9 +306,23 @@ function App() {
           stats ? improvements(stats.before, aggregate(stats.events)) : { firstSession: true }
         }
         onRepeat={sequences.repeat}
-        onNew={() => startMode('sequences')}
+        onNew={() => startMode(session.check === 'contour' ? 'contour' : 'sequences')}
       />
     )
+  } else if (rhythmState.phase === 'summary') {
+    const stats = rhythmState.stats
+    staff = (
+      <RhythmSummary
+        summary={summarizeRhythm(rhythmState.patterns, rhythmState.history)}
+        improvements={
+          stats ? improvements(stats.before, aggregate(stats.events)) : { firstSession: true }
+        }
+        onRepeat={rhythm.repeat}
+        onNew={() => startMode('rhythm')}
+      />
+    )
+  } else if (rhythm.running) {
+    staff = <RhythmStaff session={rhythmState} />
   } else if (sequences.running) {
     staff = <SequenceStaff session={session} />
   } else if (exercise.state.phase === 'summary') {
@@ -324,8 +380,9 @@ function App() {
         }}
         modeMenuOpen={menu.screen !== 'closed'}
         modeControl={
-          // Флажок меняет настройку активного режима (C-STF-5: и в «Контуре»).
-          activeMode !== 'warmup' && (
+          // Флажок меняет настройку активного режима (C-STF-5: и в «Контуре»). У «Разминки» и
+          // «Ритма» его нет: «Ритм» сам не переходит к следующему рисунку (C-STF-6, OB-2).
+          (activeMode === 'sequences' || activeMode === 'contour') && (
             <Toggle
               compact
               label="Переключать автоматически"

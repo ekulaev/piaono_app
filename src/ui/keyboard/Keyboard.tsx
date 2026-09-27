@@ -131,12 +131,24 @@ function Keyboard({ state, onInput, focus }: Props) {
     // Захват: палец, съехавший с клавиатуры, всё равно пришлёт pointerup сюда.
     event.currentTarget.setPointerCapture(event.pointerId)
     activePointers.current.add(event.pointerId)
-    onInput({ kind: 'touchDown', pointerId: event.pointerId, pitch, pressure: event.pressure })
+    // timeStamp — момент касания в шкале performance.now, как и время событий MIDI.
+    onInput({
+      kind: 'touchDown',
+      pointerId: event.pointerId,
+      pitch,
+      pressure: event.pressure,
+      time: event.timeStamp,
+    })
   }
 
   function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
     if (!activePointers.current.has(event.pointerId)) return
-    onInput({ kind: 'touchMove', pointerId: event.pointerId, pitch: pitchAt(event) })
+    onInput({
+      kind: 'touchMove',
+      pointerId: event.pointerId,
+      pitch: pitchAt(event),
+      time: event.timeStamp,
+    })
   }
 
   function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {

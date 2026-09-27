@@ -58,8 +58,22 @@ describe('Хранение статистики (C-STF-4)', () => {
     saveModeStats('warmup', stats, storage)
     expect(loadProgress(storage)).toEqual({
       hints,
-      stats: { sequences: stats, contour: emptyModeStats(), warmup: stats },
+      stats: {
+        sequences: stats,
+        contour: emptyModeStats(),
+        rhythm: emptyModeStats(),
+        warmup: stats,
+      },
     })
+  })
+
+  it('статистика «Ритма» хранится своим режимом (C-STF-6)', () => {
+    const storage = memoryStorage()
+    const rhythm = aggregate([{ kind: 'figure', key: 'dotted', outcome: 'error', ms: null }])
+    saveModeStats('sequences', stats, storage)
+    saveModeStats('rhythm', rhythm, storage)
+    expect(loadProgress(storage).stats.rhythm).toEqual(rhythm)
+    expect(loadProgress(storage).stats.sequences).toEqual(stats)
   })
 
   it('Уровни подсказок не стирают статистику, и наоборот', () => {
@@ -79,7 +93,12 @@ describe('Хранение статистики (C-STF-4)', () => {
     storage.setItem('piaono.progress.v1', JSON.stringify({ hints }))
     expect(loadProgress(storage)).toEqual({
       hints,
-      stats: { sequences: emptyModeStats(), contour: emptyModeStats(), warmup: emptyModeStats() },
+      stats: {
+        sequences: emptyModeStats(),
+        contour: emptyModeStats(),
+        rhythm: emptyModeStats(),
+        warmup: emptyModeStats(),
+      },
     })
   })
 
@@ -95,6 +114,7 @@ describe('Хранение статистики (C-STF-4)', () => {
     expect(loadProgress(storage).stats).toEqual({
       sequences: emptyModeStats(),
       contour: emptyModeStats(),
+      rhythm: emptyModeStats(),
       warmup: stats,
     })
   })

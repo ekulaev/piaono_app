@@ -1,7 +1,8 @@
 // «Что улучшилось» (C-STF-4, OB-11, OB-13, OB-14): сессия против истории до неё.
 
 import { pitchToNoteName } from '../../midi/noteNames'
-import { hasProgress, type ItemStats, type ModeStats } from './stats'
+import { FIGURES, isFigureId } from '../rhythm/figures'
+import { hasProgress, TABLES, type ItemStats, type ModeStats, type StatKind } from './stats'
 import { MIN_ATTEMPTS } from './weights'
 
 /** Точность выше на столько (доля) или время меньше на столько (доля) — улучшение (LIM-4). */
@@ -15,8 +16,9 @@ export type Improvements = { firstSession: true } | { firstSession: false; lines
 const percent = (share: number) => `${Math.round(share * 100)} %`
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} с`
 
-/** «C4», «C3 (бас)», «↑3», «=» (на месте). */
-export function label(kind: 'note' | 'interval', key: string): string {
+/** «C4», «C3 (бас)», «↑3», «=» (на месте), «две восьмые». */
+export function label(kind: StatKind, key: string): string {
+  if (kind === 'figure') return isFigureId(key) ? FIGURES[key].label : key
   if (kind === 'interval') {
     if (key.startsWith('same')) return '='
     const up = key.startsWith('up')
@@ -31,7 +33,7 @@ interface Candidate {
   line: string
 }
 
-function compare(kind: 'note' | 'interval', key: string, before: ItemStats, now: ItemStats) {
+function compare(kind: StatKind, key: string, before: ItemStats, now: ItemStats) {
   if (before.attempts < MIN_ATTEMPTS || now.attempts < MIN_ATTEMPTS) return null
   const candidates: Candidate[] = []
   const accBefore = before.clean / before.attempts
@@ -61,8 +63,8 @@ function compare(kind: 'note' | 'interval', key: string, before: ItemStats, now:
 export function improvements(before: ModeStats, session: ModeStats): Improvements {
   if (!hasProgress(before)) return { firstSession: true }
   const found: Candidate[] = []
-  for (const kind of ['note', 'interval'] as const) {
-    const table = kind === 'note' ? 'notes' : 'intervals'
+  for (const kind of ['note', 'interval', 'figure'] as const) {
+    const table = TABLES[kind]
     for (const [key, now] of Object.entries(session[table]) as [string, ItemStats][]) {
       const history = (before[table] as Record<string, ItemStats>)[key]
       const best = history && compare(kind, key, history, now)

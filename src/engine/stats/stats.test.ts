@@ -58,9 +58,11 @@ describe('Сохранённая статистика', () => {
 
   it('корректные данные читаются', () => {
     const contour = aggregate([{ kind: 'interval', key: 'same1', outcome: 'clean', ms: 600 }])
-    expect(readPracticeStats({ sequences: valid, contour, warmup: valid })).toEqual({
+    const rhythm = aggregate([{ kind: 'figure', key: 'eighths', outcome: 'error', ms: null }])
+    expect(readPracticeStats({ sequences: valid, contour, rhythm, warmup: valid })).toEqual({
       sequences: valid,
       contour,
+      rhythm,
       warmup: valid,
     })
   })
@@ -70,6 +72,7 @@ describe('Сохранённая статистика', () => {
     expect(readPracticeStats({ sequences: broken, warmup: valid })).toEqual({
       sequences: emptyModeStats(),
       contour: emptyModeStats(),
+      rhythm: emptyModeStats(),
       warmup: valid,
     })
     expect(
@@ -82,6 +85,7 @@ describe('Сохранённая статистика', () => {
     expect(readPracticeStats(undefined)).toEqual({
       sequences: emptyModeStats(),
       contour: emptyModeStats(),
+      rhythm: emptyModeStats(),
       warmup: emptyModeStats(),
     })
     expect(readPracticeStats('мусор').warmup).toEqual(emptyModeStats())
@@ -93,5 +97,47 @@ describe('Прогресс по нотам или переходам (C-STF-5)',
     expect(
       hasProgress(aggregate([{ kind: 'interval', key: 'down2', outcome: 'skip', ms: null }])),
     ).toBe(true)
+  })
+})
+
+describe('Фигуры «Ритма» (C-STF-6)', () => {
+  const figure = (key: StatEvent['key'], outcome: StatEvent['outcome']): StatEvent => ({
+    kind: 'figure',
+    key,
+    outcome,
+    ms: null,
+  })
+
+  it('фигуры копятся своей таблицей, без времени', () => {
+    const stats = aggregate([figure('eighths', 'clean'), figure('eighths', 'error')])
+    expect(stats.figures.eighths).toEqual({
+      attempts: 2,
+      clean: 1,
+      errors: 1,
+      skips: 0,
+      timeCount: 0,
+      avgMs: 0,
+    })
+    expect(stats.notes).toEqual({})
+    expect(stats.intervals).toEqual({})
+    expect(hasProgress(stats)).toBe(true)
+  })
+
+  it('записи до «Ритма» без таблицы фигур читаются, фигуры пустые', () => {
+    const old = { notes: { 'treble:64': aggregate([note('clean', 700)]).notes['treble:64'] } }
+    const read = readPracticeStats({ sequences: old })
+    expect(read.sequences.notes['treble:64'].clean).toBe(1)
+    expect(read.sequences.figures).toEqual({})
+    expect(read.rhythm).toEqual(emptyModeStats())
+  })
+
+  it('неизвестная фигура — режим «Ритм» пустой, другие не тронуты', () => {
+    const valid = aggregate([note('clean', 700)])
+    const read = readPracticeStats({
+      sequences: valid,
+      rhythm: { notes: {}, figures: { triplet: valid.notes['treble:64'] } },
+    })
+    expect(read.rhythm).toEqual(emptyModeStats())
+    expect(read.sequences).toEqual(valid)
   })
 })
