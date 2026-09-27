@@ -56,7 +56,8 @@
 
 ### D2. Верхняя панель — `ui/topbar/TopBar.tsx`
 
-- Строка на всю ширину, высота `4rem`; внутренний блок `width: min(80%, 100% - 2rem)`, на узком
+- Строка на всю ширину, высота — ряд `.app`: `4rem` (72 px при базовом шрифте 18 px), на низком экране
+  (`max-height: 30rem`) `3.5rem`, как был сжатый блок статуса — иначе стану на телефоне не хватает места; внутренний блок `width: min(80%, 100% - 2rem)`, на узком
   экране (`max-width: 37.5rem`) — вся ширина с полями `1rem`.
 - **Статус** — `<button>`: значок из `ConnectionStatus` (те же классы `status--<state>` и формы)
   и текст состояния, до двух строк (`line-clamp` не нужен: тексты короткие). Подпись для диктора —
@@ -75,12 +76,15 @@
 - `viewBox 0 0 24 24`, `stroke: currentColor`, толщина линии 2.5, размер `2rem`: не «волосяные»
   линии (CLAUDE.md §6).
 - Без зависимостей и шрифтов значков.
+- Класс `.line-icon` (без заливки): имя `.icon` уже занято залитым значком «Переключать автоматически».
 
 ### D4. Статус и подсказки — `ui/ConnectionStatus.tsx`
 
-- Экспорт `STATUS_TITLE`, компонент значка `StatusIcon` и таблица `CONNECTION_HELP: Record<
+- `connectionTexts.ts` — `STATUS_TITLE`, `statusClass` и таблица `CONNECTION_HELP: Record<
   ConnectionState, string | null>` — строки приложения Г C-APP-1 (`null` у `connecting` и
   `connected`).
+- `ConnectionStatus.tsx` — только компонент значка `StatusIcon` (линтер: компоненты и константы —
+  в разных файлах).
 - `Hint` из `WaitingScreen` удаляется; `ConnectionStatus`-блок больше нигде не рисуется.
 
 ### D5. Главный экран — `WaitingScreen`

@@ -1,74 +1,14 @@
-.check {
-  max-width: 60rem;
-  margin: 0 auto;
-  height: 100svh;
-  padding: clamp(1rem, 3vw, 2.5rem);
-  display: flex;
-  flex-direction: column;
-  gap: clamp(1.25rem, 3vw, 2rem);
-}
-
-.check__header {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-.check h1 {
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
-}
-
 .check h2 {
   font-size: clamp(1.125rem, 2.5vw, 1.375rem);
   margin-bottom: 0.75rem;
 }
 
-.devices__empty,
 .log__empty {
   color: var(--ink-soft);
   font-size: 1.125rem;
 }
 
-.devices__list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* Устройство — крупная кнопка. Активное отличается заливкой и меткой «слушаю», не только цветом. */
-.device {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  width: 100%;
-  min-height: 3.5rem;
-  padding: 0.75rem 1rem;
-  border: 0.1875rem solid var(--border);
-  border-radius: 0.75rem;
-  background: var(--paper);
-  color: var(--ink);
-  font: inherit;
-  font-size: 1.25rem;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-
-.device--active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
-
-.device__mark {
-  flex-shrink: 0;
-  padding: 0.125rem 0.75rem;
-  border: 0.1875rem solid currentColor;
-  border-radius: 0.5rem;
-  font-size: 1.125rem;
-}
-
+/* Журнал забирает всю оставшуюся высоту и прокручивается сам — экран целиком не прокручивается. */
 .log {
   display: flex;
   flex-direction: column;
@@ -114,36 +54,9 @@
   font-weight: 500;
 }
 
-.check__header {
-  flex-wrap: wrap;
-}
-
-.check__glissando {
-  margin-left: auto;
-}
-
-.check__glissando[aria-pressed='true'] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
-
-.devices__reconnect {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-  margin-top: 1rem;
-}
-
-.devices__reconnect p {
-  margin: 0;
-  font-size: 1.125rem;
-}
-
 /* Техническая строка для владельца: что ответил Chrome на запрос MIDI. */
-.devices__error {
-  margin: 1rem 0 0;
+.check__error {
+  margin: 0;
   font-size: 1.125rem;
   color: var(--ink-soft);
   overflow-wrap: anywhere;

@@ -1,0 +1,72 @@
+/*
+ * Верхняя панель: на всю ширину, высота постоянная — ряд .app: 4rem, на низком экране 3.5rem
+ * (C-APP-1 LIM-1). Содержимое — 80 %
+ * ширины по центру; на узком экране — вся ширина с полями по 1rem (LIM-2). Своего z-index нет:
+ * подложка меню режимов ложится поверх, и касание панели при открытом меню закрывает меню.
+ */
+.topbar {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.topbar__inner {
+  width: 80%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 37.5rem) {
+  .topbar__inner {
+    width: calc(100% - 2rem);
+  }
+}
+
+/* Статус — кнопка в рамке своего состояния: те же значки и цвета, что были у блока статуса. */
+.topbar__status {
+  min-width: 0;
+  min-height: 3.5rem;
+  max-height: 3.5rem;
+  padding: 0.25rem 1rem;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.125rem;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+
+.topbar__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.topbar__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 3.5rem;
+  padding-inline: 1rem;
+}
+
+/* Текущая страница: заливка — видно без цвета, как выбранный вариант в настройках режимов. */
+.topbar__button[aria-current='page'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  cursor: default;
+}
+
+/* Подписи — от 900 px ширины (LIM-3); уже — только значок, подпись у диктора и в title. */
+@media (max-width: 56.25rem) {
+  .topbar__label {
+    display: none;
+  }
+  .topbar__button {
+    padding-inline: 0.5rem;
+  }
+}
