@@ -41,4 +41,10 @@ describe('Интервалы по ступеням стана', () => {
     expect(widestFitting(low, high, 'third')).toBe(3)
     expect(widestFitting(RANGES.octave.bass.low, RANGES.octave.bass.high, 'octave')).toBe(8)
   })
+
+  it('G4 → G4 — прима, «на месте»', () => {
+    expect(intervalBetween(67, 67)).toEqual({ size: 1, direction: 'same' })
+    expect(moveBy(67, 1, 'same')).toBe(67)
+    expect(moveBy(67, 2, 'same')).toBeNull()
+  })
 })

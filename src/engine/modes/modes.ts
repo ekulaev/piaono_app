@@ -1,7 +1,7 @@
 // Перечень режимов упражнения. Порядок массива — порядок в меню режимов.
 // В массиве только доступные (реализованные) режимы: чего здесь нет, того нет и в меню.
 
-export type ModeId = 'sequences' | 'warmup'
+export type ModeId = 'sequences' | 'contour' | 'warmup'
 
 export interface ModeInfo {
   id: ModeId
@@ -12,6 +12,7 @@ export interface ModeInfo {
 
 export const MODES: readonly ModeInfo[] = [
   { id: 'sequences', title: 'Последовательности', hasSettings: true },
+  { id: 'contour', title: 'Контур', hasSettings: true },
   { id: 'warmup', title: 'Разминка', hasSettings: false },
 ]
 

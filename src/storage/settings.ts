@@ -19,15 +19,18 @@ export interface Settings {
   preferredInput: PreferredInput | null
   /** Режим, который запускает «Старт» на главном экране. */
   activeMode: ModeId
-  /** Подтверждённые настройки режимов (у «Разминки» их нет). */
-  modeSettings: { sequences: SequenceSettings }
+  /**
+   * Подтверждённые настройки режимов (у «Разминки» их нет). «Контур» хранит свои отдельно —
+   * того же вида, «Нот в шаге» и «Подсказки» у него не используются (C-STF-5).
+   */
+  modeSettings: { sequences: SequenceSettings; contour: SequenceSettings }
 }
 
 const DEFAULT_SETTINGS: Settings = {
   glissando: false,
   preferredInput: null,
   activeMode: DEFAULT_MODE,
-  modeSettings: { sequences: DEFAULT_SEQUENCE_SETTINGS },
+  modeSettings: { sequences: DEFAULT_SEQUENCE_SETTINGS, contour: DEFAULT_SEQUENCE_SETTINGS },
 }
 
 /** Версия в ключе: если формат поменяется, старые данные не прочитаются как новые. */
@@ -55,6 +58,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
       activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
       modeSettings: {
         sequences: readSequenceSettings((savedModes as Record<string, unknown>).sequences),
+        contour: readSequenceSettings((savedModes as Record<string, unknown>).contour),
       },
     }
   } catch {

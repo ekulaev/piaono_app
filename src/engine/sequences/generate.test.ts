@@ -3,7 +3,7 @@ import { isBlackKey } from '../keyboard/layout'
 import type { Clef } from '../staff/pickNote'
 import { anchorsIn, intervalBetween, MAX_INTERVAL, widestFitting } from './anchors'
 import { buildSequence, buildSession, nextByInterval, RANGES } from './generate'
-import type { Weights } from '../stats/weights'
+import { UNIFORM, type Weights } from '../stats/weights'
 import {
   DEFAULT_SEQUENCE_SETTINGS,
   type IntervalChoice,
@@ -146,5 +146,50 @@ describe('Взвешенный выбор интервала (C-STF-4)', () => {
       interval: () => 2,
     })
     expect(uniform).toEqual(plain)
+  })
+})
+
+describe('«Контур» (C-STF-5)', () => {
+  it('Все направления: белые клавиши C4–G4, переходы — секунда, терция или повтор', () => {
+    const random = seeded(77)
+    const directions = new Set<string>()
+    for (let i = 0; i < 1000; i++) {
+      const sequence = buildSequence(settings({ notesPerStep: 3 }), random, undefined, {
+        contour: true,
+      })
+      let previous = sequence.anchor!
+      for (const step of sequence.steps) {
+        expect(step).toHaveLength(1)
+        const pitch = step[0]
+        expect(isBlackKey(pitch)).toBe(false)
+        expect(pitch).toBeGreaterThanOrEqual(60)
+        expect(pitch).toBeLessThanOrEqual(67)
+        const { size, direction } = intervalBetween(previous, pitch)
+        expect(size).toBeLessThanOrEqual(3)
+        directions.add(direction)
+        previous = pitch
+      }
+    }
+    expect(directions).toEqual(new Set(['up', 'down', 'same']))
+  })
+
+  it('«на месте» — наравне с каждым размером: примерно треть переходов при «До терции»', () => {
+    const random = seeded(5)
+    let same = 0
+    let total = 0
+    for (let i = 0; i < 10_000; i++) {
+      // Середина «Октавы»: все размеры помещаются хотя бы в одну сторону.
+      const next = nextByInterval(65, 3, 60, 72, random, 'treble', UNIFORM, 1)
+      if (next === 65) same++
+      total++
+    }
+    expect(same / total).toBeGreaterThan(0.3)
+    expect(same / total).toBeLessThan(0.37)
+  })
+
+  it('без опции — прежние ноты при том же зерне', () => {
+    const plain = buildSession(settings({ sequences: 4 }), seeded(12))
+    const again = buildSession(settings({ sequences: 4 }), seeded(12), UNIFORM, {})
+    expect(again).toEqual(plain)
   })
 })

@@ -43,6 +43,25 @@ export function sequenceEvents(sequence: Sequence, records: readonly StepOutcome
   return events
 }
 
+/**
+ * События завершённой последовательности «Контура» (C-STF-5, OB-12): только переходы. Переход к
+ * шагу пишется, если у шага была точка отсчёта — предыдущий шаг не пропущен; первый шаг и шаг
+ * после пропуска принимали любую клавишу, направления у них нет. Время — только верно сразу.
+ */
+export function contourEvents(sequence: Sequence, records: readonly StepOutcome[]): StatEvent[] {
+  const events: StatEvent[] = []
+  sequence.steps.forEach((step, index) => {
+    if (index === 0 || records[index - 1].result === 'skipped') return
+    const record = records[index]
+    const outcome = stepOutcome(record)
+    if (!outcome) return
+    const { size, direction } = intervalBetween(sequence.steps[index - 1][0], step[0])
+    const ms = outcome === 'clean' ? record.reactionMs : null
+    events.push({ kind: 'interval', key: intervalKey(size, direction), outcome, ms })
+  })
+  return events
+}
+
 /** Итог ноты «Разминки»: верно сразу, верно после неверных нажатий, не успел. */
 export type WarmupOutcome = 'clean' | 'error' | 'missed'
 

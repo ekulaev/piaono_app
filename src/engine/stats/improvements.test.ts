@@ -61,3 +61,18 @@ describe('Что улучшилось', () => {
     expect(result.lines[0]).toBe('C4 — точнее: 50 % → 100 %')
   })
 })
+
+describe('«Что улучшилось» в «Контуре» (C-STF-5)', () => {
+  const same = (outcome: StatEvent['outcome']): StatEvent => ({
+    kind: 'interval',
+    key: 'same1',
+    outcome,
+    ms: null,
+  })
+
+  it('Вторая сессия Контура: история из одних переходов — не первая сессия, «=» в строке', () => {
+    const before = aggregate([...repeat(2, same('clean')), ...repeat(3, same('error'))])
+    const result = improvements(before, aggregate(repeat(4, same('clean'))))
+    expect(result).toEqual({ firstSession: false, lines: ['= — точнее: 40 % → 100 %'] })
+  })
+})

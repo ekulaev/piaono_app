@@ -28,7 +28,8 @@ export const INTERVAL_NAMES: Record<number, string> = {
   8: 'октавы',
 }
 
-export type Direction = 'up' | 'down'
+/** Направление перехода: вверх, вниз или на месте (повтор ноты, только в «Контуре»). */
+export type Direction = 'up' | 'down' | 'same'
 
 export interface Interval {
   /** Число ступеней стана, считая обе ноты: 2 — секунда … 8 — октава. */
@@ -47,14 +48,16 @@ export function whiteIndex(pitch: number): number {
   return WHITE_PITCHES.indexOf(pitch)
 }
 
-/** Интервал от ноты from до ноты to. Для одинаковых нот size = 1 (прима), направление 'up'. */
+/** Интервал от ноты from до ноты to. Для одинаковых нот — прима: size = 1, направление 'same'. */
 export function intervalBetween(from: number, to: number): Interval {
   const steps = whiteIndex(to) - whiteIndex(from)
+  if (steps === 0) return { size: 1, direction: 'same' }
   return { size: Math.abs(steps) + 1, direction: steps < 0 ? 'down' : 'up' }
 }
 
 /** Нота на интервал выше или ниже; null — за пределами клавиатуры. */
 export function moveBy(pitch: number, size: number, direction: Direction): number | null {
+  if (direction === 'same') return size === 1 ? pitch : null
   const index = whiteIndex(pitch) + (direction === 'up' ? size - 1 : -(size - 1))
   return WHITE_PITCHES[index] ?? null
 }

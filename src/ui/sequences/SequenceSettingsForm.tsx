@@ -11,6 +11,8 @@ import AutoAdvanceIcon from './AutoAdvanceIcon'
 interface Props {
   settings: SequenceSettings
   onChange: (settings: SequenceSettings) => void
+  /** «Контур»: шаги всегда одиночные, подсказок нет — этих настроек нет (C-STF-5, OB-2). */
+  variant?: 'sequences' | 'contour'
 }
 
 /** Пояснение под настройками, которые действуют только для шагов из одной ноты. */
@@ -29,11 +31,12 @@ function intervalNote(settings: SequenceSettings): string | undefined {
 }
 
 /** Настройки режима «Последовательности» на экране режима (меняют только черновик). */
-function SequenceSettingsForm({ settings, onChange }: Props) {
+function SequenceSettingsForm({ settings, onChange, variant = 'sequences' }: Props) {
+  const contour = variant === 'contour'
   const set = <K extends keyof SequenceSettings>(key: K, value: SequenceSettings[K]) =>
     onChange({ ...settings, [key]: value })
   // Подсказки и интервалы — только для шагов из одной ноты (C-STF-3, OB-8).
-  const chords = settings.notesPerStep > 1
+  const chords = !contour && settings.notesPerStep > 1
 
   return (
     <div className="sequence-settings">
@@ -75,19 +78,23 @@ function SequenceSettingsForm({ settings, onChange }: Props) {
         {...SEQUENCES_LIMITS}
         onChange={(value) => set('sequences', value)}
       />
-      <Stepper
-        label="Нот в шаге"
-        value={settings.notesPerStep}
-        {...NOTES_PER_STEP_LIMITS}
-        onChange={(value) => set('notesPerStep', value)}
-      />
-      <Toggle
-        label="Подсказки"
-        checked={settings.hints}
-        onChange={(value) => set('hints', value)}
-        disabled={chords}
-        note={chords ? SINGLE_NOTES_ONLY : undefined}
-      />
+      {!contour && (
+        <Stepper
+          label="Нот в шаге"
+          value={settings.notesPerStep}
+          {...NOTES_PER_STEP_LIMITS}
+          onChange={(value) => set('notesPerStep', value)}
+        />
+      )}
+      {!contour && (
+        <Toggle
+          label="Подсказки"
+          checked={settings.hints}
+          onChange={(value) => set('hints', value)}
+          disabled={chords}
+          note={chords ? SINGLE_NOTES_ONLY : undefined}
+        />
+      )}
       <Toggle
         label="Переключать автоматически"
         checked={settings.autoAdvance}

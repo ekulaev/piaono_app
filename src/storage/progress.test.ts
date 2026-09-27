@@ -56,7 +56,10 @@ describe('Хранение статистики (C-STF-4)', () => {
     saveHintProgress(hints, storage)
     saveModeStats('sequences', stats, storage)
     saveModeStats('warmup', stats, storage)
-    expect(loadProgress(storage)).toEqual({ hints, stats: { sequences: stats, warmup: stats } })
+    expect(loadProgress(storage)).toEqual({
+      hints,
+      stats: { sequences: stats, contour: emptyModeStats(), warmup: stats },
+    })
   })
 
   it('Уровни подсказок не стирают статистику, и наоборот', () => {
@@ -76,7 +79,7 @@ describe('Хранение статистики (C-STF-4)', () => {
     storage.setItem('piaono.progress.v1', JSON.stringify({ hints }))
     expect(loadProgress(storage)).toEqual({
       hints,
-      stats: { sequences: emptyModeStats(), warmup: emptyModeStats() },
+      stats: { sequences: emptyModeStats(), contour: emptyModeStats(), warmup: emptyModeStats() },
     })
   })
 
@@ -89,6 +92,10 @@ describe('Хранение статистики (C-STF-4)', () => {
         stats: { sequences: 'мусор', warmup: stats },
       }),
     )
-    expect(loadProgress(storage).stats).toEqual({ sequences: emptyModeStats(), warmup: stats })
+    expect(loadProgress(storage).stats).toEqual({
+      sequences: emptyModeStats(),
+      contour: emptyModeStats(),
+      warmup: stats,
+    })
   })
 })

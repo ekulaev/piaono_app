@@ -63,51 +63,75 @@ export function nextByInterval(
   random: () => number,
   clef: Clef = 'treble',
   weights: Weights = UNIFORM,
+  minInterval: number = MIN_INTERVAL,
 ): number {
   const fits = (size: number, direction: Direction) => {
     const pitch = moveBy(from, size, direction)
     return pitch !== null && pitch >= low && pitch <= high
   }
-  const directions: Direction[] = ['up', 'down']
+  // Прима (размер 1) — «на месте», у неё одно направление; остальные — вверх или вниз.
+  const directionsOf = (size: number): Direction[] => (size === 1 ? ['same'] : ['up', 'down'])
   const sizes: number[] = []
-  for (let size = MIN_INTERVAL; size <= maxInterval; size++) {
-    if (directions.some((direction) => fits(size, direction))) sizes.push(size)
+  for (let size = minInterval; size <= maxInterval; size++) {
+    if (directionsOf(size).some((direction) => fits(size, direction))) sizes.push(size)
   }
   const size = weightedPick(
     sizes,
-    (s) => Math.max(...directions.filter((d) => fits(s, d)).map((d) => weights.interval(s, d))),
+    (s) =>
+      Math.max(
+        ...directionsOf(s)
+          .filter((d) => fits(s, d))
+          .map((d) => weights.interval(s, d)),
+      ),
     random,
   )
   const direction = weightedPick(
-    directions.filter((d) => fits(size, d)),
+    directionsOf(size).filter((d) => fits(size, d)),
     (d) => weights.interval(size, d) * weights.note(clef, moveBy(from, size, d)!),
     random,
   )
   return moveBy(from, size, direction)!
 }
 
+/** Вариант построения: для «Контура» — одиночные шаги и переход «на месте» (C-STF-5). */
+export interface BuildOptions {
+  contour?: boolean
+}
+
 /**
  * Одна последовательность: ключ (для «Оба» — случайный), 3–8 шагов. Шаги из одной ноты —
  * ход интервалами от случайной опорной ноты диапазона; из 2–3 нот — случайные разные белые
- * клавиши диапазона. Трудные места выбираются чаще (weights); без статистики — равновероятно.
- * random передаётся снаружи.
+ * клавиши диапазона. В «Контуре» шаги всегда одиночные, а повтор ноты («на месте») выбирается
+ * наравне с допустимыми интервалами. Трудные места выбираются чаще (weights); без статистики —
+ * равновероятно. random передаётся снаружи.
  */
 export function buildSequence(
   settings: SequenceSettings,
   random: () => number,
   weights: Weights = UNIFORM,
+  options: BuildOptions = {},
 ): Sequence {
   const clef: Clef = settings.clef === 'both' ? (random() < 0.5 ? 'treble' : 'bass') : settings.clef
   const { low, high } = RANGES[settings.range][clef]
   const length = MIN_STEPS + Math.floor(random() * (MAX_STEPS - MIN_STEPS + 1))
 
-  if (settings.notesPerStep === 1) {
+  if (settings.notesPerStep === 1 || options.contour) {
+    const minInterval = options.contour ? 1 : MIN_INTERVAL
     const anchor = weightedPick(anchorsIn(clef, low, high), (p) => weights.note(clef, p), random)
     const maxInterval = MAX_INTERVAL[settings.intervals]
     const steps: number[][] = []
     let previous = anchor
     for (let i = 0; i < length; i++) {
-      previous = nextByInterval(previous, maxInterval, low, high, random, clef, weights)
+      previous = nextByInterval(
+        previous,
+        maxInterval,
+        low,
+        high,
+        random,
+        clef,
+        weights,
+        minInterval,
+      )
       steps.push([previous])
     }
     return { clef, low, high, anchor, steps }
@@ -125,6 +149,9 @@ export function buildSession(
   settings: SequenceSettings,
   random: () => number,
   weights: Weights = UNIFORM,
+  options: BuildOptions = {},
 ): Sequence[] {
-  return Array.from({ length: settings.sequences }, () => buildSequence(settings, random, weights))
+  return Array.from({ length: settings.sequences }, () =>
+    buildSequence(settings, random, weights, options),
+  )
 }
