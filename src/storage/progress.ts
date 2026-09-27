@@ -1,8 +1,13 @@
 // Прогресс ученика на устройстве — отдельно от настроек и со своей версией формата:
 // уровни подсказок (C-STF-3) и статистика режимов (C-STF-4) в одной записи.
 
-import { readHintProgress, type HintProgress } from '../engine/sequences/hints'
 import {
+  DEFAULT_HINT_PROGRESS,
+  readHintProgress,
+  type HintProgress,
+} from '../engine/sequences/hints'
+import {
+  emptyModeStats,
   readPracticeStats,
   type ModeStats,
   type PracticeStats,
@@ -67,4 +72,17 @@ export function saveModeStats(
   storage: SettingsStorage | null = browserStorage(),
 ): void {
   update((progress) => ({ ...progress, stats: { ...progress.stats, [mode]: stats } }), storage)
+}
+
+/** Стереть статистику одного режима (C-STF-7, «Сброс»): другие режимы и уровни не трогаются. */
+export function resetModeStats(
+  mode: StatsMode,
+  storage: SettingsStorage | null = browserStorage(),
+): void {
+  saveModeStats(mode, emptyModeStats(), storage)
+}
+
+/** Вернуть подсказки: оба ключа на уровень 3 с нулевым счётом; статистика не трогается. */
+export function resetHintProgress(storage: SettingsStorage | null = browserStorage()): void {
+  saveHintProgress(DEFAULT_HINT_PROGRESS, storage)
 }

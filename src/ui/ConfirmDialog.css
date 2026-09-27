@@ -1,0 +1,45 @@
+/* Окно по центру, до 36rem; на телефоне — 80 % ширины (C-STF-7, LIM-7). Без анимации. */
+.confirm {
+  width: min(36rem, 80vw);
+  max-width: none;
+  padding: 0;
+  border: 0.1875rem solid var(--ink);
+  border-radius: 1rem;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Затемнение под окном: касание по нему — «Нет». */
+.confirm::backdrop {
+  background: rgb(34 28 20 / 0.55);
+}
+
+/* Отступы — у содержимого, чтобы касание по полям окна не считалось касанием вне окна. */
+.confirm__body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.confirm__question {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+.confirm__details {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+.confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.confirm__actions .button {
+  min-width: 6em;
+}

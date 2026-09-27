@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_HINT_PROGRESS, type HintProgress } from '../engine/sequences/hints'
 import type { SettingsStorage } from './browserStorage'
 import { aggregate, emptyModeStats } from '../engine/stats/stats'
-import { loadHintProgress, loadProgress, saveHintProgress, saveModeStats } from './progress'
+import {
+  loadHintProgress,
+  loadProgress,
+  resetHintProgress,
+  resetModeStats,
+  saveHintProgress,
+  saveModeStats,
+} from './progress'
 
 function memoryStorage(): SettingsStorage {
   const data = new Map<string, string>()
@@ -117,5 +124,31 @@ describe('Хранение статистики (C-STF-4)', () => {
       rhythm: emptyModeStats(),
       warmup: stats,
     })
+  })
+})
+
+describe('Сброс (C-STF-7)', () => {
+  const stats = aggregate([{ kind: 'interval', key: 'up2', outcome: 'clean', ms: 500 }])
+  const hints: HintProgress = { treble: { level: 1, streak: 1 }, bass: { level: 2, streak: 0 } }
+
+  it('Сброс Контура: другие режимы и уровни не тронуты', () => {
+    const storage = memoryStorage()
+    saveHintProgress(hints, storage)
+    saveModeStats('contour', stats, storage)
+    saveModeStats('sequences', stats, storage)
+    resetModeStats('contour', storage)
+    const progress = loadProgress(storage)
+    expect(progress.stats.contour).toEqual(emptyModeStats())
+    expect(progress.stats.sequences).toEqual(stats)
+    expect(progress.hints).toEqual(hints)
+  })
+
+  it('Вернуть подсказки: статистика не тронута', () => {
+    const storage = memoryStorage()
+    saveHintProgress(hints, storage)
+    saveModeStats('sequences', stats, storage)
+    resetHintProgress(storage)
+    expect(loadProgress(storage).hints).toEqual(DEFAULT_HINT_PROGRESS)
+    expect(loadProgress(storage).stats.sequences).toEqual(stats)
   })
 })

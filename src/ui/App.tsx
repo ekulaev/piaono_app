@@ -7,6 +7,7 @@ import { loadSettings, saveSettings, type Settings } from '../storage/settings'
 import CheckScreen, { type LogEntry } from './CheckScreen'
 import TopBar from './topbar/TopBar'
 import SettingsScreen from './settings/SettingsScreen'
+import ProgressScreen from './progress/ProgressScreen'
 import './App.css'
 import Keyboard from './keyboard/Keyboard'
 import StaffView from './staff/StaffView'
@@ -24,7 +25,13 @@ import type { RhythmSettings } from '../engine/rhythm/settings'
 import { Toggle } from './controls/Controls'
 import { summarize } from '../engine/sequences/session'
 import type { SequenceSettings } from '../engine/sequences/settings'
-import { loadProgress, saveHintProgress, saveModeStats } from '../storage/progress'
+import {
+  loadProgress,
+  resetHintProgress,
+  resetModeStats,
+  saveHintProgress,
+  saveModeStats,
+} from '../storage/progress'
 import { warmupEvent } from '../engine/stats/events'
 import { improvements } from '../engine/stats/improvements'
 import { aggregate, applyEvents, hasProgress, type ModeStats } from '../engine/stats/stats'
@@ -40,7 +47,7 @@ import { useAppUpdate } from './useAppUpdate'
 const MAX_LOG_ENTRIES = 100
 
 /** Экраны под верхней панелью (C-APP-1): главный, «Настройки» и вложенная «Проверка пианино». */
-type Screen = 'main' | 'settings' | 'check'
+type Screen = 'main' | 'settings' | 'check' | 'progress'
 
 /**
  * Корень приложения. Владеет единственной подпиской на MIDI и состоянием клавиатуры:
@@ -101,6 +108,8 @@ function App() {
 
   // Статистика режимов (C-STF-4): что уже записано — для приглашения «Ещё нет прогресса».
   const [practice, setPractice] = useState(() => loadProgress().stats)
+  // Уровни подсказок для экрана «Прогресс»: читаются при его открытии.
+  const [hints, setHints] = useState(() => loadProgress().hints)
   // История «Разминки» до текущей сессии: к ней добавляются итоги нот, с ней сравнивается итог.
   const warmupBefore = useRef<ModeStats>(practice.warmup)
 
@@ -212,6 +221,25 @@ function App() {
     stopExercises()
     closeMenu()
     setScreen('settings')
+  }
+
+  /** «Прогресс» — так же, как «Настройки»: упражнение останавливается без итога (C-STF-7, OB-2). */
+  function openProgress() {
+    stopExercises()
+    closeMenu()
+    setHints(loadProgress().hints)
+    setScreen('progress')
+  }
+
+  /** Подтверждённый сброс (C-STF-7): стирается только выбранное, экраны сразу видят новое. */
+  function resetStats(mode: ModeId) {
+    resetModeStats(mode)
+    setPractice(loadProgress().stats)
+    if (mode === 'warmup') warmupBefore.current = loadProgress().stats.warmup
+  }
+  function resetHints() {
+    resetHintProgress()
+    setHints(loadProgress().hints)
   }
 
   /** Ученик выбрал, с какого устройства играть: слушаем его и запоминаем выбор. */
@@ -370,6 +398,17 @@ function App() {
         onBack={() => setScreen('main')}
       />
     )
+  } else if (screen === 'progress') {
+    content = (
+      <ProgressScreen
+        activeMode={activeMode}
+        practice={practice}
+        hints={hints}
+        onResetStats={resetStats}
+        onResetHints={resetHints}
+        onBack={() => setScreen('main')}
+      />
+    )
   } else if (screen === 'check') {
     content = (
       <CheckScreen
@@ -420,7 +459,8 @@ function App() {
       <TopBar
         connectionState={connectionState}
         onOpenSettings={openSettings}
-        settingsOpen={screen === 'settings'}
+        onOpenProgress={openProgress}
+        current={screen === 'settings' || screen === 'progress' ? screen : null}
         updateReady={updateReady}
         onApplyUpdate={applyUpdate}
       />
