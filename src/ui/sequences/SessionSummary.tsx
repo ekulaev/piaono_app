@@ -54,8 +54,7 @@ function SessionSummary({ summary, improvements, contour = false, onRepeat, onNe
           <ol>
             {summary.slowest.map(({ label, averageMs }) => (
               <li key={label}>
-                <span className="summary__note">{label}</span> —{' '}
-                {seconds(averageMs)} с
+                <span className="summary__note">{label}</span> — {seconds(averageMs)} с
               </li>
             ))}
           </ol>
