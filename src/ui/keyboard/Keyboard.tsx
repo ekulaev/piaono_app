@@ -9,16 +9,22 @@ import {
 } from 'react'
 import { heldPitches, levelOf } from '../../engine/keyboard/keyboardState'
 import {
+  BLACK_TO_WHITE,
   centerStartOn,
   computeLayout,
+  cursorRect,
   hitTest,
   initialStart,
   isBlackKey,
   isBlocked,
+  miniWhiteWidth,
   resizeStart,
   scrollHints,
   shiftStart,
+  startFromDrag,
+  startFromTapCenter,
   visibleRange,
+  WHITE_KEY_COUNT,
   WHITE_PITCHES,
   type Side,
 } from '../../engine/keyboard/layout'
@@ -96,6 +102,15 @@ function Keyboard({ state, onInput, focus }: Props) {
     visibleRef.current = next
     setVisible(next)
     return true
+  }
+
+  /** Поставить видимую часть в заданный start (мини-клавиатура). Курсор выводится из него же. */
+  function setStart(next: number) {
+    const current = visibleRef.current
+    if (!current || next === current.start) return
+    const updated = { ...current, start: next }
+    visibleRef.current = updated
+    setVisible(updated)
   }
 
   // Пальцы, которые начали касание на клавишах. Остальные движения нас не касаются.
@@ -223,8 +238,18 @@ function Keyboard({ state, onInput, focus }: Props) {
   }
 
   return (
-    <div ref={zoneRef} className="kbd" aria-label="Клавиатура пианино">
-      {content}
+    <div className="kbd-area">
+      {layout && visible && size && (
+        <MiniKeyboard
+          start={visible.start}
+          count={visible.count}
+          zoneWidthPx={size.width}
+          onStart={setStart}
+        />
+      )}
+      <div ref={zoneRef} className="kbd" aria-label="Клавиатура пианино">
+        {content}
+      </div>
     </div>
   )
 }
@@ -329,6 +354,104 @@ function ScrollButton({
         <polygon points={side === 'left' ? '17,3 5,12 17,21' : '7,3 19,12 7,21'} />
       </svg>
     </button>
+  )
+}
+
+interface MiniKeyboardProps {
+  /** Индекс первой видимой белой клавиши и число видимых белых — та же модель, что у зоны. */
+  start: number
+  count: number
+  /** Полная ширина зоны клавиатуры (вместе с кнопками прокрутки). */
+  zoneWidthPx: number
+  onStart: (start: number) => void
+}
+
+/**
+ * Мини-клавиатура навигации: все 88 клавиш в миниатюре с курсором видимой части.
+ * Курсор выводится из start/count, поэтому всегда совпадает с видимой частью. Клавиши мини
+ * не играют — компонент лишь двигает видимую часть (C-KBD-2). Без анимаций.
+ */
+function MiniKeyboard({ start, count, zoneWidthPx, onStart }: MiniKeyboardProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  // Перетаскивание: какой указатель тянет и за какую белую клавишу курсора взялись.
+  const grab = useRef<{ pointerId: number; offsetWhite: number } | null>(null)
+
+  const w = miniWhiteWidth(zoneWidthPx)
+  const blackWidth = w * BLACK_TO_WHITE
+  const rect = cursorRect(start, count, zoneWidthPx)
+  // Вся клавиатура видна целиком: курсор во всю ширину, затемнения нет, жесты ничего не двигают.
+  const full = count >= WHITE_KEY_COUNT
+
+  function xAt(event: PointerEvent<HTMLDivElement>): number {
+    const el = ref.current
+    return el ? event.clientX - el.getBoundingClientRect().left : 0
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    if (full) return
+    const x = xAt(event)
+    event.currentTarget.setPointerCapture(event.pointerId)
+    if (x >= rect.leftPx && x <= rect.leftPx + rect.widthPx) {
+      // Взялись за курсор — перетаскивание: держим ту же белую клавишу курсора под пальцем.
+      grab.current = { pointerId: event.pointerId, offsetWhite: x / w - start }
+    } else {
+      // Тап по затемнённой области — сразу центрируем курсор по точке; перетаскивания нет (OB-6).
+      onStart(startFromTapCenter(x, count, zoneWidthPx))
+    }
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    const g = grab.current
+    if (!g || g.pointerId !== event.pointerId) return
+    onStart(startFromDrag(xAt(event), g.offsetWhite, count, zoneWidthPx))
+  }
+
+  function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
+    if (grab.current?.pointerId === event.pointerId) grab.current = null
+  }
+
+  const whites = []
+  const blacks = []
+  for (let i = 0; i < WHITE_KEY_COUNT; i++) {
+    const pitch = WHITE_PITCHES[i]
+    whites.push(
+      <div key={pitch} className="mini__key mini__key--white" style={{ left: i * w, width: w }} />,
+    )
+    if (i > 0 && isBlackKey(pitch - 1)) {
+      blacks.push(
+        <div
+          key={pitch - 1}
+          className="mini__key mini__key--black"
+          style={{ left: i * w - blackWidth / 2, width: blackWidth }}
+        />,
+      )
+    }
+  }
+
+  return (
+    <div
+      ref={ref}
+      className="mini"
+      // Вспомогательный указательный элемент: тот же переход по регистрам доступен кнопками
+      // прокрутки, поэтому для скринридера мини скрыта.
+      aria-hidden="true"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+      onLostPointerCapture={handlePointerEnd}
+    >
+      {whites}
+      {blacks}
+      {!full && (
+        <>
+          <div className="mini__dim" style={{ left: 0, width: rect.leftPx }} />
+          <div className="mini__dim" style={{ left: rect.leftPx + rect.widthPx, right: 0 }} />
+          <div className="mini__cursor" style={{ left: rect.leftPx, width: rect.widthPx }} />
+        </>
+      )}
+    </div>
   )
 }
 
