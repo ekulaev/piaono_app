@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
+                "file": "PSD/specifications/M-STF/C-STF-5 Режим «Только контур».md",
                 "mode": "source",
                 "source": false
               },
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
+                "file": "PSD/specifications/M-STF/C-STF-5 Режим «Только контур».md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -113,7 +113,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
+                "file": "PSD/specifications/M-STF/C-STF-5 Режим «Только контур».md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -142,7 +142,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
+                "file": "PSD/specifications/M-STF/C-STF-5 Режим «Только контур».md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -168,19 +168,19 @@
       "command-palette:Открыть палитру команд": false
     }
   },
-  "active": "ca3df4cbb5270084",
+  "active": "e03a3ff92e009389",
   "lastOpenFiles": [
-    "PSD/PSD/M-STF/C-STF-6 Режим «Только ритм».md",
-    "PSD/PSD/M-STF/C-STF-7 Экран «Прогресс».md",
-    "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
-    "PSD/PSD/M-STF/C-STF-3 Якорь и интервал с гаснущими подсказками.md",
-    "PSD/PSD/M-STF/C-STF-2 Режим «Последовательности».md",
-    "PSD/PSD/M-STF/C-STF-1 Нотный стан с движущейся нотой.md",
-    "PSD/PSD/M-MODE/C-MODE-1 Меню режимов.md",
-    "PSD/PSD/M-MIDI/C-MIDI-1 MIDI-модуль и индикатор связи.md",
-    "PSD/PSD/M-KBD/C-KBD-2 Мини-клавиатура навигации.md",
-    "PSD/PSD/M-KBD/C-KBD-1 Экранная клавиатура пианино.md",
-    "PSD/PSD/M-APP/C-APP-2 Элемент «Подсказка».md",
-    "PSD/PSD/M-APP/C-APP-1 Верхняя панель и настройки приложения.md"
+    "PSD/specifications/M-STF/C-STF-6 Режим «Только ритм».md",
+    "PSD/specifications/M-STF/C-STF-7 Экран «Прогресс».md",
+    "PSD/specifications/M-STF/C-STF-5 Режим «Только контур».md",
+    "PSD/specifications/M-STF/C-STF-3 Якорь и интервал с гаснущими подсказками.md",
+    "PSD/specifications/M-STF/C-STF-2 Режим «Последовательности».md",
+    "PSD/specifications/M-STF/C-STF-1 Нотный стан с движущейся нотой.md",
+    "PSD/specifications/M-MODE/C-MODE-1 Меню режимов.md",
+    "PSD/specifications/M-MIDI/C-MIDI-1 MIDI-модуль и индикатор связи.md",
+    "PSD/specifications/M-KBD/C-KBD-2 Мини-клавиатура навигации.md",
+    "PSD/specifications/M-KBD/C-KBD-1 Экранная клавиатура пианино.md",
+    "PSD/specifications/M-APP/C-APP-2 Элемент «Подсказка».md",
+    "PSD/specifications/M-APP/C-APP-1 Верхняя панель и настройки приложения.md"
   ]
 }
