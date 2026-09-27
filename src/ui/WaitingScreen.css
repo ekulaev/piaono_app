@@ -1,9 +1,10 @@
 /*
- * Экран делится на две части: всё про связь сверху и зона клавиатуры снизу —
- * 25 % высоты, но не меньше 8rem, во всю ширину. Размер зоны от состояния связи не зависит.
+ * Главный экран под верхней панелью: рабочая часть сверху и зона клавиатуры снизу —
+ * 25 % высоты окна, но не меньше 8rem, во всю ширину.
  */
 .waiting-screen {
-  height: 100svh;
+  height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) max(25svh, 8rem);
 }
@@ -13,10 +14,8 @@
 }
 
 /*
- * Раскладка из рядов фиксированной роли: индикатор — подсказка — нотный стан — кнопки.
- * Стан забирает всё свободное место, поэтому смена текста подсказки не сдвигает ни
- * индикатор, ни кнопки. Отступы сжимаются и по высоте: на телефоне в ландшафте над
- * клавиатурой остаётся немного места.
+ * Рабочая часть: нотный стан забирает всё свободное место, под ним ряд кнопок и флажок режима.
+ * Блока статуса и подсказки здесь нет (C-APP-1, OB-6) — вся высота отдана стану.
  */
 .waiting {
   max-width: 64rem;
@@ -25,68 +24,35 @@
   min-height: 0;
   padding: clamp(0.5rem, min(3vw, 3svh), 2rem) clamp(1rem, 3vw, 2.5rem);
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'staff staff' 'actions control';
   gap: clamp(0.5rem, min(2vw, 2svh), 1.5rem);
 }
 
-/* Строка подсказки о связи. Ограничена по высоте, чтобы стан не остался без места. */
-.waiting__message {
-  max-height: 22svh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.25rem;
-}
-
-.hint {
-  margin: 0;
-  max-width: 40rem;
-  font-size: clamp(1.25rem, 2.6vw, 1.625rem);
-  line-height: 1.5;
-}
-
-.hint--steps {
-  padding-left: 1.75em;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  list-style: decimal;
-}
-
-.waiting__device {
-  margin: 0;
-  font-size: 1.25rem;
-  color: var(--ink-soft);
-}
-
-.waiting__device-hint {
-  margin: 0;
-  font-size: 1.125rem;
-  color: var(--ink-soft);
-}
-
-.waiting__invite {
-  margin: 0;
-  font-size: clamp(1.375rem, 3vw, 1.875rem);
-  font-weight: 600;
+.waiting > .staff-zone,
+.waiting > .summary {
+  grid-area: staff;
 }
 
 /* Ряд кнопок всегда занимает одну и ту же высоту — появление кнопки ничего не сдвигает. */
 .waiting__actions {
+  grid-area: actions;
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   min-height: 3.5rem;
 }
 
-/* Слот «Проверка пианино / Пропустить / Далее (N)» не меняет ширину при смене надписи:
-   кнопки справа от него не сдвигаются. Ширина — по самой длинной надписи. */
+/* Слот «Пропустить / Сначала / Далее (N)» не меняет ширину при смене надписи и без кнопки
+   держит место: кнопки справа от него не сдвигаются. Ширина — по самой длинной надписи. */
 .waiting__slot {
   min-width: 13.5em;
+}
+
+/* Пустой слот — только место, без рамки и фона. */
+.waiting__slot--empty {
+  visibility: hidden;
 }
 
 /* То же для «Старт» / «Стоп». */
@@ -94,28 +60,7 @@
   min-width: 6em;
 }
 
-.waiting__update {
-  margin-left: auto;
-}
-
-/* Ряды главного экрана по именам — чтобы на низком экране переставить их, не ужимая цели. */
-.waiting {
-  /* Флажок режима — справа в ряду кнопок. */
-  grid-template-areas: 'status status' 'message message' 'staff staff' 'actions control';
-}
-.waiting > .status {
-  grid-area: status;
-}
-.waiting__message {
-  grid-area: message;
-}
-.waiting > .staff-zone,
-.waiting > .summary {
-  grid-area: staff;
-}
-.waiting__actions {
-  grid-area: actions;
-}
+/* Флажок режима — справа в ряду кнопок. */
 .waiting__mode-control {
   grid-area: control;
   display: flex;
@@ -123,27 +68,14 @@
 }
 
 /*
- * Низкий экран (телефон в ландшафте): иначе индикатор и кнопки съедают всю высоту и стану
- * не остаётся места. Индикатор становится ниже, кнопки — в один ряд, подсказка скрыта.
- * Высота кнопок (цели касания) не меняется.
+ * Низкий экран (телефон в ландшафте): кнопки в один ряд, шрифт чуть меньше, чтобы стану
+ * осталось место. Высота кнопок (цели касания) не меняется.
  */
 @media (max-height: 30rem) {
   .waiting {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto auto minmax(0, 1fr);
-    /* В ряду кнопок места нет — флажок режима встаёт справа от индикатора. */
-    grid-template-areas: 'status control' 'actions actions' 'staff staff';
     max-width: none;
   }
-  .waiting > .status {
-    min-height: 3.5rem;
-    padding-block: 0.25rem;
-  }
-  /* Подсказка уступает место стану: состояние связи и так видно в индикаторе. */
-  .waiting__message {
-    display: none;
-  }
-  /* Три кнопки в один ряд. Шрифт 20px — не меньше базовых 18px; высота целей та же. */
+  /* Три кнопки в один ряд. Шрифт 18px — не меньше базового; высота целей та же. */
   .waiting__actions {
     flex-wrap: nowrap;
     align-items: center;

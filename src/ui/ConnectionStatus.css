@@ -1,15 +1,13 @@
+/* Рамка состояния: размеры задаёт место, где она стоит (верхняя панель, строка «Пианино»). */
 .status {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  min-height: 5rem;
-  padding: 1rem 1.5rem;
+  gap: 0.75rem;
   border: 0.1875rem solid var(--border);
-  border-radius: 1rem;
+  border-radius: 0.75rem;
 }
 
 .status__title {
-  font-size: clamp(1.25rem, 2.6vw, 1.75rem);
   font-weight: 600;
 }
 

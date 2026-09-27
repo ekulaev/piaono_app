@@ -5,6 +5,9 @@ import { startMidiMonitor } from '../midi/midiAccess'
 import type { ConnectionState, MidiDeviceInfo, MidiMonitor } from '../midi/types'
 import { loadSettings, saveSettings, type Settings } from '../storage/settings'
 import CheckScreen, { type LogEntry } from './CheckScreen'
+import TopBar from './topbar/TopBar'
+import SettingsScreen from './settings/SettingsScreen'
+import './App.css'
 import Keyboard from './keyboard/Keyboard'
 import StaffView from './staff/StaffView'
 import { useExercise } from './staff/useExercise'
@@ -36,7 +39,8 @@ import { useAppUpdate } from './useAppUpdate'
 
 const MAX_LOG_ENTRIES = 100
 
-type Screen = 'waiting' | 'check'
+/** Экраны под верхней панелью (C-APP-1): главный, «Настройки» и вложенная «Проверка пианино». */
+type Screen = 'main' | 'settings' | 'check'
 
 /**
  * Корень приложения. Владеет единственной подпиской на MIDI и состоянием клавиатуры:
@@ -45,7 +49,7 @@ type Screen = 'waiting' | 'check'
  * экранной клавиатуры — и дальше неотличимы.
  */
 function App() {
-  const [screen, setScreen] = useState<Screen>('waiting')
+  const [screen, setScreen] = useState<Screen>('main')
   const [connectionState, setConnectionState] = useState<ConnectionState>('connecting')
   const [devices, setDevices] = useState<MidiDeviceInfo[]>([])
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null)
@@ -200,6 +204,16 @@ function App() {
     window.location.reload()
   }
 
+  /**
+   * «Настройки» — кнопкой или статусом связи в панели. Упражнение останавливается без итога,
+   * как раньше при уходе в «Проверку пианино» (C-APP-1, OB-4).
+   */
+  function openSettings() {
+    stopExercises()
+    closeMenu()
+    setScreen('settings')
+  }
+
   /** Ученик выбрал, с какого устройства играть: слушаем его и запоминаем выбор. */
   function selectDevice(device: MidiDeviceInfo) {
     updateSettings({ preferredInput: device })
@@ -339,37 +353,35 @@ function App() {
     staff = <StaffView exercise={exercise.state} />
   }
 
-  if (screen === 'check') {
-    return (
-      <CheckScreen
+  let content
+  if (screen === 'settings') {
+    content = (
+      <SettingsScreen
         connectionState={connectionState}
         devices={devices}
         activeDeviceId={activeDeviceId}
         onSelectDevice={selectDevice}
-        log={log}
+        onReconnect={restartApp}
+        onOpenCheck={() => setScreen('check')}
         glissando={keyboard.glissando}
         onToggleGlissando={toggleGlissando}
-        accessError={accessError}
-        onRestart={restartApp}
-        onBack={() => setScreen('waiting')}
+        updateReady={updateReady}
+        onApplyUpdate={applyUpdate}
+        onBack={() => setScreen('main')}
       />
     )
-  }
-
-  return (
-    <>
+  } else if (screen === 'check') {
+    content = (
+      <CheckScreen
+        log={log}
+        accessError={accessError}
+        onBack={() => setScreen('settings')}
+        onHome={() => setScreen('main')}
+      />
+    )
+  } else {
+    content = (
       <WaitingScreen
-        connectionState={connectionState}
-        devices={devices}
-        activeDeviceId={activeDeviceId}
-        updateReady={updateReady}
-        onRetry={() => monitorRef.current?.retry()}
-        onRestart={restartApp}
-        onOpenCheck={() => {
-          // Уход с главного экрана останавливает упражнение (C-STF-1, OB-20).
-          stopExercises()
-          setScreen('check')
-        }}
         exerciseRunning={exerciseRunning}
         onToggleExercise={exerciseRunning ? finishExercises : () => startMode(activeMode)}
         activeModeTitle={modeInfo(activeMode).title}
@@ -397,9 +409,22 @@ function App() {
         }
         slotButton={slotButton}
         staff={staff}
-        onApplyUpdate={applyUpdate}
         keyboard={<Keyboard state={keyboard} onInput={handleKeyInput} focus={sequences.focus} />}
       />
+    )
+  }
+
+  return (
+    <div className="app">
+      {/* Одна панель на все экраны: при переходах не пересоздаётся (C-APP-1, OB-1). */}
+      <TopBar
+        connectionState={connectionState}
+        onOpenSettings={openSettings}
+        settingsOpen={screen === 'settings'}
+        updateReady={updateReady}
+        onApplyUpdate={applyUpdate}
+      />
+      {content}
       <ModeMenu
         menu={menu}
         activeMode={activeMode}
@@ -410,7 +435,7 @@ function App() {
         onSelect={() => confirmMode(false)}
         onStart={() => confirmMode(true)}
       />
-    </>
+    </div>
   )
 }
 
