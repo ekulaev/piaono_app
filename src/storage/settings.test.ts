@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_RHYTHM_SETTINGS } from '../engine/rhythm/settings'
 import { DEFAULT_SEQUENCE_SETTINGS } from '../engine/sequences/settings'
 import { loadSettings, saveSettings, type SettingsStorage } from './settings'
 
-const modeSettings = { sequences: DEFAULT_SEQUENCE_SETTINGS, contour: DEFAULT_SEQUENCE_SETTINGS }
+const modeSettings = {
+  sequences: DEFAULT_SEQUENCE_SETTINGS,
+  contour: DEFAULT_SEQUENCE_SETTINGS,
+  rhythm: DEFAULT_RHYTHM_SETTINGS,
+}
 
 function memoryStorage(): SettingsStorage {
   const data = new Map<string, string>()
@@ -144,7 +149,7 @@ describe('Активный режим запоминается', () => {
 
   it('Повреждённые данные: неизвестный режим → «Разминка»', () => {
     const storage = memoryStorage()
-    storage.setItem('piaono.settings.v1', '{"activeMode":"rhythm"}')
+    storage.setItem('piaono.settings.v1', '{"activeMode":"melody"}')
     expect(loadSettings(storage).activeMode).toBe('warmup')
     storage.setItem('piaono.settings.v1', '{"activeMode":42}')
     expect(loadSettings(storage).activeMode).toBe('warmup')
@@ -171,7 +176,7 @@ describe('Настройки режима «Последовательности
         glissando: false,
         preferredInput: null,
         activeMode: 'sequences',
-        modeSettings: { sequences, contour: DEFAULT_SEQUENCE_SETTINGS },
+        modeSettings: { ...modeSettings, sequences },
       },
       storage,
     )
@@ -201,7 +206,7 @@ describe('Настройки «Контура»: хранение (C-STF-5)', ()
         glissando: false,
         preferredInput: null,
         activeMode: 'contour',
-        modeSettings: { sequences: DEFAULT_SEQUENCE_SETTINGS, contour },
+        modeSettings: { ...modeSettings, contour },
       },
       storage,
     )
@@ -220,5 +225,38 @@ describe('Настройки «Контура»: хранение (C-STF-5)', ()
     const loaded = loadSettings(storage)
     expect(loaded.modeSettings.sequences.clef).toBe('bass')
     expect(loaded.modeSettings.contour).toEqual(DEFAULT_SEQUENCE_SETTINGS)
+  })
+})
+
+describe('Настройки «Ритма» (C-STF-6)', () => {
+  it('старые настройки без «Ритма» — у него значения по умолчанию, остальное прочитано', () => {
+    const storage = memoryStorage()
+    storage.setItem(
+      'piaono.settings.v1',
+      JSON.stringify({
+        glissando: true,
+        activeMode: 'contour',
+        modeSettings: { sequences: DEFAULT_SEQUENCE_SETTINGS, contour: DEFAULT_SEQUENCE_SETTINGS },
+      }),
+    )
+    const settings = loadSettings(storage)
+    expect(settings.modeSettings.rhythm).toEqual(DEFAULT_RHYTHM_SETTINGS)
+    expect(settings.activeMode).toBe('contour')
+  })
+
+  it('«Ритм» активным режимом и его настройки переживают перезапуск', () => {
+    const storage = memoryStorage()
+    const rhythm = { level: 4 as const, meter: 3 as const, bars: 2 as const, patterns: 5 }
+    saveSettings(
+      {
+        glissando: false,
+        preferredInput: null,
+        activeMode: 'rhythm',
+        modeSettings: { ...modeSettings, rhythm },
+      },
+      storage,
+    )
+    expect(loadSettings(storage).activeMode).toBe('rhythm')
+    expect(loadSettings(storage).modeSettings.rhythm).toEqual(rhythm)
   })
 })

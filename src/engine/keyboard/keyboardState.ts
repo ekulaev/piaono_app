@@ -27,6 +27,7 @@ export function reduce(state: KeyboardState, input: KeyInput): ReduceResult {
           pitch: input.pitch,
           level: levelFromVelocity(input.velocity),
           source: 'piano',
+          time: input.time,
         },
       }
     }
@@ -48,7 +49,7 @@ export function reduce(state: KeyboardState, input: KeyInput): ReduceResult {
       touches.set(input.pointerId, { pitch: input.pitch, level, cancelled: false })
       return {
         state: { ...state, touches },
-        playedNote: { pitch: input.pitch, level, source: 'touch' },
+        playedNote: { pitch: input.pitch, level, source: 'touch', time: input.time },
       }
     }
 
@@ -63,7 +64,7 @@ export function reduce(state: KeyboardState, input: KeyInput): ReduceResult {
       touches.set(input.pointerId, { pitch: input.pitch, level: hold.level, cancelled: false })
       return {
         state: { ...state, touches },
-        playedNote: { pitch: input.pitch, level: hold.level, source: 'touch' },
+        playedNote: { pitch: input.pitch, level: hold.level, source: 'touch', time: input.time },
       }
     }
 

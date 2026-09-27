@@ -7,6 +7,11 @@ import {
   readSequenceSettings,
   type SequenceSettings,
 } from '../engine/sequences/settings'
+import {
+  DEFAULT_RHYTHM_SETTINGS,
+  readRhythmSettings,
+  type RhythmSettings,
+} from '../engine/rhythm/settings'
 import type { PreferredInput } from '../midi/types'
 import { browserStorage, type SettingsStorage } from './browserStorage'
 
@@ -21,16 +26,25 @@ export interface Settings {
   activeMode: ModeId
   /**
    * Подтверждённые настройки режимов (у «Разминки» их нет). «Контур» хранит свои отдельно —
-   * того же вида, «Нот в шаге» и «Подсказки» у него не используются (C-STF-5).
+   * того же вида, «Нот в шаге» и «Подсказки» у него не используются (C-STF-5). У «Ритма» —
+   * свои (C-STF-6).
    */
-  modeSettings: { sequences: SequenceSettings; contour: SequenceSettings }
+  modeSettings: {
+    sequences: SequenceSettings
+    contour: SequenceSettings
+    rhythm: RhythmSettings
+  }
 }
 
 const DEFAULT_SETTINGS: Settings = {
   glissando: false,
   preferredInput: null,
   activeMode: DEFAULT_MODE,
-  modeSettings: { sequences: DEFAULT_SEQUENCE_SETTINGS, contour: DEFAULT_SEQUENCE_SETTINGS },
+  modeSettings: {
+    sequences: DEFAULT_SEQUENCE_SETTINGS,
+    contour: DEFAULT_SEQUENCE_SETTINGS,
+    rhythm: DEFAULT_RHYTHM_SETTINGS,
+  },
 }
 
 /** Версия в ключе: если формат поменяется, старые данные не прочитаются как новые. */
@@ -59,6 +73,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
       modeSettings: {
         sequences: readSequenceSettings((savedModes as Record<string, unknown>).sequences),
         contour: readSequenceSettings((savedModes as Record<string, unknown>).contour),
+        rhythm: readRhythmSettings((savedModes as Record<string, unknown>).rhythm),
       },
     }
   } catch {

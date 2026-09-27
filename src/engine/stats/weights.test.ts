@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { aggregate, emptyModeStats, type ItemStats, type StatEvent } from './stats'
-import { difficulty, medianAvg, weightedPick, weightOf, weightsFor } from './weights'
+import { difficulty, figureWeights, medianAvg, weightedPick, weightOf, weightsFor } from './weights'
 
 const item = (change: Partial<ItemStats>): ItemStats => ({
   attempts: 5,
@@ -90,5 +90,23 @@ describe('Взвешенный выбор', () => {
       counts[weightedPick(['a', 'b'] as const, (o) => (o === 'a' ? 3 : 1), random)]++
     expect(counts.a / counts.b).toBeGreaterThan(2.25)
     expect(counts.a / counts.b).toBeLessThan(3.75)
+  })
+})
+
+describe('Вес фигуры «Ритма» (C-STF-6, OB-4)', () => {
+  it('по доле ошибок; без статистики — средний', () => {
+    const figure = (outcome: 'clean' | 'error'): StatEvent => ({
+      kind: 'figure',
+      key: 'eighths',
+      outcome,
+      ms: null,
+    })
+    const stats = aggregate([figure('error'), figure('error'), figure('error')])
+    const weight = figureWeights(stats)
+    expect(weight('eighths')).toBe(3)
+    expect(weight('quarter')).toBe(2)
+    expect(
+      figureWeights(aggregate([figure('clean'), figure('clean'), figure('clean')]))('eighths'),
+    ).toBe(1)
   })
 })

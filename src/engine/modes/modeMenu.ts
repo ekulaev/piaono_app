@@ -1,8 +1,9 @@
+import type { RhythmSettings } from '../rhythm/settings'
 import type { SequenceSettings } from '../sequences/settings'
 import type { ModeId } from './modes'
 
 /** Настройки режима на экране режима; у «Разминки» настроек нет — null. */
-export type ModeSettings = SequenceSettings | null
+export type ModeSettings = SequenceSettings | RhythmSettings | null
 
 /**
  * Меню режимов как автомат: закрыто → список → экран режима → закрыто.

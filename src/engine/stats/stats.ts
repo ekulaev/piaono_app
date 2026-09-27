@@ -1,11 +1,13 @@
-// Статистика упражнений (C-STF-4): что тренажёр помнит о нотах и интервалах в каждом режиме.
+// Статистика упражнений (C-STF-4): что тренажёр помнит о нотах, интервалах и ритмических
+// фигурах (C-STF-6) в каждом режиме.
 // Хранятся только счётчики и среднее время — объём не растёт с числом сессий.
 
+import { isFigureId, type FigureId } from '../rhythm/figures'
 import type { Direction } from '../sequences/anchors'
 import type { Clef } from '../staff/pickNote'
 
 /** Режимы со своей статистикой. */
-export type StatsMode = 'sequences' | 'contour' | 'warmup'
+export type StatsMode = 'sequences' | 'contour' | 'rhythm' | 'warmup'
 
 export interface ItemStats {
   /** Все законченные попытки. */
@@ -26,10 +28,14 @@ export interface ItemStats {
 export type NoteKey = `${Clef}:${number}`
 /** Интервал: направление и размер, например 'up3'. */
 export type IntervalKey = `${Direction}${number}`
+/** Ритмическая фигура «Ритма», например 'eighths'. */
+export type FigureKey = FigureId
 
 export interface ModeStats {
   notes: Record<NoteKey, ItemStats>
   intervals: Record<IntervalKey, ItemStats>
+  /** Только у «Ритма»; у остальных режимов пусто. */
+  figures: Partial<Record<FigureKey, ItemStats>>
 }
 
 export type PracticeStats = Record<StatsMode, ModeStats>
@@ -38,27 +44,34 @@ export const noteKey = (clef: Clef, pitch: number): NoteKey => `${clef}:${pitch}
 export const intervalKey = (size: number, direction: Direction): IntervalKey =>
   `${direction}${size}`
 
-export const emptyModeStats = (): ModeStats => ({ notes: {}, intervals: {} })
+export const emptyModeStats = (): ModeStats => ({ notes: {}, intervals: {}, figures: {} })
 export const emptyPracticeStats = (): PracticeStats => ({
   sequences: emptyModeStats(),
   contour: emptyModeStats(),
+  rhythm: emptyModeStats(),
   warmup: emptyModeStats(),
 })
 
 /**
- * Есть ли у режима хоть одна запись — нота или интервал (для приглашения «Ещё нет прогресса»
- * и «первой сессии»). У «Контура» нот нет, только переходы.
+ * Есть ли у режима хоть одна запись — нота, интервал или фигура (для приглашения «Ещё нет
+ * прогресса» и «первой сессии»). У «Контура» нот нет, только переходы; у «Ритма» — только фигуры.
  */
 export function hasProgress(stats: ModeStats): boolean {
-  return Object.keys(stats.notes).length > 0 || Object.keys(stats.intervals).length > 0
+  return (
+    Object.keys(stats.notes).length > 0 ||
+    Object.keys(stats.intervals).length > 0 ||
+    Object.keys(stats.figures).length > 0
+  )
 }
 
 export type Outcome = 'clean' | 'error' | 'skip'
 
-/** Одна законченная попытка: нота или интервал, исход, время (null — не учитывается). */
+export type StatKind = 'note' | 'interval' | 'figure'
+
+/** Одна законченная попытка: нота, интервал или фигура, исход, время (null — не учитывается). */
 export interface StatEvent {
-  kind: 'note' | 'interval'
-  key: NoteKey | IntervalKey
+  kind: StatKind
+  key: NoteKey | IntervalKey | FigureKey
   outcome: Outcome
   ms: number | null
 }
@@ -93,14 +106,20 @@ function applyEvent(item: ItemStats, event: StatEvent): ItemStats {
 /** Статистика после событий. Исходная не меняется. */
 export function applyEvents(stats: ModeStats, events: readonly StatEvent[]): ModeStats {
   if (events.length === 0) return stats
-  const notes = { ...stats.notes }
-  const intervals = { ...stats.intervals }
+  const next: ModeStats = {
+    notes: { ...stats.notes },
+    intervals: { ...stats.intervals },
+    figures: { ...stats.figures },
+  }
   for (const event of events) {
-    const table = (event.kind === 'note' ? notes : intervals) as Record<string, ItemStats>
+    const table = next[TABLES[event.kind]] as Record<string, ItemStats>
     table[event.key] = applyEvent(table[event.key] ?? emptyItem(), event)
   }
-  return { notes, intervals }
+  return next
 }
+
+/** В какой таблице хранится место каждого вида. */
+export const TABLES = { note: 'notes', interval: 'intervals', figure: 'figures' } as const
 
 /** Статистика одной сессии — для «Что улучшилось». */
 export function aggregate(events: readonly StatEvent[]): ModeStats {
@@ -110,6 +129,7 @@ export function aggregate(events: readonly StatEvent[]): ModeStats {
 const NOTE_KEY = /^(treble|bass):\d{1,3}$/
 /** Интервал вверх или вниз (2–8) либо «на месте» (прима, только в «Контуре»). */
 const INTERVAL_KEY = /^((up|down)[2-8]|same1)$/
+const FIGURE_KEY = { test: isFigureId }
 
 function readItem(value: unknown): ItemStats | null {
   if (typeof value !== 'object' || value === null) return null
@@ -131,7 +151,7 @@ function readItem(value: unknown): ItemStats | null {
 
 function readTable<K extends string>(
   value: unknown,
-  keyPattern: RegExp,
+  keyPattern: { test(key: string): boolean },
 ): Record<K, ItemStats> | null {
   if (typeof value !== 'object' || value === null) return null
   const table = {} as Record<K, ItemStats>
@@ -149,16 +169,19 @@ function readModeStats(value: unknown): ModeStats {
   const v = value as Record<string, unknown>
   const notes = readTable<NoteKey>(v.notes, NOTE_KEY)
   const intervals = readTable<IntervalKey>(v.intervals ?? {}, INTERVAL_KEY)
-  return notes && intervals ? { notes, intervals } : emptyModeStats()
+  // Записи до «Ритма» таблицы фигур не имеют — она пустая.
+  const figures = readTable<FigureKey>(v.figures ?? {}, FIGURE_KEY)
+  return notes && intervals && figures ? { notes, intervals, figures } : emptyModeStats()
 }
 
-/** Сохранённая статистика обоих режимов; каждый режим читается независимо. */
+/** Сохранённая статистика всех режимов; каждый режим читается независимо. */
 export function readPracticeStats(value: unknown): PracticeStats {
   const saved =
     typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
   return {
     sequences: readModeStats(saved.sequences),
     contour: readModeStats(saved.contour),
+    rhythm: readModeStats(saved.rhythm),
     warmup: readModeStats(saved.warmup),
   }
 }

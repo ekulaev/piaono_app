@@ -19,22 +19,25 @@ function run(inputs: KeyInput[], start: KeyboardState = createKeyboardState()) {
   return { state, played }
 }
 
-const touchDown = (pointerId: number, pitch: number, pressure = 0.5): KeyInput => ({
+const touchDown = (pointerId: number, pitch: number, pressure = 0.5, time = 0): KeyInput => ({
   kind: 'touchDown',
   pointerId,
   pitch,
   pressure,
+  time,
 })
-const touchMove = (pointerId: number, pitch: number | null): KeyInput => ({
+const touchMove = (pointerId: number, pitch: number | null, time = 0): KeyInput => ({
   kind: 'touchMove',
   pointerId,
   pitch,
+  time,
 })
 const touchUp = (pointerId: number): KeyInput => ({ kind: 'touchUp', pointerId })
-const pianoDown = (pitch: number, velocity = 64): KeyInput => ({
+const pianoDown = (pitch: number, velocity = 64, time = 0): KeyInput => ({
   kind: 'pianoDown',
   pitch,
   velocity,
+  time,
 })
 const pianoUp = (pitch: number): KeyInput => ({ kind: 'pianoUp', pitch })
 
@@ -68,7 +71,7 @@ describe('Нажатие и отпускание', () => {
 describe('Касание — полноценная сыгранная нота', () => {
   it('Нота касанием: касание C4 даёт сыгранную ноту C4', () => {
     const { played } = run([touchDown(1, C4)])
-    expect(played).toEqual([{ pitch: C4, level: 2, source: 'touch' }])
+    expect(played).toEqual([{ pitch: C4, level: 2, source: 'touch', time: 0 }])
   })
 
   it('Повторное нажатие нажатой клавиши: C4 держится на пианино, касание C4 — ещё одна нота', () => {
@@ -146,5 +149,15 @@ describe('heldPitches', () => {
   it('включает ноты вне A0–C8 и не включает отменённые касания', () => {
     const { state } = run([pianoDown(10), touchDown(1, D4), pianoDown(D4), pianoUp(D4)])
     expect([...heldPitches(state)]).toEqual([10])
+  })
+})
+
+describe('Время нажатия (C-STF-6)', () => {
+  it('время нажатия пианино и касания доходит до сыгранной ноты', () => {
+    const { played } = run(
+      [pianoDown(C4, 64, 1000.5), touchDown(1, E4, 0.5, 1250), touchMove(1, G4, 1300)],
+      createKeyboardState(true),
+    )
+    expect(played.map((note) => note.time)).toEqual([1000.5, 1250, 1300])
   })
 })

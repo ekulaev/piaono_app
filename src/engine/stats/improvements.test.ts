@@ -76,3 +76,21 @@ describe('«Что улучшилось» в «Контуре» (C-STF-5)', () =
     expect(result).toEqual({ firstSession: false, lines: ['= — точнее: 40 % → 100 %'] })
   })
 })
+
+describe('Что улучшилось у «Ритма» (C-STF-6)', () => {
+  const eighths = (outcome: StatEvent['outcome']): StatEvent => ({
+    kind: 'figure',
+    key: 'eighths',
+    outcome,
+    ms: null,
+  })
+
+  it('Ритм стал точнее: фигура словами, только по точности', () => {
+    const before = aggregate([...repeat(2, eighths('clean')), ...repeat(3, eighths('error'))])
+    const session = aggregate(repeat(4, eighths('clean')))
+    expect(improvements(before, session)).toEqual({
+      firstSession: false,
+      lines: ['две восьмые — точнее: 40 % → 100 %'],
+    })
+  })
+})
