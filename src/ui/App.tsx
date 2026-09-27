@@ -42,6 +42,8 @@ import WarmupSummary from './stats/WarmupSummary'
 import * as modeMenu from '../engine/modes/modeMenu'
 import { modeInfo, type ModeId } from '../engine/modes/modes'
 import WaitingScreen, { type SlotButton } from './WaitingScreen'
+import HintButton from './hints/HintButton'
+import { modeHintId } from './hints/hints'
 import { useAppUpdate } from './useAppUpdate'
 
 const MAX_LOG_ENTRIES = 100
@@ -430,6 +432,11 @@ function App() {
           setMenu(modeMenu.openMenu())
         }}
         modeMenuOpen={menu.screen !== 'closed'}
+        modeHint={
+          // Как играть — без захода в меню. Окно не открывается поверх упражнения: сначала
+          // упражнение останавливается без итога, как при переходе в «Настройки» (C-APP-2, OB-6).
+          <HintButton id={modeHintId(activeMode)} placement="inline" beforeOpen={stopExercises} />
+        }
         modeControl={
           // Флажок меняет настройку активного режима (C-STF-5: и в «Контуре»). У «Разминки» и
           // «Ритма» его нет: «Ритм» сам не переходит к следующему рисунку (C-STF-6, OB-2).
