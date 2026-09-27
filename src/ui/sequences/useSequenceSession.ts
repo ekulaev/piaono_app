@@ -4,7 +4,7 @@ import * as session from '../../engine/sequences/session'
 import type { HintProgress } from '../../engine/sequences/hints'
 import type { ModeStats } from '../../engine/stats/stats'
 import { weightsFor } from '../../engine/stats/weights'
-import type { SessionState } from '../../engine/sequences/session'
+import type { SessionState, StepCheck } from '../../engine/sequences/session'
 import type { SequenceSettings } from '../../engine/sequences/settings'
 import type { KeyboardFocus } from '../keyboard/Keyboard'
 
@@ -52,17 +52,24 @@ export function useSequenceSession() {
 
   /**
    * hints — уровни подсказок (null — подсказки в этой сессии не действуют); stats — история
-   * режима: по ней трудные места выбираются чаще, и с ней сравнивается итог (C-STF-4).
+   * режима: по ней трудные места выбираются чаще, и с ней сравнивается итог (C-STF-4);
+   * check — «Последовательности» (точные ноты) или «Контур» (направление, C-STF-5).
    */
   const start = useCallback(
-    (settings: SequenceSettings, hints: HintProgress | null, stats: ModeStats) =>
+    (
+      settings: SequenceSettings,
+      hints: HintProgress | null,
+      stats: ModeStats,
+      check: StepCheck = 'exact',
+    ) =>
       update(
         session.startSession(
-          buildSession(settings, Math.random, weightsFor(stats)),
+          buildSession(settings, Math.random, weightsFor(stats), { contour: check === 'contour' }),
           settings.autoAdvance,
           performance.now(),
           hints,
           stats,
+          check,
         ),
       ),
     [update],

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_SEQUENCE_SETTINGS } from '../engine/sequences/settings'
 import { loadSettings, saveSettings, type SettingsStorage } from './settings'
 
-const modeSettings = { sequences: DEFAULT_SEQUENCE_SETTINGS }
+const modeSettings = { sequences: DEFAULT_SEQUENCE_SETTINGS, contour: DEFAULT_SEQUENCE_SETTINGS }
 
 function memoryStorage(): SettingsStorage {
   const data = new Map<string, string>()
@@ -171,7 +171,7 @@ describe('Настройки режима «Последовательности
         glissando: false,
         preferredInput: null,
         activeMode: 'sequences',
-        modeSettings: { sequences },
+        modeSettings: { sequences, contour: DEFAULT_SEQUENCE_SETTINGS },
       },
       storage,
     )
@@ -189,5 +189,36 @@ describe('Настройки режима «Последовательности
     expect(loadSettings(storage).modeSettings.sequences).toEqual(DEFAULT_SEQUENCE_SETTINGS)
     storage.setItem('piaono.settings.v1', '{"modeSettings":"мусор"}')
     expect(loadSettings(storage).modeSettings.sequences).toEqual(DEFAULT_SEQUENCE_SETTINGS)
+  })
+})
+
+describe('Настройки «Контура»: хранение (C-STF-5)', () => {
+  it('Отдельно от Последовательностей', () => {
+    const storage = memoryStorage()
+    const contour = { ...DEFAULT_SEQUENCE_SETTINGS, clef: 'bass' as const }
+    saveSettings(
+      {
+        glissando: false,
+        preferredInput: null,
+        activeMode: 'contour',
+        modeSettings: { sequences: DEFAULT_SEQUENCE_SETTINGS, contour },
+      },
+      storage,
+    )
+    const loaded = loadSettings(storage)
+    expect(loaded.activeMode).toBe('contour')
+    expect(loaded.modeSettings.contour.clef).toBe('bass')
+    expect(loaded.modeSettings.sequences.clef).toBe('treble')
+  })
+
+  it('старые настройки без «Контура» — у него значения по умолчанию', () => {
+    const storage = memoryStorage()
+    storage.setItem(
+      'piaono.settings.v1',
+      JSON.stringify({ activeMode: 'sequences', modeSettings: { sequences: { clef: 'bass' } } }),
+    )
+    const loaded = loadSettings(storage)
+    expect(loaded.modeSettings.sequences.clef).toBe('bass')
+    expect(loaded.modeSettings.contour).toEqual(DEFAULT_SEQUENCE_SETTINGS)
   })
 })

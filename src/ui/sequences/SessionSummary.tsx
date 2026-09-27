@@ -47,7 +47,7 @@ function SessionSummary({ summary, improvements, contour = false, onRepeat, onNe
         )}
       </dl>
       <div className="summary__block summary__slow">
-        <h3>{contour ? 'Самые медленные переходы' : 'Самые медленные ноты'}</h3>
+        <h3>{contour ? 'Медленные переходы' : 'Самые медленные ноты'}</h3>
         {summary.slowest.length === 0 ? (
           <p>{contour ? 'Нет переходов, сыгранных сразу' : 'Все шаги пропущены'}</p>
         ) : (

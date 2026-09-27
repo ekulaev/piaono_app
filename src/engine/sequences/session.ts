@@ -418,8 +418,9 @@ export function summarize(
         if (!record.hadError && !record.hinted) withoutHintCount++
         const steps = sequences[seqIndex].steps
         if (check === 'contour') {
-          // Переход — к шагу, у которого была точка отсчёта (C-STF-5, OB-12).
-          if (stepIndex > 0 && records[stepIndex - 1].result !== 'skipped') {
+          // Переход — к шагу, у которого была точка отсчёта (C-STF-5, OB-12); время — только
+          // у сыгранных сразу, как в статистике «Контура».
+          if (!record.hadError && stepIndex > 0 && records[stepIndex - 1].result !== 'skipped') {
             const { size, direction } = intervalBetween(
               steps[stepIndex - 1][0],
               steps[stepIndex][0],

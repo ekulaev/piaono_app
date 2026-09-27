@@ -120,8 +120,12 @@ function OpenMenu({
             </header>
             {/* Если настройки не влезут по высоте, прокручивается только эта область. */}
             <div className="mode-menu__settings">
-              {menu.modeId === 'sequences' && menu.draft ? (
-                <SequenceSettingsForm settings={menu.draft} onChange={onEditDraft} />
+              {menu.modeId !== 'warmup' && menu.draft ? (
+                <SequenceSettingsForm
+                  settings={menu.draft}
+                  onChange={onEditDraft}
+                  variant={menu.modeId === 'contour' ? 'contour' : 'sequences'}
+                />
               ) : (
                 !modeInfo(menu.modeId).hasSettings && (
                   <p className="mode-menu__empty">У этого режима нет настроек</p>
