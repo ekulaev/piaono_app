@@ -1,0 +1,186 @@
+{
+  "main": {
+    "id": "007c3ad20a5f4210",
+    "type": "split",
+    "children": [
+      {
+        "id": "dbbdf4ed6b7979a6",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ca3df4cbb5270084",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "C-STF-5 Режим «Только контур»"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "b1722a77b2dae1fd",
+    "type": "split",
+    "children": [
+      {
+        "id": "ce15018517e7ecee",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e03a3ff92e009389",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "10691e9d9d6e5683",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Поиск"
+            }
+          },
+          {
+            "id": "2ee7863c82a143c8",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Закладки"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "493d92391ead431e",
+    "type": "split",
+    "children": [
+      {
+        "id": "9ce22bceba4e9974",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f2cde4f8cfd0bbbb",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Обратные ссылки для C-STF-5 Режим «Только контур»"
+            }
+          },
+          {
+            "id": "1a1bd320c8e9443f",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Исходящие ссылки из C-STF-5 Режим «Только контур»"
+            }
+          },
+          {
+            "id": "13c1d5a93ed02a5d",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Теги"
+            }
+          },
+          {
+            "id": "42acb6a419f72ade",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Структура C-STF-5 Режим «Только контур»"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false
+    }
+  },
+  "active": "ca3df4cbb5270084",
+  "lastOpenFiles": [
+    "PSD/PSD/M-STF/C-STF-6 Режим «Только ритм».md",
+    "PSD/PSD/M-STF/C-STF-7 Экран «Прогресс».md",
+    "PSD/PSD/M-STF/C-STF-5 Режим «Только контур».md",
+    "PSD/PSD/M-STF/C-STF-3 Якорь и интервал с гаснущими подсказками.md",
+    "PSD/PSD/M-STF/C-STF-2 Режим «Последовательности».md",
+    "PSD/PSD/M-STF/C-STF-1 Нотный стан с движущейся нотой.md",
+    "PSD/PSD/M-MODE/C-MODE-1 Меню режимов.md",
+    "PSD/PSD/M-MIDI/C-MIDI-1 MIDI-модуль и индикатор связи.md",
+    "PSD/PSD/M-KBD/C-KBD-2 Мини-клавиатура навигации.md",
+    "PSD/PSD/M-KBD/C-KBD-1 Экранная клавиатура пианино.md",
+    "PSD/PSD/M-APP/C-APP-2 Элемент «Подсказка».md",
+    "PSD/PSD/M-APP/C-APP-1 Верхняя панель и настройки приложения.md"
+  ]
+}
