@@ -25,8 +25,8 @@ type HintBlock =
   | { kind: 'text'; text: string }
   | { kind: 'steps'; steps: string[] }
   | { kind: 'image'; src: string; caption: string }
-  | { kind: 'notes'; clef: Clef; pitches: number[]; labels?: string[] }
-  | { kind: 'rhythm'; meter: Meter; figures: FigureId[] }
+  | { kind: 'notes'; clef: Clef; pitches: number[]; anchor?: number; intervals?: boolean }
+  | { kind: 'rhythm'; meter: Meter; figures: FigureId[]; marks?: Mark[] }
 interface Hint { title: string; blocks: HintBlock[] }
 export const HINTS = { 'connection.no-device': {...}, 'mode.rhythm': {...}, ... } satisfies Record<string, Hint>
 export type HintId = keyof typeof HINTS
@@ -49,23 +49,29 @@ export type HintId = keyof typeof HINTS
 
 - Модальный `<dialog>` как у `ConfirmDialog`; `width: 80vw; max-height: 80vh`; внутри сетка
   `auto / minmax(0, 1fr)`: шапка (заголовок + «Закрыть») и тело с `overflow-y: auto; overflow-x: hidden`.
-- Ползунок: `scrollbar-width: auto; scrollbar-color: var(--ink) var(--paper)` и `::-webkit-scrollbar`
-  12px — Chrome на Android берёт второе.
-- Закрытие: «Закрыть», `cancel` (Esc / системная «Назад»), клик по самому `<dialog>`; фокус — обратно
-  на кнопку (`buttonRef.focus()`).
+- Ползунок: `::-webkit-scrollbar` 12px цвета чернил. `scrollbar-color` — только под
+  `@supports not selector(::-webkit-scrollbar)`: Chrome при заданном `scrollbar-color` забывает
+  `::-webkit-scrollbar` и рисует тонкий системный ползунок.
+- Esc: `keydown` внутри окна не всплывает — иначе он закрыл бы и меню режимов под подсказкой.
+- Закрытие: «Закрыть», `cancel` (Esc / системная «Назад»), клик по самому `<dialog>`. Сначала
+  `dialog.close()`, затем фокус — обратно на кнопку (`buttonRef.focus()`): пока модальное окно
+  открыто, экран под ним недоступен для фокуса.
 - Изображения: `max-width: 100%`, `height: auto`; текст — `overflow-wrap: anywhere`.
 
 ### D4. Ноты в подсказке — `ui/hints/HintNotes.tsx`
 
-- Свой контейнер фиксированной высоты (≈ 8rem), ширина — окна; `staffGeometry(width, height)` и
-  `drawSequence` / `drawRhythm` с видом «без отметок». Подписи (`labels`, например «↑3») — через
-  полосу подсказок `drawSequence`, если заданы.
+- Свой контейнер фиксированной высоты (9rem, с полосой подсказок 11rem), ширина — окна;
+  `useStaffGeometry` и `drawSequence` / `drawRhythm` с видом «без отметок». `anchor` — опорная нота с
+  названием; `intervals` — полоса подсказок «↑3» над станом, как в упражнении. `marks` у ритма —
+  пример оценок «вовремя / рано / поздно».
 - Рисуется после готовности шрифта (`useMusicFont`), как стан упражнений.
 
 ### D5. Места
 
 - `SettingsScreen`: строка «Пианино» без `note`; `<HintButton id={connectionHintId(state)} />`.
-- `ModeMenu`: `<HintButton id={`mode.${modeId}`} placement="inline" />` рядом с заголовком.
+- `ModeMenu`: `<HintButton id={modeHintId(modeId)} placement="inline" />` сразу после заголовка.
+  Шрифт заголовка режима следует за шириной панели (`6.2cqi`, не меньше 1.125rem): на телефоне
+  «Последовательности» и «?» иначе не влезают в панель 20rem.
 
 ## Risks / Trade-offs
 

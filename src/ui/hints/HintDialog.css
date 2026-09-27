@@ -1,0 +1,109 @@
+/* Окно подсказки: 80 % ширины, до 80 % высоты, высота по содержимому (C-APP-2, LIM-2, LIM-3). */
+.hint {
+  width: 80vw;
+  max-width: none;
+  max-height: 80vh;
+  padding: 0;
+  border: 0.1875rem solid var(--ink);
+  border-radius: 1rem;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+/* Затемнение не пропускает касаний; касание по нему закрывает окно. */
+.hint::backdrop {
+  background: rgb(34 28 20 / 0.55);
+}
+
+/* Шапка сверху, содержимое под ней забирает оставшуюся высоту и прокручивается само. */
+.hint__frame {
+  max-height: calc(80vh - 0.375rem);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.hint__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 0.1875rem solid var(--border);
+}
+
+.hint__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+/* Только вертикальная прокрутка; ползунок толстый и цвета чернил (LIM-4). */
+.hint__body {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 1rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 1.125rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* Chrome при scrollbar-color забывает ::-webkit-scrollbar и рисует тонкий системный ползунок,
+   поэтому стандартное свойство — только для браузеров без ::-webkit-scrollbar. */
+@supports not selector(::-webkit-scrollbar) {
+  .hint__body {
+    scrollbar-color: var(--ink) var(--paper);
+  }
+}
+
+.hint__body::-webkit-scrollbar {
+  width: 12px;
+}
+
+.hint__body::-webkit-scrollbar-track {
+  background: var(--paper);
+}
+
+.hint__body::-webkit-scrollbar-thumb {
+  background: var(--ink);
+  border-radius: 6px;
+}
+
+.hint__body p,
+.hint__steps {
+  margin: 0;
+}
+
+.hint__steps {
+  padding-left: 1.75em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Изображения и ноты — не шире окна. */
+.hint__figure {
+  margin: 0;
+}
+
+.hint__figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.hint__figure figcaption {
+  margin-top: 0.35rem;
+}
+
+.hint__notes {
+  flex-shrink: 0;
+  height: 9rem;
+}
+
+.hint__notes--band {
+  height: 11rem;
+}

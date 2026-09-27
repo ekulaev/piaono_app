@@ -33,6 +33,26 @@
   font-size: clamp(1.375rem, 3vw, 1.75rem);
 }
 
+/* Название режима и «?» сразу после него (C-APP-2, OB-10). */
+.mode-menu__heading {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mode-menu__header {
+  container-type: inline-size;
+}
+
+/* На узкой панели (телефон) самое длинное название — «Последовательности» — вместе с «?» не
+   влезло бы: шрифт заголовка следует за шириной панели, но не меньше 1.125rem (≈ 20 px). */
+.mode-menu__heading .mode-menu__title {
+  flex: 0 1 auto;
+  font-size: clamp(1.125rem, 6.2cqi, 1.75rem);
+}
+
 .mode-menu__close {
   margin-left: auto;
   flex-shrink: 0;
@@ -102,10 +122,12 @@
 .mode-menu__header {
   flex-wrap: wrap;
 }
-.mode-menu__header .mode-menu__title {
+.mode-menu__header > .mode-menu__title,
+.mode-menu__header > .mode-menu__heading {
   order: 1;
 }
-.mode-menu__header:has(button + .mode-menu__title) .mode-menu__title {
+.mode-menu__header:has(button + .mode-menu__title) .mode-menu__title,
+.mode-menu__header:has(button + .mode-menu__heading) .mode-menu__heading {
   order: 2;
   flex-basis: 100%;
 }

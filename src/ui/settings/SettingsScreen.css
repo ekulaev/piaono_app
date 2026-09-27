@@ -39,13 +39,6 @@
   font-size: 1.125rem;
 }
 
-/* Строка «что делать» под «Пианино» (C-APP-1, приложение Г). */
-.settings-row__note {
-  margin: 0.25rem 0 0.5rem;
-  font-size: 1.125rem;
-  line-height: 1.4;
-}
-
 /* Состояние связи — та же рамка и значок, что в верхней панели. */
 .settings__status {
   min-height: 3.5rem;
