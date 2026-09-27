@@ -62,9 +62,6 @@ describe('Оценка по темпу ученика (C-STF-6, OB-7)', () => {
   it('рисунок с паузой: нота после паузы должна ждать её длительность', () => {
     const withRest = pattern([['quarter', 'quarter-rest', 'quarter', 'quarter']])
     expect(evaluateTaps(withRest, exact(withRest, 300))).toEqual(['onTime', 'onTime', 'onTime'])
-    // Ученик не выждал паузу: сыграл как три четверти подряд.
-    const rushed = [1000, 1600, 2200]
-    expect(evaluateTaps(withRest, rushed)).not.toEqual(['onTime', 'onTime', 'onTime'])
   })
 
   it('живой разброс ±20 мс в ровной игре — всё вовремя', () => {
@@ -82,5 +79,28 @@ describe('Оценка по темпу ученика (C-STF-6, OB-7)', () => {
     const taps = exact(three, 300)
     taps[1] -= 200
     expect(evaluateTaps(three, taps)).toEqual(['onTime', 'early', 'onTime'])
+  })
+
+  it('точка не выдержана: четверть с точкой сыграна как четверть — восьмая «рано»', () => {
+    const p = pattern([['quarter', 'dotted', 'quarter']])
+    const taps = [0, 2, 4, 6].map((tick) => 1000 + tick * 300)
+    expect(evaluateTaps(p, taps)).toEqual(['onTime', 'onTime', 'early', 'onTime'])
+  })
+
+  it('пауза не выждана: в длинном рисунке нота после паузы — «рано»', () => {
+    const p = pattern([
+      ['half', 'quarter-rest', 'quarter'],
+      ['quarter', 'quarter', 'half'],
+    ])
+    const taps = [0, 4, 6, 8, 10].map((tick) => 1000 + tick * 300)
+    expect(evaluateTaps(p, taps)).toEqual(['onTime', 'early', 'onTime', 'onTime', 'onTime'])
+  })
+
+  it('пауза не выждана в рисунке из 3 нот — ошибка отмечена у ноты рядом с паузой', () => {
+    // По трём ударам не понять, какая нота сбилась: отмечается одна из соседних с паузой.
+    const after = pattern([['quarter', 'quarter-rest', 'quarter', 'quarter']])
+    expect(evaluateTaps(after, [1000, 1600, 2200])).toEqual(['onTime', 'early', 'onTime'])
+    const before = pattern([['quarter', 'quarter', 'quarter-rest', 'quarter']])
+    expect(evaluateTaps(before, [1000, 1600, 2200])).toEqual(['onTime', 'late', 'onTime'])
   })
 })
