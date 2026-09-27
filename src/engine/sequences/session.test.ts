@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Sequence } from './generate'
 import { DEFAULT_HINT_PROGRESS, type HintProgress } from './hints'
+import { sequenceEvents } from '../stats/events'
+import { aggregate, applyEvents } from '../stats/stats'
 import {
   COUNTDOWN_MS,
   countdownSeconds,
@@ -365,5 +367,44 @@ describe('Подсказки в сессии', () => {
     state = next(skip(skip(state, T0), T0), T0)
     if (state.phase !== 'summary') throw new Error('ожидался итог')
     expect(summarize(state.sequences, state.history, true).withoutHint).toEqual({ count: 0, of: 0 })
+  })
+})
+
+describe('Статистика в сессии (C-STF-4)', () => {
+  const before = aggregate([{ kind: 'note', key: 'treble:60', outcome: 'clean', ms: 900 }])
+
+  it('без истории статистика не ведётся', () => {
+    expect(playing(startSession([seq([E4], [F4])], false, T0)).stats).toBeNull()
+  })
+
+  it('события сессии совпадают с sequenceEvents завершённых последовательностей', () => {
+    const sequences = [seq([E4], [F4]), seq([G4], [A4])]
+    let state = startSession(sequences, false, T0, null, before)
+    state = played(played(state, E4, T0 + 400), F4, T0 + 900)
+    const records = state.phase === 'finished' ? state.records : []
+    expect(state.phase === 'finished' && state.stats).toEqual({
+      before,
+      events: sequenceEvents(sequences[0], records),
+    })
+  })
+
+  it('Стоп посреди последовательности: в статистике только первая', () => {
+    const sequences = [seq([E4], [F4]), seq([G4], [A4])]
+    let state = startSession(sequences, false, T0, null, before)
+    state = played(played(state, E4, T0 + 400), F4, T0 + 900)
+    state = next(state, T0 + 1000)
+    state = played(state, G4, T0 + 1500) // вторая — наполовину
+    const events = playing(state).stats!.events
+    expect(events.map((e) => e.key)).toEqual(['treble:64', 'treble:65', 'up2'])
+    expect(stop()).toBe(IDLE) // незавершённое уходит вместе с состоянием
+  })
+
+  it('Повторить — история уже включает прошлую сессию', () => {
+    let state = startSession([seq([E4], [F4])], false, T0, null, before)
+    state = next(played(played(state, E4, T0 + 400), F4, T0 + 900), T0 + 1000)
+    if (state.phase !== 'summary') throw new Error('ожидался итог')
+    const again = playing(repeat(state, T0 + 2000))
+    expect(again.stats!.before).toEqual(applyEvents(before, state.stats!.events))
+    expect(again.stats!.events).toEqual([])
   })
 })

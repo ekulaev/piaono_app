@@ -1,4 +1,5 @@
 import { isBlackKey } from '../keyboard/layout'
+import { UNIFORM, weightedPick, type Weights } from '../stats/weights'
 
 export type Clef = 'treble' | 'bass'
 
@@ -28,14 +29,21 @@ const CANDIDATES: readonly number[] = Array.from(
 ).filter((pitch) => !isBlackKey(pitch))
 
 /**
- * Случайная нота: равновероятно любая белая клавиша из общего диапазона; ключ — тот,
- * в диапазон которого она входит, а для общей зоны G3–F4 — случайный.
+ * Пары «нота + ключ» с прежней вероятностью: каждая белая клавиша равновероятна, в общей
+ * зоне G3–F4 её вероятность делится между ключами пополам.
+ */
+const PAIRS: readonly { note: StaffNote; base: number }[] = CANDIDATES.flatMap((pitch) => {
+  const clefs = (['bass', 'treble'] as const).filter((clef) => inRange(pitch, clef))
+  return clefs.map((clef) => ({ note: { pitch, clef }, base: 1 / clefs.length }))
+})
+
+/**
+ * Случайная нота: белая клавиша из общего диапазона; ключ — тот, в диапазон которого она
+ * входит, а для общей зоны G3–F4 — случайный. Трудные ноты выбираются чаще (C-STF-4, OB-9):
+ * вероятность пары — прежняя, умноженная на вес; без статистики — равновероятно.
  * random передаётся снаружи (Math.random в приложении, предсказуемый — в тестах).
  */
-export function pickNote(random: () => number): StaffNote {
-  const pitch = CANDIDATES[Math.floor(random() * CANDIDATES.length)]
-  const treble = inRange(pitch, 'treble')
-  const bass = inRange(pitch, 'bass')
-  if (treble && bass) return { pitch, clef: random() < 0.5 ? 'treble' : 'bass' }
-  return { pitch, clef: treble ? 'treble' : 'bass' }
+export function pickNote(random: () => number, weights: Weights = UNIFORM): StaffNote {
+  return weightedPick(PAIRS, ({ note, base }) => base * weights.note(note.clef, note.pitch), random)
+    .note
 }

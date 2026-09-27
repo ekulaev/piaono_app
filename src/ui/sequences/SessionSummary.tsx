@@ -1,9 +1,12 @@
 import { pitchToNoteName } from '../../midi/noteNames'
 import type { SessionSummary as Summary } from '../../engine/sequences/session'
+import type { Improvements as ImprovementsData } from '../../engine/stats/improvements'
+import Improvements from '../stats/Improvements'
 import './SessionSummary.css'
 
 interface Props {
   summary: Summary
+  improvements: ImprovementsData
   onRepeat: () => void
   onNew: () => void
 }
@@ -11,7 +14,7 @@ interface Props {
 const seconds = (ms: number) => (ms / 1000).toFixed(1).replace('.', ',')
 
 /** Итог сессии на месте нотного стана — не поверх экрана. */
-function SessionSummary({ summary, onRepeat, onNew }: Props) {
+function SessionSummary({ summary, improvements, onRepeat, onNew }: Props) {
   return (
     <section className="summary" aria-label="Итог сессии">
       <dl className="summary__counts">
@@ -42,7 +45,7 @@ function SessionSummary({ summary, onRepeat, onNew }: Props) {
           </div>
         )}
       </dl>
-      <div className="summary__slow">
+      <div className="summary__block summary__slow">
         <h3>Самые медленные ноты</h3>
         {summary.slowest.length === 0 ? (
           <p>Все шаги пропущены</p>
@@ -57,13 +60,16 @@ function SessionSummary({ summary, onRepeat, onNew }: Props) {
           </ol>
         )}
       </div>
-      <div className="summary__actions">
-        <button type="button" className="button" onClick={onRepeat}>
-          Повторить
-        </button>
-        <button type="button" className="button button--primary" onClick={onNew}>
-          Новая
-        </button>
+      <div className="summary__side">
+        <Improvements improvements={improvements} />
+        <div className="summary__actions">
+          <button type="button" className="button" onClick={onRepeat}>
+            Повторить
+          </button>
+          <button type="button" className="button button--primary" onClick={onNew}>
+            Новая
+          </button>
+        </div>
       </div>
     </section>
   )

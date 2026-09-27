@@ -7,6 +7,8 @@ import {
   type HintProgress,
   type HintVisibility,
 } from './hints'
+import { sequenceEvents } from '../stats/events'
+import { applyEvents, type ModeStats, type StatEvent } from '../stats/stats'
 
 /** Отсчёт перед автоматическим переходом к следующей последовательности. */
 export const COUNTDOWN_MS = 3000
@@ -42,6 +44,14 @@ interface Common {
   autoAdvance: boolean
   /** Уровни подсказок; null — подсказки в этой сессии не действуют. */
   hints: HintProgress | null
+  /** Статистика режима: история до сессии и события сессии; null — не ведётся. */
+  stats: SessionStats | null
+}
+
+/** История до сессии и события завершённых последовательностей этой сессии (C-STF-4). */
+export interface SessionStats {
+  before: ModeStats
+  events: readonly StatEvent[]
 }
 
 export type SessionState =
@@ -69,6 +79,7 @@ export type SessionState =
       history: StepRecord[][]
       autoAdvance: boolean
       hints: HintProgress | null
+      stats: SessionStats | null
     }
 
 export const IDLE: SessionState = { phase: 'idle' }
@@ -90,9 +101,18 @@ export function startSession(
   autoAdvance: boolean,
   now: number,
   hints: HintProgress | null = null,
+  stats: ModeStats | null = null,
 ): SessionState {
   return playSequence(
-    { sequences, seqIndex: 0, records: [], history: [], autoAdvance, hints },
+    {
+      sequences,
+      seqIndex: 0,
+      records: [],
+      history: [],
+      autoAdvance,
+      hints,
+      stats: stats && { before: stats, events: [] },
+    },
     0,
     now,
   )
@@ -145,6 +165,11 @@ function advance(state: Playing, records: StepRecord[], now: number): SessionSta
   const { sequences, seqIndex, history, autoAdvance, visibility } = state
   // Уровни пересчитываются только у завершённой последовательности: «Стоп» их не трогает.
   const hints = state.hints && nextProgress(state.hints, sequences[seqIndex].clef, records)
+  // Статистика тоже пишется только у завершённой последовательности (C-STF-4, OB-5).
+  const stats = state.stats && {
+    ...state.stats,
+    events: [...state.stats.events, ...sequenceEvents(sequences[seqIndex], records)],
+  }
   return {
     phase: 'finished',
     sequences,
@@ -153,6 +178,7 @@ function advance(state: Playing, records: StepRecord[], now: number): SessionSta
     history,
     autoAdvance,
     hints,
+    stats,
     visibility,
     countdownUntil: autoAdvance ? now + COUNTDOWN_MS : null,
   }
@@ -222,15 +248,15 @@ export function skip(state: SessionState, now: number): SessionState {
 export function next(state: SessionState, now: number): SessionState {
   if (state.phase !== 'finished') return state
   const history = [...state.history, state.records]
-  const { sequences, autoAdvance, hints } = state
+  const { sequences, autoAdvance, hints, stats } = state
   if (state.seqIndex + 1 < sequences.length) {
     return playSequence(
-      { sequences, seqIndex: 0, records: [], history, autoAdvance, hints },
+      { sequences, seqIndex: 0, records: [], history, autoAdvance, hints, stats },
       state.seqIndex + 1,
       now,
     )
   }
-  return { phase: 'summary', sequences, history, autoAdvance, hints }
+  return { phase: 'summary', sequences, history, autoAdvance, hints, stats }
 }
 
 /** Продвинуть по времени: закрыть группу, завершить отсчёт. */
@@ -265,7 +291,9 @@ export function stop(): SessionState {
 /** «Повторить»: те же последовательности в том же порядке, с текущими уровнями подсказок. */
 export function repeat(state: SessionState, now: number): SessionState {
   if (state.phase !== 'summary') return state
-  return startSession(state.sequences, state.autoAdvance, now, state.hints)
+  // Следующая сессия сравнивается с историей, в которую вошла эта.
+  const stats = state.stats && applyEvents(state.stats.before, state.stats.events)
+  return startSession(state.sequences, state.autoAdvance, now, state.hints, stats)
 }
 
 /** Сколько секунд показать на кнопке «Далее (N)»; null — отсчёта нет. */

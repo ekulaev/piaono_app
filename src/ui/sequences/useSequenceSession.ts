@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildSession } from '../../engine/sequences/generate'
 import * as session from '../../engine/sequences/session'
 import type { HintProgress } from '../../engine/sequences/hints'
+import type { ModeStats } from '../../engine/stats/stats'
+import { weightsFor } from '../../engine/stats/weights'
 import type { SessionState } from '../../engine/sequences/session'
 import type { SequenceSettings } from '../../engine/sequences/settings'
 import type { KeyboardFocus } from '../keyboard/Keyboard'
@@ -48,15 +50,19 @@ export function useSequenceSession() {
     return () => cancelAnimationFrame(frame)
   }, [needsFrames, update])
 
-  /** hints — уровни подсказок; null — подсказки в этой сессии не действуют. */
+  /**
+   * hints — уровни подсказок (null — подсказки в этой сессии не действуют); stats — история
+   * режима: по ней трудные места выбираются чаще, и с ней сравнивается итог (C-STF-4).
+   */
   const start = useCallback(
-    (settings: SequenceSettings, hints: HintProgress | null) =>
+    (settings: SequenceSettings, hints: HintProgress | null, stats: ModeStats) =>
       update(
         session.startSession(
-          buildSession(settings, Math.random),
+          buildSession(settings, Math.random, weightsFor(stats)),
           settings.autoAdvance,
           performance.now(),
           hints,
+          stats,
         ),
       ),
     [update],

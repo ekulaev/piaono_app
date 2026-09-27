@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { isBlackKey } from '../keyboard/layout'
 import type { Clef } from '../staff/pickNote'
 import { anchorsIn, intervalBetween, MAX_INTERVAL, widestFitting } from './anchors'
-import { buildSequence, buildSession, RANGES } from './generate'
+import { buildSequence, buildSession, nextByInterval, RANGES } from './generate'
+import type { Weights } from '../stats/weights'
 import {
   DEFAULT_SEQUENCE_SETTINGS,
   type IntervalChoice,
@@ -110,4 +111,40 @@ describe('Ход интервалами (шаги из одной ноты)', ()
           expect(anchorsSeen).toEqual(new Set(anchorsIn(clef, low, high)))
         })
       }
+})
+
+describe('Взвешенный выбор интервала (C-STF-4)', () => {
+  it('Трудный интервал чаще: ↑2 втрое тяжелее — размер 2 и направление вверх втрое чаще', () => {
+    // E4 посередине «Октавы» (C4–C5): секунды и терции помещаются в обе стороны.
+    const weights: Weights = {
+      note: () => 2,
+      interval: (size, direction) => (size === 2 && direction === 'up' ? 3 : 1),
+    }
+    const random = seeded(42)
+    const counts: Record<string, number> = {}
+    for (let i = 0; i < 10_000; i++) {
+      const next = nextByInterval(64, 3, 60, 72, random, 'treble', weights)
+      counts[next] = (counts[next] ?? 0) + 1
+    }
+    const up2 = counts[65]
+    const down2 = counts[62]
+    const up3 = counts[67]
+    const down3 = counts[60]
+    expect(Object.keys(counts).sort()).toEqual(['60', '62', '65', '67'])
+    const size2 = up2 + down2
+    const size3 = up3 + down3
+    expect(size2 / size3).toBeGreaterThan(2.25)
+    expect(size2 / size3).toBeLessThan(3.75)
+    expect(up2 / down2).toBeGreaterThan(2.25)
+    expect(up2 / down2).toBeLessThan(3.75)
+  })
+
+  it('без статистики — прежний равновероятный выбор (те же ноты при том же зерне)', () => {
+    const plain = buildSession(settings({ sequences: 5 }), seeded(9))
+    const uniform = buildSession(settings({ sequences: 5 }), seeded(9), {
+      note: () => 2,
+      interval: () => 2,
+    })
+    expect(uniform).toEqual(plain)
+  })
 })
