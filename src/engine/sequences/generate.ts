@@ -1,5 +1,6 @@
 import { isBlackKey } from '../keyboard/layout'
 import type { Clef } from '../staff/pickNote'
+import { UNIFORM, weightedPick, type Weights } from '../stats/weights'
 import { anchorsIn, MAX_INTERVAL, MIN_INTERVAL, moveBy, type Direction } from './anchors'
 import type { RangeChoice, SequenceSettings } from './settings'
 
@@ -29,24 +30,30 @@ function whiteKeys(low: number, high: number): number[] {
   return keys
 }
 
-/** n разных случайных элементов (перемешивание Фишера — Йетса по первым n позициям). */
-function pickDistinct(candidates: number[], n: number, random: () => number): number[] {
+/**
+ * n разных элементов с весом (перемешивание Фишера — Йетса по первым n позициям, индекс —
+ * взвешенным выбором среди оставшихся). При равных весах — прежний равновероятный выбор.
+ */
+function pickDistinct(
+  candidates: number[],
+  n: number,
+  weight: (pitch: number) => number,
+  random: () => number,
+): number[] {
   const pool = [...candidates]
   for (let i = 0; i < n; i++) {
-    const j = i + Math.floor(random() * (pool.length - i))
+    const rest = pool.slice(i)
+    const j = i + rest.indexOf(weightedPick(rest, weight, random))
     ;[pool[i], pool[j]] = [pool[j], pool[i]]
   }
   return pool.slice(0, n).sort((a, b) => a - b)
 }
 
-function pickOne<T>(options: readonly T[], random: () => number): T {
-  return options[Math.floor(random() * options.length)]
-}
-
 /**
- * Следующая нота хода: сначала размер интервала — равновероятно среди тех, что помещаются
- * в диапазон хотя бы в одну сторону, затем направление — среди помещающихся. Так у края
- * диапазона широкие интервалы не вытесняются узкими.
+ * Следующая нота хода: сначала размер интервала среди тех, что помещаются в диапазон хотя бы
+ * в одну сторону, затем направление среди помещающихся. Так у края диапазона широкие интервалы
+ * не вытесняются узкими. Выбор взвешен по трудности (C-STF-4, OB-8): вес размера — наибольший
+ * вес его интервалов, вес направления — вес интервала × вес получающейся ноты.
  */
 export function nextByInterval(
   from: number,
@@ -54,6 +61,8 @@ export function nextByInterval(
   low: number,
   high: number,
   random: () => number,
+  clef: Clef = 'treble',
+  weights: Weights = UNIFORM,
 ): number {
   const fits = (size: number, direction: Direction) => {
     const pitch = moveBy(from, size, direction)
@@ -64,9 +73,14 @@ export function nextByInterval(
   for (let size = MIN_INTERVAL; size <= maxInterval; size++) {
     if (directions.some((direction) => fits(size, direction))) sizes.push(size)
   }
-  const size = pickOne(sizes, random)
-  const direction = pickOne(
+  const size = weightedPick(
+    sizes,
+    (s) => Math.max(...directions.filter((d) => fits(s, d)).map((d) => weights.interval(s, d))),
+    random,
+  )
+  const direction = weightedPick(
     directions.filter((d) => fits(size, d)),
+    (d) => weights.interval(size, d) * weights.note(clef, moveBy(from, size, d)!),
     random,
   )
   return moveBy(from, size, direction)!
@@ -75,20 +89,25 @@ export function nextByInterval(
 /**
  * Одна последовательность: ключ (для «Оба» — случайный), 3–8 шагов. Шаги из одной ноты —
  * ход интервалами от случайной опорной ноты диапазона; из 2–3 нот — случайные разные белые
- * клавиши диапазона. random передаётся снаружи.
+ * клавиши диапазона. Трудные места выбираются чаще (weights); без статистики — равновероятно.
+ * random передаётся снаружи.
  */
-export function buildSequence(settings: SequenceSettings, random: () => number): Sequence {
+export function buildSequence(
+  settings: SequenceSettings,
+  random: () => number,
+  weights: Weights = UNIFORM,
+): Sequence {
   const clef: Clef = settings.clef === 'both' ? (random() < 0.5 ? 'treble' : 'bass') : settings.clef
   const { low, high } = RANGES[settings.range][clef]
   const length = MIN_STEPS + Math.floor(random() * (MAX_STEPS - MIN_STEPS + 1))
 
   if (settings.notesPerStep === 1) {
-    const anchor = pickOne(anchorsIn(clef, low, high), random)
+    const anchor = weightedPick(anchorsIn(clef, low, high), (p) => weights.note(clef, p), random)
     const maxInterval = MAX_INTERVAL[settings.intervals]
     const steps: number[][] = []
     let previous = anchor
     for (let i = 0; i < length; i++) {
-      previous = nextByInterval(previous, maxInterval, low, high, random)
+      previous = nextByInterval(previous, maxInterval, low, high, random, clef, weights)
       steps.push([previous])
     }
     return { clef, low, high, anchor, steps }
@@ -96,12 +115,16 @@ export function buildSequence(settings: SequenceSettings, random: () => number):
 
   const candidates = whiteKeys(low, high)
   const steps = Array.from({ length }, () =>
-    pickDistinct(candidates, settings.notesPerStep, random),
+    pickDistinct(candidates, settings.notesPerStep, (p) => weights.note(clef, p), random),
   )
   return { clef, low, high, anchor: null, steps }
 }
 
 /** Все последовательности сессии — хранятся целиком, чтобы «Повторить» дал те же ноты. */
-export function buildSession(settings: SequenceSettings, random: () => number): Sequence[] {
-  return Array.from({ length: settings.sequences }, () => buildSequence(settings, random))
+export function buildSession(
+  settings: SequenceSettings,
+  random: () => number,
+  weights: Weights = UNIFORM,
+): Sequence[] {
+  return Array.from({ length: settings.sequences }, () => buildSequence(settings, random, weights))
 }

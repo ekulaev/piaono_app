@@ -7,8 +7,10 @@ import {
   isWrong,
   played,
   progress,
+  finish,
   start,
   stop,
+  summarizeWarmup,
   tick,
   type ExerciseState,
 } from './exercise'
@@ -44,7 +46,7 @@ describe('Движение ноты', () => {
     expect(progress(state, T0 + TRAVEL_MS / 2)).toBe(0.5)
     expect(tick(state, T0 + TRAVEL_MS - 1, random).phase).toBe('moving')
     const pause = tick(state, T0 + TRAVEL_MS, random)
-    expect(pause).toEqual({ phase: 'pause', until: T0 + TRAVEL_MS + PAUSE_MS })
+    expect(pause).toMatchObject({ phase: 'pause', until: T0 + TRAVEL_MS + PAUSE_MS })
     expect(tick(pause, T0 + TRAVEL_MS + PAUSE_MS - 1, random).phase).toBe('pause')
     const next = tick(pause, T0 + TRAVEL_MS + PAUSE_MS, random)
     expect(next.phase === 'moving' && next.appearedAt).toBe(T0 + TRAVEL_MS + PAUSE_MS)
@@ -63,7 +65,7 @@ describe('Реакция ноты на нажатия', () => {
     const correct = played(state, state.note.pitch, T0 + 1000)
     expect(correct).toMatchObject({ phase: 'correct', until: T0 + 1000 + FLASH_MS })
     expect(progress(correct, T0 + 1400)).toBeCloseTo(0.2)
-    expect(tick(correct, T0 + 1000 + FLASH_MS, random)).toEqual({
+    expect(tick(correct, T0 + 1000 + FLASH_MS, random)).toMatchObject({
       phase: 'pause',
       until: T0 + 1000 + FLASH_MS + PAUSE_MS,
     })
@@ -128,5 +130,61 @@ describe('Реакция ноты на нажатия', () => {
     const state = started()
     const correct = played(state, state.note.pitch, T0 + 1000)
     expect(played(correct, state.note.pitch + 2, T0 + 1100)).toBe(correct)
+  })
+})
+
+describe('Итог «Разминки» (C-STF-4)', () => {
+  it('Итог Разминки: 2 верно сразу, 1 после ошибки, 1 «не успел»', () => {
+    let state: ExerciseState = started()
+    const next = (s: ExerciseState, at: number) => tick(s, at, random)
+    const pitchOf = (s: ExerciseState) => (s.phase === 'moving' ? s.note.pitch : 0)
+    // 1: верно сразу через 1 с
+    state = played(state, pitchOf(state), T0 + 1000)
+    let t = T0 + 1000 + FLASH_MS + PAUSE_MS
+    state = next(state, t)
+    // 2: верно сразу через 2 с
+    state = played(state, pitchOf(state), t + 2000)
+    t = t + 2000 + FLASH_MS + PAUSE_MS
+    state = next(state, t)
+    // 3: неверное нажатие, затем верное
+    state = played(state, pitchOf(state) + 12, t + 100)
+    state = next(state, t + 200)
+    state = played(state, pitchOf(state), t + 1500)
+    t = t + 1500 + FLASH_MS + PAUSE_MS
+    state = next(state, t)
+    // 4: неверное нажатие, нота доезжает — «не успел»
+    state = played(state, pitchOf(state) + 12, t + 100)
+    state = next(state, t + TRAVEL_MS)
+    const summary = finish(state)
+    if (summary.phase !== 'summary') throw new Error('ожидался итог')
+    expect(summary.results.map((r) => r.outcome)).toEqual(['clean', 'clean', 'error', 'missed'])
+    const result = summarizeWarmup(summary.results)
+    expect(result).toMatchObject({ clean: 2, errors: 1, missed: 1, accuracy: 0.5 })
+    // random = 0.5 — всё время одна нота: её среднее — (1000 + 2000) / 2.
+    const { pitch, clef } = summary.results[0]
+    expect(result.slowest).toEqual([{ pitch, clef, averageMs: 1500 }])
+  })
+
+  it('Стоп до первой законченной ноты: итога нет', () => {
+    expect(finish(started())).toBe(IDLE)
+  })
+
+  it('Не успел после ошибки: время не записано', () => {
+    let state: ExerciseState = started()
+    const pitch = state.phase === 'moving' ? state.note.pitch : 0
+    state = played(state, pitch + 12, T0 + 100)
+    state = tick(state, T0 + TRAVEL_MS, random)
+    expect(state.phase === 'pause' && state.results).toEqual([
+      expect.objectContaining({ outcome: 'missed', ms: null }),
+    ])
+  })
+
+  it('старт после итога — новая сессия с пустыми итогами; стоп из меню — без итога', () => {
+    const correct = played(started(), started().note.pitch, T0 + 500)
+    expect(finish(correct).phase).toBe('summary')
+    const again = start(T0 + 9000, random)
+    expect(again.phase === 'moving' && again.results).toEqual([])
+    expect(stop()).toBe(IDLE)
+    expect(tick(finish(correct), T0 + 60_000, random).phase).toBe('summary')
   })
 })
