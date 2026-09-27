@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Sequence } from '../sequences/generate'
-import { sequenceEvents, warmupEvent } from './events'
+import { contourEvents, sequenceEvents, warmupEvent } from './events'
 
 const E4 = 64
 const G4 = 67
@@ -69,5 +69,25 @@ describe('События «Разминки»', () => {
       outcome: 'error',
       ms: null,
     })
+  })
+})
+
+describe('События «Контура» (C-STF-5)', () => {
+  it('Пропуск и после него: «↑3» пропуск, «↑2» верно, «↓3» нет', () => {
+    const events = contourEvents(seq([E4], [G4], [E4], [65]), [
+      clean(900),
+      skipped,
+      clean(700),
+      clean(600),
+    ])
+    expect(events).toEqual([
+      { kind: 'interval', key: 'up3', outcome: 'skip', ms: null },
+      { kind: 'interval', key: 'up2', outcome: 'clean', ms: 600 },
+    ])
+  })
+
+  it('«на месте» — ключ same1; нот нет', () => {
+    const events = contourEvents(seq([E4], [E4]), [clean(500), clean(400)])
+    expect(events).toEqual([{ kind: 'interval', key: 'same1', outcome: 'clean', ms: 400 }])
   })
 })

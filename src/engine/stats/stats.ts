@@ -5,7 +5,7 @@ import type { Direction } from '../sequences/anchors'
 import type { Clef } from '../staff/pickNote'
 
 /** Режимы со своей статистикой. */
-export type StatsMode = 'sequences' | 'warmup'
+export type StatsMode = 'sequences' | 'contour' | 'warmup'
 
 export interface ItemStats {
   /** Все законченные попытки. */
@@ -41,12 +41,16 @@ export const intervalKey = (size: number, direction: Direction): IntervalKey =>
 export const emptyModeStats = (): ModeStats => ({ notes: {}, intervals: {} })
 export const emptyPracticeStats = (): PracticeStats => ({
   sequences: emptyModeStats(),
+  contour: emptyModeStats(),
   warmup: emptyModeStats(),
 })
 
-/** Есть ли у режима хоть одна записанная нота (для приглашения «Ещё нет прогресса»). */
+/**
+ * Есть ли у режима хоть одна запись — нота или интервал (для приглашения «Ещё нет прогресса»
+ * и «первой сессии»). У «Контура» нот нет, только переходы.
+ */
 export function hasProgress(stats: ModeStats): boolean {
-  return Object.keys(stats.notes).length > 0
+  return Object.keys(stats.notes).length > 0 || Object.keys(stats.intervals).length > 0
 }
 
 export type Outcome = 'clean' | 'error' | 'skip'
@@ -104,7 +108,8 @@ export function aggregate(events: readonly StatEvent[]): ModeStats {
 }
 
 const NOTE_KEY = /^(treble|bass):\d{1,3}$/
-const INTERVAL_KEY = /^(up|down)[2-8]$/
+/** Интервал вверх или вниз (2–8) либо «на месте» (прима, только в «Контуре»). */
+const INTERVAL_KEY = /^((up|down)[2-8]|same1)$/
 
 function readItem(value: unknown): ItemStats | null {
   if (typeof value !== 'object' || value === null) return null
@@ -151,5 +156,9 @@ function readModeStats(value: unknown): ModeStats {
 export function readPracticeStats(value: unknown): PracticeStats {
   const saved =
     typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
-  return { sequences: readModeStats(saved.sequences), warmup: readModeStats(saved.warmup) }
+  return {
+    sequences: readModeStats(saved.sequences),
+    contour: readModeStats(saved.contour),
+    warmup: readModeStats(saved.warmup),
+  }
 }

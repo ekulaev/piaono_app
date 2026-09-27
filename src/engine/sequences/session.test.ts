@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { GROUP_MS } from '../staff/exercise'
 import type { Sequence } from './generate'
 import { DEFAULT_HINT_PROGRESS, type HintProgress } from './hints'
 import { sequenceEvents } from '../stats/events'
@@ -191,8 +192,8 @@ describe('Экран итога', () => {
       skipped: 1,
       accuracy: 0.5,
       slowest: [
-        { pitch: F4, averageMs: 3000 },
-        { pitch: E4, averageMs: 1000 },
+        { label: 'F4', averageMs: 3000 },
+        { label: 'E4', averageMs: 1000 },
       ],
       withoutHint: null,
     })
@@ -222,7 +223,7 @@ describe('Экран итога', () => {
         { result: 'correct', hadError: false, reactionMs: 3000, hinted: false },
       ],
     ])
-    expect(summary.slowest.map((s) => s.pitch)).toEqual([67, 69, 64, 65, 60])
+    expect(summary.slowest.map((s) => s.label)).toEqual(['G4', 'A4', 'E4', 'F4', 'C4'])
   })
 
   it('Повторить: те же последовательности заново', () => {
@@ -406,5 +407,111 @@ describe('Статистика в сессии (C-STF-4)', () => {
     const again = playing(repeat(state, T0 + 2000))
     expect(again.stats!.before).toEqual(applyEvents(before, state.stats!.events))
     expect(again.stats!.events).toEqual([])
+  })
+})
+
+describe('«Контур» (C-STF-5)', () => {
+  const C5 = 72
+  const D5 = 74
+  const E5 = 76
+  const C6 = 84
+  const F3 = 53
+  const B4 = 71
+  const start = (...steps: number[][]) =>
+    startSession([seq(...steps)], false, T0, null, null, 'contour')
+  /** Одна клавиша и закрытие окна одновременных нажатий. */
+  const press = (state: SessionState, pitch: number, at: number) =>
+    tick(played(state, pitch, at), at + GROUP_MS)
+
+  it('Начать с другой октавы: первый шаг принимает любую клавишу', () => {
+    const state = playing(press(start([E4], [G4]), C6, T0 + 500))
+    expect(state.stepIndex).toBe(1)
+    expect(state.reference).toBe(C6)
+    expect(state.records[0]).toMatchObject({ result: 'correct', hadError: false, reactionMs: 500 })
+  })
+
+  it('оценка — только после окна одновременных нажатий', () => {
+    const pressed = played(start([E4], [G4]), C6, T0 + 500)
+    expect(playing(pressed).stepIndex).toBe(0)
+    expect(playing(tick(pressed, T0 + 500 + GROUP_MS - 1)).stepIndex).toBe(0)
+    expect(playing(tick(pressed, T0 + 500 + GROUP_MS)).stepIndex).toBe(1)
+  })
+
+  it('Вверх с любым интервалом и чёрной клавишей', () => {
+    let state = press(start([E4], [A4]), C5, T0)
+    state = press(state, 87, T0 + 1000) // D#6
+    expect(state.phase).toBe('finished')
+  })
+
+  it('На месте — та же клавиша', () => {
+    let state = press(start([G4], [G4], [E4]), F3, T0)
+    state = press(state, F3, T0 + 1000)
+    expect(playing(state).stepIndex).toBe(2)
+  })
+
+  it('Неверное направление: шаг не засчитан, точка отсчёта прежняя, без полой головки', () => {
+    let state = press(start([G4], [E4]), C5, T0)
+    state = press(state, D5, T0 + 1000)
+    const p = playing(state)
+    expect(p.stepIndex).toBe(1)
+    expect(p.reference).toBe(C5)
+    expect(p.records[1].hadError).toBe(true)
+    expect(p.errorCount).toBe(1)
+    expect(p.wrongPitches).toEqual([])
+    // Верное направление после ошибки — засчитано с ошибкой.
+    state = press(state, B4, T0 + 2000)
+    expect(state.phase === 'finished' && state.records[1]).toMatchObject({
+      result: 'correct',
+      hadError: true,
+    })
+  })
+
+  it('Две клавиши сразу — ошибка, точка отсчёта прежняя', () => {
+    let state = press(start([E4], [G4]), C5, T0)
+    state = played(state, D5, T0 + 1000)
+    state = played(state, E5, T0 + 1020)
+    state = tick(state, T0 + 1000 + GROUP_MS)
+    const p = playing(state)
+    expect(p.stepIndex).toBe(1)
+    expect(p.records[1].hadError).toBe(true)
+    expect(p.reference).toBe(C5)
+  })
+
+  it('после пропуска — любая клавиша; новая последовательность — без точки отсчёта', () => {
+    let state = press(start([E4], [G4], [E4]), C5, T0)
+    state = skip(state, T0 + 500)
+    expect(playing(state).reference).toBeNull()
+    // Записано E4 → G4 → E4; после пропуска G4 шаг E4 примет любую клавишу, даже выше.
+    state = press(state, C6, T0 + 1000)
+    expect(state.phase).toBe('finished')
+    const two = startSession([seq([E4], [G4]), seq([G4], [E4])], false, T0, null, null, 'contour')
+    let s2 = press(press(two, C5, T0), D5, T0 + 500)
+    s2 = next(s2, T0 + 900)
+    expect(playing(s2).reference).toBeNull()
+    expect(playing(s2).check).toBe('contour')
+  })
+})
+
+describe('Итог «Контура» (C-STF-5)', () => {
+  it('медленные переходы с подписями, первый шаг и шаг после пропуска — без перехода', () => {
+    const sequences = [seq([E4], [G4], [G4], [E4], [F4])]
+    const r = (ms: number) => ({
+      result: 'correct' as const,
+      hadError: false,
+      reactionMs: ms,
+      hinted: false,
+    })
+    const skipped = { result: 'skipped' as const, hadError: false, reactionMs: null, hinted: false }
+    const summary = summarize(
+      sequences,
+      [[r(900), r(1800), r(600), skipped, r(700)]],
+      false,
+      'contour',
+    )
+    expect(summary.slowest).toEqual([
+      { label: '↑3', averageMs: 1800 },
+      { label: '=', averageMs: 600 },
+    ])
+    expect(summary).toMatchObject({ correctFirstTry: 4, skipped: 1, withoutHint: null })
   })
 })

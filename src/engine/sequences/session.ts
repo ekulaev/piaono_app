@@ -7,7 +7,11 @@ import {
   type HintProgress,
   type HintVisibility,
 } from './hints'
-import { sequenceEvents } from '../stats/events'
+import { pitchToNoteName } from '../../midi/noteNames'
+import { contourEvents, sequenceEvents } from '../stats/events'
+import { label } from '../stats/improvements'
+import { intervalKey } from '../stats/stats'
+import { intervalBetween } from './anchors'
 import { applyEvents, type ModeStats, type StatEvent } from '../stats/stats'
 
 /** Отсчёт перед автоматическим переходом к следующей последовательности. */
@@ -46,7 +50,14 @@ interface Common {
   hints: HintProgress | null
   /** Статистика режима: история до сессии и события сессии; null — не ведётся. */
   stats: SessionStats | null
+  /**
+   * Как проверяется шаг: exact — точные ноты («Последовательности»), contour — только
+   * направление от последней верной клавиши («Контур», C-STF-5).
+   */
+  check: StepCheck
 }
+
+export type StepCheck = 'exact' | 'contour'
 
 /** История до сессии и события завершённых последовательностей этой сессии (C-STF-4). */
 export interface SessionStats {
@@ -67,6 +78,8 @@ export type SessionState =
       errorCount: number
       /** Что показано над станом; null — подсказок нет. */
       visibility: HintVisibility | null
+      /** «Контур»: последняя клавиша, засчитанная верной; null — шаг примет любую клавишу. */
+      reference: number | null
     })
   | (Common & {
       phase: 'finished'
@@ -80,6 +93,7 @@ export type SessionState =
       autoAdvance: boolean
       hints: HintProgress | null
       stats: SessionStats | null
+      check: StepCheck
     }
 
 export const IDLE: SessionState = { phase: 'idle' }
@@ -102,6 +116,7 @@ export function startSession(
   now: number,
   hints: HintProgress | null = null,
   stats: ModeStats | null = null,
+  check: StepCheck = 'exact',
 ): SessionState {
   return playSequence(
     {
@@ -112,6 +127,7 @@ export function startSession(
       autoAdvance,
       hints,
       stats: stats && { before: stats, events: [] },
+      check,
     },
     0,
     now,
@@ -136,6 +152,7 @@ function playSequence(common: Common, seqIndex: number, now: number): SessionSta
     wrongPitches: [],
     errorCount: 0,
     visibility,
+    reference: null,
   }
 }
 
@@ -162,13 +179,16 @@ function advance(state: Playing, records: StepRecord[], now: number): SessionSta
   if (next < state.sequences[state.seqIndex].steps.length) {
     return { ...state, records, stepIndex: next, stepStartedAt: now, group: null, wrongPitches: [] }
   }
-  const { sequences, seqIndex, history, autoAdvance, visibility } = state
+  const { sequences, seqIndex, history, autoAdvance, visibility, check } = state
   // Уровни пересчитываются только у завершённой последовательности: «Стоп» их не трогает.
   const hints = state.hints && nextProgress(state.hints, sequences[seqIndex].clef, records)
   // Статистика тоже пишется только у завершённой последовательности (C-STF-4, OB-5).
   const stats = state.stats && {
     ...state.stats,
-    events: [...state.stats.events, ...sequenceEvents(sequences[seqIndex], records)],
+    events: [
+      ...state.stats.events,
+      ...(check === 'contour' ? contourEvents : sequenceEvents)(sequences[seqIndex], records),
+    ],
   }
   return {
     phase: 'finished',
@@ -179,6 +199,7 @@ function advance(state: Playing, records: StepRecord[], now: number): SessionSta
     autoAdvance,
     hints,
     stats,
+    check,
     visibility,
     countdownUntil: autoAdvance ? now + COUNTDOWN_MS : null,
   }
@@ -204,9 +225,55 @@ function closeGroup(state: Playing, now: number): Playing {
   return { ...state, group: null }
 }
 
+/** Ошибка на текущем шаге «Контура»: шаг пульсирует, точка отсчёта прежняя. */
+function contourError(state: Playing): Playing {
+  return {
+    ...state,
+    group: null,
+    records: withRecord(state, { hadError: true }),
+    errorCount: state.errorCount + 1,
+  }
+}
+
+/**
+ * «Контур»: группа нажатий оценивается, когда закончилась (C-STF-5, OB-9) — иначе нельзя
+ * отличить одну клавишу от нескольких. Одна клавиша верна, если шаг без точки отсчёта или
+ * направление от точки отсчёта совпадает с записанным; несколько клавиш — ошибка.
+ */
+function closeContourGroup(state: Playing, now: number): SessionState {
+  const group = state.group
+  if (!group || now < group.startedAt + GROUP_MS) return state
+  const decidedAt = group.startedAt + GROUP_MS
+  if (group.hits.length !== 1) return contourError(state)
+
+  const key = group.hits[0]
+  const steps = state.sequences[state.seqIndex].steps
+  const i = state.stepIndex
+  const correct =
+    state.reference === null ||
+    Math.sign(key - state.reference) === Math.sign(steps[i][0] - steps[i - 1][0])
+  if (!correct) return contourError(state)
+
+  const records = withRecord(state, {
+    result: 'correct',
+    reactionMs: group.startedAt - state.stepStartedAt,
+  })
+  return advance({ ...state, group: null, reference: key }, records, decidedAt)
+}
+
+/** «Контур»: нажатие только копит группу — оценка при её закрытии. */
+function playedContour(state: Playing, pitch: number, now: number): SessionState {
+  const current = closeContourGroup(state, now)
+  if (current.phase !== 'playing') return current
+  const group = current.group ?? { startedAt: now, hits: [], wrong: [] }
+  const hits = group.hits.includes(pitch) ? group.hits : [...group.hits, pitch]
+  return { ...current, group: { ...group, hits } }
+}
+
 /** Сыгранная нота. Вне шага (итог, пауза, стоп) ничего не меняет. */
 export function played(state: SessionState, pitch: number, now: number): SessionState {
   if (state.phase !== 'playing') return state
+  if (state.check === 'contour') return playedContour(state, pitch, now)
   const current = closeGroup(state, now)
   const step = currentStep(current)
   const group: PressGroup = current.group ?? { startedAt: now, hits: [], wrong: [] }
@@ -238,30 +305,39 @@ export function played(state: SessionState, pitch: number, now: number): Session
   return { ...current, group: { ...group, hits } }
 }
 
-/** «Пропустить»: шаг пропущен, время реакции не записывается. */
+/**
+ * «Пропустить»: шаг пропущен, время реакции не записывается. В «Контуре» следующий шаг
+ * снова принимает любую клавишу — точка отсчёта задаётся заново (C-STF-5, OB-10).
+ */
 export function skip(state: SessionState, now: number): SessionState {
   if (state.phase !== 'playing') return state
-  return advance(state, withRecord(state, { result: 'skipped' }), now)
+  return advance(
+    { ...state, group: null, reference: null },
+    withRecord(state, { result: 'skipped' }),
+    now,
+  )
 }
 
 /** «Далее» или конец отсчёта: следующая последовательность или итог. */
 export function next(state: SessionState, now: number): SessionState {
   if (state.phase !== 'finished') return state
   const history = [...state.history, state.records]
-  const { sequences, autoAdvance, hints, stats } = state
+  const { sequences, autoAdvance, hints, stats, check } = state
   if (state.seqIndex + 1 < sequences.length) {
     return playSequence(
-      { sequences, seqIndex: 0, records: [], history, autoAdvance, hints, stats },
+      { sequences, seqIndex: 0, records: [], history, autoAdvance, hints, stats, check },
       state.seqIndex + 1,
       now,
     )
   }
-  return { phase: 'summary', sequences, history, autoAdvance, hints, stats }
+  return { phase: 'summary', sequences, history, autoAdvance, hints, stats, check }
 }
 
 /** Продвинуть по времени: закрыть группу, завершить отсчёт. */
 export function tick(state: SessionState, now: number): SessionState {
-  if (state.phase === 'playing') return closeGroup(state, now)
+  if (state.phase === 'playing') {
+    return state.check === 'contour' ? closeContourGroup(state, now) : closeGroup(state, now)
+  }
   if (state.phase === 'finished' && state.countdownUntil !== null && now >= state.countdownUntil) {
     return next(state, state.countdownUntil)
   }
@@ -293,7 +369,7 @@ export function repeat(state: SessionState, now: number): SessionState {
   if (state.phase !== 'summary') return state
   // Следующая сессия сравнивается с историей, в которую вошла эта.
   const stats = state.stats && applyEvents(state.stats.before, state.stats.events)
-  return startSession(state.sequences, state.autoAdvance, now, state.hints, stats)
+  return startSession(state.sequences, state.autoAdvance, now, state.hints, stats, state.check)
 }
 
 /** Сколько секунд показать на кнопке «Далее (N)»; null — отсчёта нет. */
@@ -308,8 +384,11 @@ export interface SessionSummary {
   skipped: number
   /** Доля верных с первой попытки среди непропущенных, 0–1; null — непропущенных нет. */
   accuracy: number | null
-  /** До пяти нот с наибольшим средним временем реакции, по убыванию. */
-  slowest: { pitch: number; averageMs: number }[]
+  /**
+   * До пяти самых медленных мест по среднему времени реакции, по убыванию: ноты («C4») в
+   * «Последовательностях», переходы («↑3», «=») в «Контуре».
+   */
+  slowest: { label: string; averageMs: number }[]
   /**
    * «Без подсказки: count из of»: верные с первой попытки без подсказки над шагом среди
    * непропущенных. null — сессия шла без подсказок.
@@ -321,12 +400,14 @@ export function summarize(
   sequences: Sequence[],
   history: StepRecord[][],
   hintsUsed = false,
+  check: StepCheck = 'exact',
 ): SessionSummary {
   let withoutHintCount = 0
   let correctFirstTry = 0
   let withError = 0
   let skipped = 0
-  const times = new Map<number, number[]>()
+  const times = new Map<string, number[]>()
+  const addTime = (label: string, ms: number) => times.set(label, [...(times.get(label) ?? []), ms])
 
   history.forEach((records, seqIndex) => {
     records.forEach((record, stepIndex) => {
@@ -335,9 +416,20 @@ export function summarize(
         if (record.hadError) withError++
         else correctFirstTry++
         if (!record.hadError && !record.hinted) withoutHintCount++
-        // Время шага из нескольких нот относится к каждой его ноте.
-        for (const pitch of sequences[seqIndex].steps[stepIndex]) {
-          times.set(pitch, [...(times.get(pitch) ?? []), record.reactionMs ?? 0])
+        const steps = sequences[seqIndex].steps
+        if (check === 'contour') {
+          // Переход — к шагу, у которого была точка отсчёта (C-STF-5, OB-12).
+          if (stepIndex > 0 && records[stepIndex - 1].result !== 'skipped') {
+            const { size, direction } = intervalBetween(
+              steps[stepIndex - 1][0],
+              steps[stepIndex][0],
+            )
+            addTime(label('interval', intervalKey(size, direction)), record.reactionMs ?? 0)
+          }
+        } else {
+          // Время шага из нескольких нот относится к каждой его ноте.
+          for (const pitch of steps[stepIndex])
+            addTime(pitchToNoteName(pitch), record.reactionMs ?? 0)
         }
       }
     })
@@ -345,7 +437,7 @@ export function summarize(
 
   const played = correctFirstTry + withError
   const slowest = [...times.entries()]
-    .map(([pitch, list]) => ({ pitch, averageMs: list.reduce((a, b) => a + b, 0) / list.length }))
+    .map(([label, list]) => ({ label, averageMs: list.reduce((a, b) => a + b, 0) / list.length }))
     .sort((a, b) => b.averageMs - a.averageMs)
     .slice(0, 5)
 

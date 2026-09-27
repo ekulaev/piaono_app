@@ -15,9 +15,10 @@ export type Improvements = { firstSession: true } | { firstSession: false; lines
 const percent = (share: number) => `${Math.round(share * 100)} %`
 const seconds = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} с`
 
-/** «C4», «C3 (бас)», «↑3». */
-function label(kind: 'note' | 'interval', key: string): string {
+/** «C4», «C3 (бас)», «↑3», «=» (на месте). */
+export function label(kind: 'note' | 'interval', key: string): string {
   if (kind === 'interval') {
+    if (key.startsWith('same')) return '='
     const up = key.startsWith('up')
     return `${up ? '↑' : '↓'}${key.slice(up ? 2 : 4)}`
   }

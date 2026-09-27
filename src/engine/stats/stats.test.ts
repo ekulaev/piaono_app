@@ -57,8 +57,10 @@ describe('Сохранённая статистика', () => {
   const valid = aggregate([note('clean', 700)])
 
   it('корректные данные читаются', () => {
-    expect(readPracticeStats({ sequences: valid, warmup: valid })).toEqual({
+    const contour = aggregate([{ kind: 'interval', key: 'same1', outcome: 'clean', ms: 600 }])
+    expect(readPracticeStats({ sequences: valid, contour, warmup: valid })).toEqual({
       sequences: valid,
+      contour,
       warmup: valid,
     })
   })
@@ -67,6 +69,7 @@ describe('Сохранённая статистика', () => {
     const broken = { notes: { 'treble:64': { attempts: 1, clean: 5 } } }
     expect(readPracticeStats({ sequences: broken, warmup: valid })).toEqual({
       sequences: emptyModeStats(),
+      contour: emptyModeStats(),
       warmup: valid,
     })
     expect(
@@ -78,8 +81,17 @@ describe('Сохранённая статистика', () => {
   it('мусор и отсутствие данных — пустая статистика', () => {
     expect(readPracticeStats(undefined)).toEqual({
       sequences: emptyModeStats(),
+      contour: emptyModeStats(),
       warmup: emptyModeStats(),
     })
     expect(readPracticeStats('мусор').warmup).toEqual(emptyModeStats())
+  })
+})
+
+describe('Прогресс по нотам или переходам (C-STF-5)', () => {
+  it('у «Контура» нот нет — прогресс есть по переходам', () => {
+    expect(
+      hasProgress(aggregate([{ kind: 'interval', key: 'down2', outcome: 'skip', ms: null }])),
+    ).toBe(true)
   })
 })
