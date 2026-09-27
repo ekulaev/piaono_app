@@ -15,6 +15,8 @@ interface Props {
   onOpenModes: () => void
   /** Меню режимов открыто: кнопка режима недоступна, чтобы меню не открылось повторно. */
   modeMenuOpen: boolean
+  /** «?» с подсказкой активного режима — сразу справа от «Режим: …» (C-APP-2, OB-10). */
+  modeHint: ReactNode
   /** Быстрая настройка активного режима на главном экране (флажок «Последовательностей»). */
   modeControl: ReactNode
   /** «Пропустить» / «Сначала» / «Далее (N)»; null — слот пуст, но место за ним держится. */
@@ -35,6 +37,7 @@ function WaitingScreen({
   activeModeTitle,
   onOpenModes,
   modeMenuOpen,
+  modeHint,
   modeControl,
   slotButton,
   staff,
@@ -61,17 +64,21 @@ function WaitingScreen({
           >
             {exerciseRunning ? 'Стоп' : 'Старт'}
           </button>
-          <button
-            type="button"
-            className="button waiting__mode"
-            // aria-disabled, а не disabled: заблокированная кнопка остаётся в фокусе, и меню
-            // вернёт фокус на неё при закрытии.
-            onClick={modeMenuOpen ? undefined : onOpenModes}
-            aria-disabled={modeMenuOpen}
-            aria-expanded={modeMenuOpen}
-          >
-            Режим: {activeModeTitle}
-          </button>
+          {/* «Режим» и «?» не разрываются при переносе ряда: «?» всегда сразу справа. */}
+          <span className="waiting__mode-group">
+            <button
+              type="button"
+              className="button waiting__mode"
+              // aria-disabled, а не disabled: заблокированная кнопка остаётся в фокусе, и меню
+              // вернёт фокус на неё при закрытии.
+              onClick={modeMenuOpen ? undefined : onOpenModes}
+              aria-disabled={modeMenuOpen}
+              aria-expanded={modeMenuOpen}
+            >
+              Режим: {activeModeTitle}
+            </button>
+            {modeHint}
+          </span>
         </nav>
         {modeControl && <div className="waiting__mode-control">{modeControl}</div>}
       </main>

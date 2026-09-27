@@ -4,6 +4,8 @@ import { MODES, modeInfo, type ModeId } from '../../engine/modes/modes'
 import type { RhythmSettings } from '../../engine/rhythm/settings'
 import type { SequenceSettings } from '../../engine/sequences/settings'
 import RhythmSettingsForm from '../rhythm/RhythmSettingsForm'
+import HintButton from '../hints/HintButton'
+import { modeHintId } from '../hints/hints'
 import SequenceSettingsForm from '../sequences/SequenceSettingsForm'
 import './ModeMenu.css'
 
@@ -117,7 +119,11 @@ function OpenMenu({
               <button type="button" className="button" data-autofocus="" onClick={onBack}>
                 <span aria-hidden="true">←</span> Назад
               </button>
-              <h2 className="mode-menu__title">{modeInfo(menu.modeId).title}</h2>
+              {/* «?» — сразу после названия: как играть в этом режиме (C-APP-2, OB-10). */}
+              <div className="mode-menu__heading">
+                <h2 className="mode-menu__title">{modeInfo(menu.modeId).title}</h2>
+                <HintButton id={modeHintId(menu.modeId)} placement="inline" />
+              </div>
               {closeButton}
             </header>
             {/* Если настройки не влезут по высоте, прокручивается только эта область. */}

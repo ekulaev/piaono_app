@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
 import type { ConnectionState, MidiDeviceInfo } from '../../midi/types'
 import { StatusIcon } from '../ConnectionStatus'
-import { CONNECTION_HELP, STATUS_TITLE, statusClass } from '../connectionTexts'
+import { STATUS_TITLE, statusClass } from '../connectionTexts'
+import HintButton from '../hints/HintButton'
+import { connectionHintId } from '../hints/hints'
 import { Toggle } from '../controls/Controls'
 import ScreenHeader from '../ScreenHeader'
 import { formatBuildDate } from './buildDate'
@@ -26,19 +28,16 @@ interface Props {
 interface RowProps {
   label: string
   children: ReactNode
-  /** Строка под настройкой: что делать. */
-  note?: string | null
 }
 
 /** Одна настройка — одна строка: название слева, значение или кнопка справа (C-APP-1, OB-8). */
-function SettingsRow({ label, children, note }: RowProps) {
+function SettingsRow({ label, children }: RowProps) {
   return (
     <li className="settings-row">
       <div className="settings-row__main">
         <span className="settings-row__label">{label}</span>
         <div className="settings-row__value">{children}</div>
       </div>
-      {note && <p className="settings-row__note">{note}</p>}
     </li>
   )
 }
@@ -67,7 +66,7 @@ function SettingsScreen({
 
       {/* Если строки не помещаются по высоте, прокручивается только список. */}
       <ul className="settings__list">
-        <SettingsRow label="Пианино" note={CONNECTION_HELP[connectionState]}>
+        <SettingsRow label="Пианино">
           <span className={`${statusClass(connectionState)} settings__status`}>
             <StatusIcon />
             <span className="status__title">{STATUS_TITLE[connectionState]}</span>
@@ -79,6 +78,8 @@ function SettingsScreen({
               Переподключить
             </button>
           )}
+          {/* Что делать при этом состоянии — в подсказке, а не строкой под строкой (C-APP-2). */}
+          <HintButton id={connectionHintId(connectionState)} />
         </SettingsRow>
 
         {devices.length > 1 && (

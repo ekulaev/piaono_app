@@ -61,3 +61,14 @@ export function ProgressIcon() {
     </Icon>
   )
 }
+
+/** «Подсказка»: знак вопроса в круге. */
+export function QuestionIcon() {
+  return (
+    <Icon>
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M9.3 9.2a2.8 2.8 0 1 1 3.9 2.6c-.8.4-1.2 1-1.2 1.9v.6" />
+      <path d="M12 17.4v.1" />
+    </Icon>
+  )
+}

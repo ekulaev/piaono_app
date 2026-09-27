@@ -1,0 +1,28 @@
+/* «?» — круг с зоной касания 56 px (C-APP-2, LIM-1); значок крупный и контрастный. */
+.hint-button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.hint-button .line-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.hint-button--end {
+  margin-left: auto;
+}
+
+.hint-button--start {
+  margin-right: auto;
+}
