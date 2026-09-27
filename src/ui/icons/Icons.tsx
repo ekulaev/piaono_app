@@ -52,3 +52,12 @@ export function HomeIcon() {
     </Icon>
   )
 }
+
+/** «Прогресс»: три столбика по возрастанию. */
+export function ProgressIcon() {
+  return (
+    <Icon>
+      <path d="M5 20v-5M12 20V10M19 20V4" />
+    </Icon>
+  )
+}

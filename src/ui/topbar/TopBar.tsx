@@ -1,31 +1,34 @@
 import type { ConnectionState } from '../../midi/types'
 import { StatusIcon } from '../ConnectionStatus'
 import { STATUS_TITLE, statusClass } from '../connectionTexts'
-import { GearIcon, RefreshIcon } from '../icons/Icons'
+import { GearIcon, ProgressIcon, RefreshIcon } from '../icons/Icons'
 import './TopBar.css'
 
 interface Props {
   connectionState: ConnectionState
   /** Открыть «Настройки»: так же по статусу связи. */
   onOpenSettings: () => void
-  /** Открыт сам экран «Настройки»: кнопка отмечена текущей и ничего не делает. */
-  settingsOpen: boolean
+  onOpenProgress: () => void
+  /** Какой экран панели открыт: его кнопка отмечена текущей и ничего не делает. */
+  current: 'settings' | 'progress' | null
   updateReady: boolean
   onApplyUpdate: () => void
 }
 
 /**
  * Верхняя панель — одна на все экраны (C-APP-1, OB-1). Слева статус связи, справа «Обновить»
- * (только когда ждёт новая версия) и «Настройки». Высота постоянная: ни состояние связи, ни
+ * (только когда ждёт новая версия), «Прогресс» и «Настройки». Высота постоянная: ни состояние связи, ни
  * появление «Обновить» ничего не сдвигают.
  */
 function TopBar({
   connectionState,
   onOpenSettings,
-  settingsOpen,
+  onOpenProgress,
+  current,
   updateReady,
   onApplyUpdate,
 }: Props) {
+  const settingsOpen = current === 'settings'
   const title = STATUS_TITLE[connectionState]
   return (
     <header className="topbar">
@@ -56,6 +59,17 @@ function TopBar({
           >
             <RefreshIcon />
             <span className="topbar__label">Обновить</span>
+          </button>
+          <button
+            type="button"
+            className="button topbar__button"
+            aria-current={current === 'progress' ? 'page' : undefined}
+            title="Прогресс"
+            aria-label="Прогресс"
+            onClick={current === 'progress' ? undefined : onOpenProgress}
+          >
+            <ProgressIcon />
+            <span className="topbar__label">Прогресс</span>
           </button>
           <button
             type="button"
