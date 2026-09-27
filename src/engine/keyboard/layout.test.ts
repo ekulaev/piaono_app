@@ -3,13 +3,17 @@ import {
   centerStartOn,
   BLACK_HEIGHT_RATIO,
   computeLayout,
+  cursorRect,
   hitTest,
   initialStart,
   isBlocked,
+  miniWhiteWidth,
   repeatDelayMs,
   resizeStart,
   scrollHints,
   shiftStart,
+  startFromDrag,
+  startFromTapCenter,
   visibleRange,
   WHITE_KEY_COUNT,
   WHITE_PITCHES,
@@ -182,6 +186,41 @@ describe('Подсветка кнопок прокрутки', () => {
   it('чёрная клавиша у края считается скрытой', () => {
     const fromD4 = visibleRange(WHITE_PITCHES.indexOf(62), 7)
     expect(scrollHints([61], fromD4)).toEqual({ left: true, right: false })
+  })
+})
+
+describe('Мини-клавиатура: геометрия и курсор', () => {
+  const W = 1040 // 52 белые → wMini = 20px
+
+  it('ширина белой на мини — ширина зоны / 52', () => {
+    expect(miniWhiteWidth(W)).toBeCloseTo(20)
+  })
+
+  it('курсор охватывает ровно [start, start+count-1]', () => {
+    expect(cursorRect(10, 11, W)).toEqual({ leftPx: 200, widthPx: 220 })
+  })
+
+  it('видны все 88: курсор во всю ширину, жесты не двигают', () => {
+    expect(cursorRect(0, WHITE_KEY_COUNT, W)).toEqual({ leftPx: 0, widthPx: W })
+    expect(startFromTapCenter(500, WHITE_KEY_COUNT, W)).toBe(0)
+    expect(startFromDrag(500, 3, WHITE_KEY_COUNT, W)).toBe(0)
+  })
+
+  it('тап центрирует курсор по точке с точностью до белой клавиши', () => {
+    const count = 11
+    const start = startFromTapCenter(25.5 * 20, count, W)
+    expect(start + Math.floor(count / 2)).toBe(25)
+  })
+
+  it('тап у краёв прижимает курсор к краю', () => {
+    expect(startFromTapCenter(0, 11, W)).toBe(0)
+    expect(startFromTapCenter(W, 11, W)).toBe(WHITE_KEY_COUNT - 11)
+  })
+
+  it('перетаскивание держит взятую клавишу под пальцем, упор в оба края', () => {
+    expect(startFromDrag(30 * 20, 2, 11, W)).toBe(28)
+    expect(startFromDrag(W * 2, 2, 11, W)).toBe(WHITE_KEY_COUNT - 11)
+    expect(startFromDrag(-100, 2, 11, W)).toBe(0)
   })
 })
 

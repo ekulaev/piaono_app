@@ -123,6 +123,54 @@ export function visibleRange(start: number, count: number): VisibleRange {
   return { low: WHITE_PITCHES[start], high: WHITE_PITCHES[start + count - 1] }
 }
 
+export interface CursorRect {
+  /** Левый край курсора на мини, px от левого края мини. */
+  leftPx: number
+  /** Ширина курсора, px. */
+  widthPx: number
+}
+
+/**
+ * Ширина одной белой клавиши на мини-клавиатуре. Мини показывает все 52 белые клавиши
+ * равномерно по всей ширине зоны (вместе с кнопками прокрутки, C-KBD-2 OB-1).
+ */
+export function miniWhiteWidth(zoneWidthPx: number): number {
+  return zoneWidthPx / WHITE_KEY_COUNT
+}
+
+/**
+ * Прямоугольник курсора на мини: охватывает видимые белые клавиши [start, start + count - 1].
+ * При count === 52 (видна вся клавиатура) курсор занимает всю ширину мини.
+ */
+export function cursorRect(start: number, count: number, zoneWidthPx: number): CursorRect {
+  const w = miniWhiteWidth(zoneWidthPx)
+  return { leftPx: start * w, widthPx: count * w }
+}
+
+/**
+ * Целевой start, чтобы центр курсора совпал с точкой тапа (с точностью до белой клавиши).
+ * Упор в края — через clampStart. При count === 52 всегда 0 (двигать некуда).
+ */
+export function startFromTapCenter(xPx: number, count: number, zoneWidthPx: number): number {
+  const w = miniWhiteWidth(zoneWidthPx)
+  return clampStart(Math.round(xPx / w - count / 2), count)
+}
+
+/**
+ * Целевой start при перетаскивании: белая клавиша курсора, за которую взялись
+ * (grabOffsetWhite — её смещение в белых клавишах от левого края курсора), остаётся
+ * под указателем. Упор в края — через clampStart.
+ */
+export function startFromDrag(
+  xPx: number,
+  grabOffsetWhite: number,
+  count: number,
+  zoneWidthPx: number,
+): number {
+  const w = miniWhiteWidth(zoneWidthPx)
+  return clampStart(Math.round(xPx / w - grabOffsetWhite), count)
+}
+
 /**
  * Какая клавиша под точкой (x, y). x отсчитывается от левого края первой видимой белой
  * клавиши, y — от верха зоны. Чёрные клавиши лежат поверх белых в верхней части.
