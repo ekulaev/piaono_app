@@ -1,39 +1,70 @@
-// Прогресс ученика на устройстве — отдельно от настроек и со своей версией формата.
-// Сейчас это уровни подсказок (C-STF-3); статистика этапа 6 ляжет сюда же.
+// Прогресс ученика на устройстве — отдельно от настроек и со своей версией формата:
+// уровни подсказок (C-STF-3) и статистика режимов (C-STF-4) в одной записи.
 
+import { readHintProgress, type HintProgress } from '../engine/sequences/hints'
 import {
-  DEFAULT_HINT_PROGRESS,
-  readHintProgress,
-  type HintProgress,
-} from '../engine/sequences/hints'
+  readPracticeStats,
+  type ModeStats,
+  type PracticeStats,
+  type StatsMode,
+} from '../engine/stats/stats'
 import { browserStorage, type SettingsStorage } from './browserStorage'
 
 const STORAGE_KEY = 'piaono.progress.v1'
 
-/** Уровни подсказок. Отсутствующие, битые или недоступные данные — уровень 3 у обоих ключей. */
-export function loadHintProgress(storage: SettingsStorage | null = browserStorage()): HintProgress {
+export interface Progress {
+  hints: HintProgress
+  stats: PracticeStats
+}
+
+/** Сырая запись: объект или пустой, если данных нет или они не читаются. */
+function readRaw(storage: SettingsStorage | null): Record<string, unknown> {
   try {
     const raw = storage?.getItem(STORAGE_KEY)
-    if (!raw) return DEFAULT_HINT_PROGRESS
-    const parsed: unknown = JSON.parse(raw)
-    const hints =
-      typeof parsed === 'object' && parsed !== null
-        ? (parsed as Record<string, unknown>).hints
-        : undefined
-    return readHintProgress(hints)
+    const parsed: unknown = raw ? JSON.parse(raw) : null
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {}
   } catch {
-    return DEFAULT_HINT_PROGRESS
+    return {}
   }
 }
 
-/** Сохранить уровни. Если нельзя — молча: упражнение важнее памяти об уровне. */
+/**
+ * Весь прогресс. Каждая часть читается независимо: повреждённые уровни — уровень 3,
+ * повреждённый режим статистики — пустой. Запись этапа 5 без статистики тоже читается.
+ */
+export function loadProgress(storage: SettingsStorage | null = browserStorage()): Progress {
+  const raw = readRaw(storage)
+  return { hints: readHintProgress(raw.hints), stats: readPracticeStats(raw.stats) }
+}
+
+export function loadHintProgress(storage: SettingsStorage | null = browserStorage()): HintProgress {
+  return loadProgress(storage).hints
+}
+
+/**
+ * Заменить одну часть и записать. Остальное берётся из текущей записи, поэтому уровни
+ * подсказок и статистика не стирают друг друга (C-STF-4, INV-4). Если записать нельзя —
+ * молча: упражнение важнее памяти о прогрессе.
+ */
+function update(change: (progress: Progress) => Progress, storage: SettingsStorage | null) {
+  try {
+    storage?.setItem(STORAGE_KEY, JSON.stringify(change(loadProgress(storage))))
+  } catch {
+    // Приватный режим или нет места: прогресс просто не переживёт перезапуск.
+  }
+}
+
 export function saveHintProgress(
   hints: HintProgress,
   storage: SettingsStorage | null = browserStorage(),
 ): void {
-  try {
-    storage?.setItem(STORAGE_KEY, JSON.stringify({ hints }))
-  } catch {
-    // Приватный режим или нет места: уровень просто не переживёт перезапуск.
-  }
+  update((progress) => ({ ...progress, hints }), storage)
+}
+
+export function saveModeStats(
+  mode: StatsMode,
+  stats: ModeStats,
+  storage: SettingsStorage | null = browserStorage(),
+): void {
+  update((progress) => ({ ...progress, stats: { ...progress.stats, [mode]: stats } }), storage)
 }

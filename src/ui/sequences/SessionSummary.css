@@ -1,6 +1,7 @@
 /*
- * Итог занимает зону стана: три колонки (числа, медленные ноты, кнопки), чтобы влезть по
- * высоте. Если не влезает (телефон), колонки переносятся и прокручивается только итог.
+ * Итог занимает зону стана: три колонки в один ряд (числа, медленные ноты, «Что улучшилось»
+ * с кнопками под ним), чтобы влезть по высоте. Если не влезает (телефон), колонки переносятся и
+ * прокручивается только итог.
  */
 .summary {
   min-height: 0;
@@ -10,11 +11,11 @@
   align-items: center;
   align-content: center;
   justify-content: space-between;
-  gap: 1rem 3rem;
+  gap: 1rem 1.5rem;
 }
 
 .summary__counts {
-  min-width: 16rem;
+  min-width: 14rem;
 }
 
 .summary__counts {
@@ -40,23 +41,41 @@
   font-variant-numeric: tabular-nums;
 }
 
-.summary__slow h3 {
+.summary__block h3 {
   margin: 0 0 0.5rem;
   font-size: 1.25rem;
 }
 
-.summary__slow p,
-.summary__slow ol {
+.summary__block p,
+.summary__block ol,
+.summary__block ul {
   margin: 0;
   font-size: 1.25rem;
+}
+
+/* Список улучшений без маркеров: строка сама говорит, что стало лучше. */
+.summary__block ul {
+  padding: 0;
+  list-style: none;
+}
+
+.summary__improved {
+  max-width: 20rem;
 }
 
 .summary__note {
   font-weight: 600;
 }
 
-.summary__actions {
+/* «Что улучшилось» и кнопки — одна колонка: кнопки в ряд под блоком. */
+.summary__side {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+}
+
+.summary__actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
 }

@@ -16,7 +16,14 @@ import AutoAdvanceIcon from './sequences/AutoAdvanceIcon'
 import { Toggle } from './controls/Controls'
 import { summarize } from '../engine/sequences/session'
 import type { SequenceSettings } from '../engine/sequences/settings'
-import { loadHintProgress, saveHintProgress } from '../storage/progress'
+import { loadProgress, saveHintProgress, saveModeStats } from '../storage/progress'
+import { warmupEvent } from '../engine/stats/events'
+import { improvements } from '../engine/stats/improvements'
+import { aggregate, applyEvents, hasProgress, type ModeStats } from '../engine/stats/stats'
+import { weightsFor } from '../engine/stats/weights'
+import { summarizeWarmup } from '../engine/staff/exercise'
+import NoProgress from './stats/NoProgress'
+import WarmupSummary from './stats/WarmupSummary'
 import * as modeMenu from '../engine/modes/modeMenu'
 import { modeInfo, type ModeId } from '../engine/modes/modes'
 import WaitingScreen, { type SlotButton } from './WaitingScreen'
@@ -66,11 +73,22 @@ function App() {
   const playedInSequences = sequences.played
   const exerciseRunning = exercise.running || sequences.running
 
-  /** Остановить любое упражнение и закрыть итог сессии (Стоп, Режим, Проверка пианино). */
+  /** Остановить любое упражнение и закрыть итог без нового итога (Режим, Проверка пианино). */
   function stopExercises() {
     exercise.stop()
     sequences.stop()
   }
+
+  /** «Стоп»: «Разминка» показывает итог (C-STF-4, OB-12), «Последовательности» — нет. */
+  function finishExercises() {
+    exercise.finish()
+    sequences.stop()
+  }
+
+  // Статистика режимов (C-STF-4): что уже записано — для приглашения «Ещё нет прогресса».
+  const [practice, setPractice] = useState(() => loadProgress().stats)
+  // История «Разминки» до текущей сессии: к ней добавляются итоги нот, с ней сравнивается итог.
+  const warmupBefore = useRef<ModeStats>(practice.warmup)
 
   // Режимы: какой запускает «Старт» и что показывает меню режимов (C-MODE-1).
   const [activeMode, setActiveMode] = useState<ModeId>(() => settingsRef.current!.activeMode)
@@ -93,15 +111,19 @@ function App() {
   function startMode(mode: ModeId, settings: SequenceSettings = sequenceSettings) {
     stopExercises()
     switch (mode) {
-      case 'sequences':
+      case 'sequences': {
+        const progress = loadProgress()
         // Подсказки «якорь + интервал» — только для шагов из одной ноты (C-STF-3, OB-8).
         sequences.start(
           settings,
-          settings.hints && settings.notesPerStep === 1 ? loadHintProgress() : null,
+          settings.hints && settings.notesPerStep === 1 ? progress.hints : null,
+          progress.stats.sequences,
         )
         break
+      }
       case 'warmup':
-        exercise.start()
+        warmupBefore.current = loadProgress().stats.warmup
+        exercise.start(weightsFor(warmupBefore.current))
         break
     }
   }
@@ -192,6 +214,23 @@ function App() {
     if (sessionHints) saveHintProgress(sessionHints)
   }, [sessionHints])
 
+  // Статистика пишется, когда добавились события: завершилась последовательность или нота.
+  const sequenceStats = session.phase === 'idle' ? null : session.stats
+  useEffect(() => {
+    if (!sequenceStats || sequenceStats.events.length === 0) return
+    const stats = applyEvents(sequenceStats.before, sequenceStats.events)
+    saveModeStats('sequences', stats)
+    setPractice((prev) => ({ ...prev, sequences: stats }))
+  }, [sequenceStats])
+
+  const warmupResults = exercise.state.phase === 'idle' ? null : exercise.state.results
+  useEffect(() => {
+    if (!warmupResults || warmupResults.length === 0) return
+    const stats = applyEvents(warmupBefore.current, warmupResults.map(warmupEvent))
+    saveModeStats('warmup', stats)
+    setPractice((prev) => ({ ...prev, warmup: stats }))
+  }, [warmupResults])
+
   let slotButton: SlotButton | null = null
   if (session.phase === 'playing') {
     slotButton = { label: 'Пропустить', onClick: sequences.skip }
@@ -202,15 +241,29 @@ function App() {
 
   let staff
   if (session.phase === 'summary') {
+    const stats = session.stats
     staff = (
       <SessionSummary
         summary={summarize(session.sequences, session.history, session.hints !== null)}
+        improvements={
+          stats ? improvements(stats.before, aggregate(stats.events)) : { firstSession: true }
+        }
         onRepeat={sequences.repeat}
         onNew={() => startMode('sequences')}
       />
     )
   } else if (sequences.running) {
     staff = <SequenceStaff session={session} />
+  } else if (exercise.state.phase === 'summary') {
+    const results = exercise.state.results
+    staff = (
+      <WarmupSummary
+        summary={summarizeWarmup(results)}
+        improvements={improvements(warmupBefore.current, aggregate(results.map(warmupEvent)))}
+      />
+    )
+  } else if (!exercise.running && !hasProgress(practice[activeMode])) {
+    staff = <NoProgress />
   } else {
     staff = <StaffView exercise={exercise.state} />
   }
@@ -247,7 +300,7 @@ function App() {
           setScreen('check')
         }}
         exerciseRunning={exerciseRunning}
-        onToggleExercise={exerciseRunning ? stopExercises : () => startMode(activeMode)}
+        onToggleExercise={exerciseRunning ? finishExercises : () => startMode(activeMode)}
         activeModeTitle={modeInfo(activeMode).title}
         onOpenModes={() => {
           // Пока меню открыто, упражнение не идёт (C-MODE-1, OB-3).
