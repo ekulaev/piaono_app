@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 # Obsidian config
-*.obsidian/
+.obsidian/
