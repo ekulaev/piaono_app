@@ -3,9 +3,18 @@
  * Нажатие — это одновременно заливка и форма: клавиша темнеет, опускается и получает
  * сплошную полосу тени сверху. Глубина и толщина полосы растут с уровнем силы.
  */
+/* Мини-клавиатура сверху, зона клавиатуры снизу. Высота мини берётся из рабочей области. */
+.kbd-area {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .kbd {
   position: relative;
-  height: 100%;
+  /* Высота основной клавиатуры прежняя (C-KBD-1): 25 % окна, но не меньше 8rem. Мини — сверх неё. */
+  height: max(25svh, 8rem);
+  flex: none;
   overflow: hidden;
   background: var(--ink);
   /* Верхняя граница отделяет белые клавиши от «бумаги» экрана. */
@@ -128,4 +137,66 @@
 
 .kbd__scroll:focus-visible {
   outline-offset: -0.5rem;
+}
+
+/*
+ * Мини-клавиатура навигации: все 88 клавиш в миниатюре с курсором видимой части.
+ * Только для навигации; без переходов и анимаций. Полоса над зоной клавиатуры, без отступа.
+ */
+.mini {
+  position: relative;
+  flex: none;
+  /* max(3.5rem, 10% высоты клавиатуры): высота зоны = max(25svh, 8rem), 10% = max(2.5svh, 0.8rem). */
+  height: max(3.5rem, 2.5svh);
+  width: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.mini__key {
+  position: absolute;
+  top: 0;
+}
+
+/* Белые клавиши-миниатюры разделены тёмным фоном мини (тонкая щель между ними). */
+.mini__key--white {
+  height: 100%;
+  background: var(--paper);
+  border-right: 0.0625rem solid var(--ink);
+}
+
+.mini__key--black {
+  height: 62%;
+  z-index: 1;
+  background: var(--ink);
+  border: 0.0625rem solid var(--paper);
+  border-top: none;
+  border-radius: 0 0 0.125rem 0.125rem;
+}
+
+/* Затемнённая область вне курсора: тёмный оверлей поверх клавиш. */
+.mini__dim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  pointer-events: none;
+}
+
+/* Курсор — «окно» без заливки с контрастной рамкой; акцентный цвет не используется. */
+.mini__cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  border: 0.1875rem solid var(--ink);
+  border-radius: 0.25rem;
+  background: transparent;
+  pointer-events: none;
 }
