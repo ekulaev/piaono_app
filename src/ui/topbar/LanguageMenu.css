@@ -1,0 +1,54 @@
+/*
+ * Список языков (C-APP-3): раскрывается вниз от кнопки, у правого края панели; строка не ниже 4rem
+ * (LIM-2). Текущий язык — заливка и отметка, не только цвет. Без анимации. z-index выше стана, ниже
+ * подложки меню режимов: меню режимов закрывает список касанием.
+ */
+.language {
+  position: relative;
+}
+
+.language__list {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 0.5rem;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 14rem;
+  /* При нехватке высоты прокручивается сам список, не экран (LIM-6). */
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 0.75rem;
+}
+
+.language__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 4rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  border-radius: 0.75rem;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.language__name {
+  flex: 1;
+}
+
+.language__item--current {
+  background: var(--ink);
+  color: var(--paper);
+}

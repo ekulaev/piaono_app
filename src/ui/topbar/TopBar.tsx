@@ -2,6 +2,7 @@ import type { ConnectionState } from '../../midi/types'
 import { StatusIcon } from '../ConnectionStatus'
 import { STATUS_TITLE_KEY, statusClass } from '../connectionTexts'
 import { GearIcon, ProgressIcon, RefreshIcon } from '../icons/Icons'
+import LanguageMenu from './LanguageMenu'
 import './TopBar.css'
 import { useT } from '../i18n/useI18n'
 
@@ -18,7 +19,7 @@ interface Props {
 
 /**
  * Верхняя панель — одна на все экраны (C-APP-1, OB-1). Слева статус связи, справа «Обновить»
- * (только когда ждёт новая версия), «Прогресс» и «Настройки». Высота постоянная: ни состояние связи, ни
+ * (только когда ждёт новая версия), «Прогресс», язык (C-APP-3) и «Настройки». Высота постоянная: ни состояние связи, ни
  * появление «Обновить» ничего не сдвигают.
  */
 function TopBar({
@@ -73,6 +74,7 @@ function TopBar({
             <ProgressIcon />
             <span className="topbar__label">{t('topbar.progress')}</span>
           </button>
+          <LanguageMenu />
           <button
             type="button"
             className="button topbar__button"
