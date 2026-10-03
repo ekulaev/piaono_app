@@ -46,6 +46,7 @@ export const messages = {
   'settings.check': 'Piano check',
   'settings.open': 'Open',
   'settings.glissando': 'Glissando',
+  'settings.noteEchoOn': 'Show pressed notes',
   'settings.noteEcho': 'Note display time',
   'settings.version': 'Version',
   'settings.build': 'build of {date}',

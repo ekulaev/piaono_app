@@ -27,6 +27,8 @@ export interface Settings {
    * Есть ли такой язык в приложении, решает `resolveLanguage`: хранилище языков не знает.
    */
   language: string | null
+  /** Показывать нажатые ноты (C-STF-8, OB-21); по умолчанию да. */
+  noteEchoEnabled: boolean
   /** Сколько миллисекунд карточка нажатой ноты остаётся на экране (C-STF-8). */
   noteEchoMs: number
   /** Режим, который запускает «Старт» на главном экране. */
@@ -53,6 +55,7 @@ const DEFAULT_SETTINGS: Settings = {
   glissando: false,
   preferredInput: null,
   language: null,
+  noteEchoEnabled: true,
   noteEchoMs: DEFAULT_NOTE_ECHO_MS,
   activeMode: DEFAULT_MODE,
   modeSettings: {
@@ -75,13 +78,22 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
     if (!raw) return { ...DEFAULT_SETTINGS }
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS }
-    const { glissando, preferredInput, language, noteEchoMs, activeMode, modeSettings } =
-      parsed as Record<string, unknown>
+    const {
+      glissando,
+      preferredInput,
+      language,
+      noteEchoEnabled,
+      noteEchoMs,
+      activeMode,
+      modeSettings,
+    } = parsed as Record<string, unknown>
     const savedModes = typeof modeSettings === 'object' && modeSettings !== null ? modeSettings : {}
     return {
       glissando: typeof glissando === 'boolean' ? glissando : DEFAULT_SETTINGS.glissando,
       preferredInput: readPreferredInput(preferredInput),
       language: typeof language === 'string' && language !== '' ? language : null,
+      // Нет поля или не boolean — показ включён: старые данные не выключают новую функцию.
+      noteEchoEnabled: typeof noteEchoEnabled === 'boolean' ? noteEchoEnabled : true,
       noteEchoMs: readNoteEchoMs(noteEchoMs),
       // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
       activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,

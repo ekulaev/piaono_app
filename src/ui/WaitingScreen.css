@@ -36,6 +36,12 @@
   grid-area: staff;
 }
 
+/* Показ выключен: строки под полосу нет, высота отдана стану (C-STF-8, OB-23). */
+.waiting--no-echo {
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: 'staff staff' 'actions control';
+}
+
 /* Полоса нажатых нот (C-STF-8) задаёт свою высоту и стиль в NoteEchoStrip.css. */
 
 /* Ряд кнопок всегда занимает одну и ту же высоту — появление кнопки ничего не сдвигает. */

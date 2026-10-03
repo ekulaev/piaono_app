@@ -11,6 +11,10 @@ export interface EchoCard {
   /** Уникальный номер нажатия: по нему карточка находит свой таймер и ключ в React. */
   id: number
   note: NoteDescription
+  /** Длительность перехода непрозрачности этой карточки, мс: считается при нажатии (OB-20). */
+  fadeMs: number
+  /** Карточка затухает перед удалением: она уже не «видимая» для порядка (OB-19). */
+  leaving?: boolean
 }
 
 export type EchoSlots = readonly (EchoCard | null)[]
@@ -35,4 +39,10 @@ export function addCard(slots: EchoSlots, card: EchoCard): EchoSlots {
 export function removeCard(slots: EchoSlots, id: number): EchoSlots {
   if (!slots.some((slot) => slot?.id === id)) return slots
   return slots.map((slot) => (slot?.id === id ? null : slot))
+}
+
+/** Пометить карточку уходящей; остальные не трогаем. Если её нет — тот же массив. */
+export function markLeaving(slots: EchoSlots, id: number): EchoSlots {
+  if (!slots.some((slot) => slot?.id === id && !slot.leaving)) return slots
+  return slots.map((slot) => (slot?.id === id ? { ...slot, leaving: true } : slot))
 }

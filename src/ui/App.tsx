@@ -76,6 +76,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   const [log, setLog] = useState<LogEntry[]>([])
   const [accessError, setAccessError] = useState<string | null>(null)
   // Время показа нажатой ноты (C-STF-8): общее для всех режимов, меняется в «Настройках».
+  const [noteEchoEnabled, setNoteEchoEnabled] = useState(() => settingsRef.current!.noteEchoEnabled)
   const [noteEchoMs, setNoteEchoMs] = useState(() => settingsRef.current!.noteEchoMs)
   const nextLogId = useRef(0)
   const monitorRef = useRef<MidiMonitor | null>(null)
@@ -97,6 +98,11 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   const rhythm = useRhythmSession()
   const playedInRhythm = rhythm.played
   const echo = useNoteEcho(noteEchoMs)
+  // Свежее значение для обработчика нажатий, который не пересоздаётся при смене настройки.
+  const noteEchoEnabledRef = useRef(noteEchoEnabled)
+  useEffect(() => {
+    noteEchoEnabledRef.current = noteEchoEnabled
+  }, [noteEchoEnabled])
   const pushEcho = echo.push
   const clearEcho = echo.clear
   const exerciseRunning = exercise.running || sequences.running || rhythm.running
@@ -202,7 +208,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         playedInExercise(playedNote.pitch)
         playedInSequences(playedNote.pitch)
         playedInRhythm(playedNote.time)
-        pushEcho(playedNote.pitch)
+        if (noteEchoEnabledRef.current) pushEcho(playedNote.pitch)
       }
     },
     [playedInExercise, playedInSequences, playedInRhythm, pushEcho],
@@ -212,6 +218,13 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   useEffect(() => {
     if (screen !== 'main') clearEcho()
   }, [screen, clearEcho])
+
+  function changeNoteEchoEnabled(enabled: boolean) {
+    setNoteEchoEnabled(enabled)
+    updateSettings({ noteEchoEnabled: enabled })
+    // Выключили — висящие карточки и их таймеры уходят сразу.
+    if (!enabled) clearEcho()
+  }
 
   function changeNoteEchoMs(ms: number) {
     setNoteEchoMs(ms)
@@ -418,6 +431,8 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         onOpenCheck={() => setScreen('check')}
         glissando={keyboard.glissando}
         onToggleGlissando={toggleGlissando}
+        noteEchoEnabled={noteEchoEnabled}
+        onChangeNoteEchoEnabled={changeNoteEchoEnabled}
         noteEchoMs={noteEchoMs}
         onChangeNoteEchoMs={changeNoteEchoMs}
         updateReady={updateReady}
@@ -480,7 +495,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         }
         slotButton={slotButton}
         staff={staff}
-        noteEcho={<NoteEchoStrip slots={echo.slots} />}
+        noteEcho={noteEchoEnabled ? <NoteEchoStrip slots={echo.slots} /> : null}
         keyboard={<Keyboard state={keyboard} onInput={handleKeyInput} focus={sequences.focus} />}
       />
     )

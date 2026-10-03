@@ -46,6 +46,7 @@ const messages = {
   'settings.check': 'Проверка пианино',
   'settings.open': 'Открыть',
   'settings.glissando': 'Глиссандо',
+  'settings.noteEchoOn': 'Показывать нажатые ноты',
   'settings.noteEcho': 'Время показа ноты',
   'settings.version': 'Версия',
   'settings.build': 'сборка от {date}',

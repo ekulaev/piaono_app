@@ -9,7 +9,7 @@ import {
   type EchoSlots,
 } from './slots'
 
-const card = (id: number): EchoCard => ({ id, note: describeNote(60 + id) })
+const card = (id: number): EchoCard => ({ id, note: describeNote(60 + id), fadeMs: 150 })
 const ids = (slots: EchoSlots) => slots.map((slot) => slot?.id ?? null)
 
 function addAll(...nums: number[]): EchoSlots {

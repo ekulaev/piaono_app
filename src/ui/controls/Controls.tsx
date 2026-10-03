@@ -64,6 +64,8 @@ interface StepperProps {
   step?: number
   /** Короткий вид (в строке настроек): название уже стоит рядом, на экране его не повторяем. */
   compact?: boolean
+  /** Настройка сейчас не действует: кнопки не нажимаются, значение сохраняется и остаётся видно. */
+  disabled?: boolean
   /** Как показать значение («1,0 с»); по умолчанию число как есть. */
   format?: (value: number) => string
   onChange: (value: number) => void
@@ -77,6 +79,7 @@ export function Stepper({
   max,
   step = 1,
   compact = false,
+  disabled = false,
   format,
   onChange,
 }: StepperProps) {
@@ -90,7 +93,7 @@ export function Stepper({
         </p>
       )}
       <div
-        className="stepper"
+        className={`stepper${disabled ? ' stepper--disabled' : ''}`}
         role="group"
         aria-labelledby={compact ? undefined : labelId}
         aria-label={compact ? label : undefined}
@@ -99,7 +102,7 @@ export function Stepper({
           type="button"
           className="stepper__button"
           aria-label={t('controls.less')}
-          disabled={value <= min}
+          disabled={disabled || value <= min}
           onClick={() => onChange(value - step)}
         >
           −
@@ -111,7 +114,7 @@ export function Stepper({
           type="button"
           className="stepper__button"
           aria-label={t('controls.more')}
-          disabled={value >= max}
+          disabled={disabled || value >= max}
           onClick={() => onChange(value + step)}
         >
           +
