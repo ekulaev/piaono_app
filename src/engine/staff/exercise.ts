@@ -1,8 +1,9 @@
 import type { WarmupResult } from '../stats/events'
 import { UNIFORM, type Weights } from '../stats/weights'
+import { DEFAULT_WARMUP_SETTINGS, type WarmupSettings } from '../warmup/settings'
 import { pickNote, type StaffNote } from './pickNote'
 
-/** Нота едет от правого края стана до ключа за это время. */
+/** Нота едет от правого края стана до правой границы знаков в начале стана за это время по умолчанию. */
 export const TRAVEL_MS = 5000
 /** Столько нота показана верной или неверной. */
 export const FLASH_MS = 500
@@ -13,10 +14,15 @@ export const GROUP_MS = 50
 
 /** Итоги законченных нот сессии (от «Старт» до «Стоп») — для статистики и итога. */
 type Results = { results: readonly WarmupResult[] }
+/** Настройки сессии (C-STF-9) не меняются, пока она идёт: меню открыто — упражнения нет. */
+type Session = Results & { settings: WarmupSettings }
+
+/** Время хода ноты по настройкам, мс. */
+export const travelMs = (settings: WarmupSettings) => settings.travelSeconds * 1000
 
 export type ExerciseState =
   | { phase: 'idle' }
-  | (Results & {
+  | (Session & {
       phase: 'moving'
       note: StaffNote
       appearedAt: number
@@ -27,8 +33,8 @@ export type ExerciseState =
       /** Были ли неверные нажатия по этой ноте. */
       hadError: boolean
     })
-  | (Results & { phase: 'correct'; note: StaffNote; progress: number; until: number })
-  | (Results & { phase: 'pause'; until: number })
+  | (Session & { phase: 'correct'; note: StaffNote; progress: number; until: number })
+  | (Session & { phase: 'pause'; until: number })
   /** Итог после «Стоп» (C-STF-4, OB-12): стан скрыт, пока не нажат «Старт». */
   | (Results & { phase: 'summary' })
 
@@ -44,8 +50,9 @@ export function start(
   now: number,
   random: () => number,
   weights: Weights = UNIFORM,
+  settings: WarmupSettings = DEFAULT_WARMUP_SETTINGS,
 ): ExerciseState {
-  return appear(now, random, [], weights)
+  return appear(now, random, { results: [], settings }, weights)
 }
 
 /** Остановка без итога: меню режимов, «Проверка пианино». */
@@ -62,17 +69,17 @@ export function finish(state: ExerciseState): ExerciseState {
 function appear(
   at: number,
   random: () => number,
-  results: readonly WarmupResult[],
+  session: Session,
   weights: Weights,
 ): ExerciseState {
   return {
     phase: 'moving',
-    note: pickNote(random, weights),
+    note: pickNote(random, weights, session.settings),
     appearedAt: at,
     wrongUntil: null,
     groupStartedAt: null,
     hadError: false,
-    results,
+    ...session,
   }
 }
 
@@ -95,6 +102,7 @@ export function played(state: ExerciseState, pitch: number, now: number): Exerci
       progress: progress(current, now),
       until: now + FLASH_MS,
       results: [...current.results, result],
+      settings: current.settings,
     }
   }
   // Неверная клавиша открывает группу; внутри уже открытой группы ничего не меняет.
@@ -129,7 +137,7 @@ function step(
     case 'summary':
       return state
     case 'moving': {
-      const arrivedAt = state.appearedAt + TRAVEL_MS
+      const arrivedAt = state.appearedAt + travelMs(state.settings)
       if (
         state.groupStartedAt !== null &&
         state.groupStartedAt + GROUP_MS <= Math.min(now, arrivedAt)
@@ -139,7 +147,12 @@ function step(
       if (now >= arrivedAt) {
         // Доехала до ключа: «не успел», даже если были неверные нажатия.
         const missed: WarmupResult = { ...state.note, outcome: 'missed', ms: null }
-        return { phase: 'pause', until: arrivedAt + PAUSE_MS, results: [...state.results, missed] }
+        return {
+          phase: 'pause',
+          until: arrivedAt + PAUSE_MS,
+          results: [...state.results, missed],
+          settings: state.settings,
+        }
       }
       if (state.wrongUntil !== null && now >= state.wrongUntil)
         return { ...state, wrongUntil: null }
@@ -147,10 +160,17 @@ function step(
     }
     case 'correct':
       return now >= state.until
-        ? { phase: 'pause', until: state.until + PAUSE_MS, results: state.results }
+        ? {
+            phase: 'pause',
+            until: state.until + PAUSE_MS,
+            results: state.results,
+            settings: state.settings,
+          }
         : state
     case 'pause':
-      return now >= state.until ? appear(state.until, random, state.results, weights) : state
+      return now >= state.until
+        ? appear(state.until, random, { results: state.results, settings: state.settings }, weights)
+        : state
   }
 }
 
@@ -165,7 +185,7 @@ function closeExpiredGroup(state: ExerciseState & { phase: 'moving' }, now: numb
 export function progress(state: ExerciseState, now: number): number {
   if (state.phase === 'correct') return state.progress
   if (state.phase !== 'moving') return 0
-  return Math.min(1, Math.max(0, (now - state.appearedAt) / TRAVEL_MS))
+  return Math.min(1, Math.max(0, (now - state.appearedAt) / travelMs(state.settings)))
 }
 
 /** Показана ли нота неверной прямо сейчас. */

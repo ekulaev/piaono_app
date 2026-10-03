@@ -10,6 +10,10 @@ import SettingsScreen from './settings/SettingsScreen'
 import ProgressScreen from './progress/ProgressScreen'
 import './App.css'
 import Keyboard from './keyboard/Keyboard'
+import { useKeyboardFocus } from './keyboard/useKeyboardFocus'
+import WarmupPreview from './warmup/WarmupPreview'
+import { naturalPitch } from '../engine/warmup/steps'
+import type { Clef } from '../engine/staff/pickNote'
 import StaffView from './staff/StaffView'
 import { useExercise } from './staff/useExercise'
 import ModeMenu from './modes/ModeMenu'
@@ -22,6 +26,7 @@ import RhythmSummary from './rhythm/RhythmSummary'
 import { useRhythmSession } from './rhythm/useRhythmSession'
 import { summarizeRhythm } from '../engine/rhythm/session'
 import type { RhythmSettings } from '../engine/rhythm/settings'
+import type { WarmupSettings } from '../engine/warmup/settings'
 import { Toggle } from './controls/Controls'
 import { summarize } from '../engine/sequences/session'
 import type { SequenceSettings } from '../engine/sequences/settings'
@@ -92,7 +97,14 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   // но меняет состояние только то, что сейчас идёт.
   const exercise = useExercise()
   const playedInExercise = exercise.played
-  const sequences = useSequenceSession()
+  // Запросы «показать участок клавиатуры»: «Последовательности» и авто-сдвиг «Разминки».
+  const keyboardFocus = useKeyboardFocus()
+  const requestKeyboardFocus = keyboardFocus.request
+  const sequences = useSequenceSession(requestKeyboardFocus)
+  // Сколько белых клавиш видно: нужно настройкам «Разминки»; null — клавиатуры нет.
+  const [keyboardCapacity, setKeyboardCapacity] = useState<number | null>(null)
+  const keyboardCapacityRef = useRef(keyboardCapacity)
+  keyboardCapacityRef.current = keyboardCapacity
   const playedInSequences = sequences.played
   // «Ритму» нужна не высота, а момент нажатия (C-STF-6).
   const rhythm = useRhythmSession()
@@ -174,14 +186,17 @@ function Main({ settingsRef, updateSettings }: MainProps) {
       }
       case 'warmup':
         warmupBefore.current = loadProgress().stats.warmup
-        exercise.start(weightsFor(warmupBefore.current))
+        exercise.start(
+          weightsFor(warmupBefore.current),
+          (confirmed as WarmupSettings | undefined) ?? modeSettings.warmup,
+        )
         break
     }
   }
 
   /** Подтверждённые настройки режима — с них меню начинает черновик. */
   function confirmedSettings(mode: ModeId): modeMenu.ModeSettings {
-    return mode === 'warmup' ? null : modeSettings[mode]
+    return modeSettings[mode]
   }
 
   /** «Выбрать» или «Старт» в меню: режим и его настройки становятся активными и запоминаются. */
@@ -192,7 +207,8 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     setActiveMode(chosen)
     updateSettings({ activeMode: chosen })
     if (chosen === 'rhythm' && settings) saveModeSettings(chosen, settings as RhythmSettings)
-    else if (chosen !== 'warmup' && settings) saveModeSettings(chosen, settings as SequenceSettings)
+    else if (chosen === 'warmup' && settings) saveModeSettings(chosen, settings as WarmupSettings)
+    else if (settings) saveModeSettings(chosen, settings as SequenceSettings)
     if (andStart) startMode(chosen, settings ?? undefined)
   }
 
@@ -370,8 +386,30 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     slotButton = { label, onClick: sequences.next }
   }
 
+  // Авто-сдвиг клавиатуры (C-STF-9, OB-22…OB-25): нижняя нота диапазона — крайняя слева на
+  // «Старт» и при появлении ноты другого ключа; первая нота сессии — тоже смена.
+  const warmupSession = exercise.state.phase === 'moving' ? exercise.state : null
+  const lastShiftClef = useRef<Clef | null>(null)
+  useEffect(() => {
+    if (!exercise.running) lastShiftClef.current = null
+  }, [exercise.running])
+  useEffect(() => {
+    if (!warmupSession) return
+    const { note, settings } = warmupSession
+    if (!settings.autoShift || keyboardCapacityRef.current === null) return
+    if (note.clef === lastShiftClef.current) return
+    lastShiftClef.current = note.clef
+    const range = note.clef === 'treble' ? settings.trebleRange : settings.bassRange
+    requestKeyboardFocus(naturalPitch(range.low), naturalPitch(range.high), 'left')
+    // Только новая нота: остальное состояние упражнения сдвиг не вызывает.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [warmupSession?.note, requestKeyboardFocus])
+
   let staff
-  if (session.phase === 'summary') {
+  if (menu.screen === 'mode' && menu.modeId === 'warmup' && menu.draft) {
+    // Пока открыты настройки «Разминки», в зоне стана — предпросмотр диапазона (C-STF-9, OB-9).
+    staff = <WarmupPreview settings={menu.draft as WarmupSettings} />
+  } else if (session.phase === 'summary') {
     const stats = session.stats
     staff = (
       <SessionSummary
@@ -411,6 +449,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
       <WarmupSummary
         summary={summarizeWarmup(results)}
         improvements={improvements(warmupBefore.current, aggregate(results.map(warmupEvent)))}
+        tonality={modeSettings.warmup.tonality}
       />
     )
   } else if (!exercise.running && !hasProgress(practice[activeMode])) {
@@ -446,6 +485,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         activeMode={activeMode}
         practice={practice}
         hints={hints}
+        warmupTonality={modeSettings.warmup.tonality}
         onResetStats={resetStats}
         onResetHints={resetHints}
         onBack={() => setScreen('main')}
@@ -496,7 +536,14 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         slotButton={slotButton}
         staff={staff}
         noteEcho={noteEchoEnabled ? <NoteEchoStrip slots={echo.slots} /> : null}
-        keyboard={<Keyboard state={keyboard} onInput={handleKeyInput} focus={sequences.focus} />}
+        keyboard={
+          <Keyboard
+            state={keyboard}
+            onInput={handleKeyInput}
+            focus={keyboardFocus.focus}
+            onCapacity={setKeyboardCapacity}
+          />
+        }
       />
     )
   }
@@ -522,6 +569,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         onClose={closeMenu}
         onSelect={() => confirmMode(false)}
         onStart={() => confirmMode(true)}
+        keyboardCapacity={keyboardCapacity}
       />
     </div>
   )

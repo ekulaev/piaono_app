@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_RHYTHM_SETTINGS } from '../engine/rhythm/settings'
 import { DEFAULT_SEQUENCE_SETTINGS } from '../engine/sequences/settings'
+import { DEFAULT_WARMUP_SETTINGS } from '../engine/warmup/settings'
+import { stepOf } from '../engine/warmup/steps'
 import { loadSettings, saveSettings, type SettingsStorage } from './settings'
 
 const modeSettings = {
   sequences: DEFAULT_SEQUENCE_SETTINGS,
   contour: DEFAULT_SEQUENCE_SETTINGS,
   rhythm: DEFAULT_RHYTHM_SETTINGS,
+  warmup: DEFAULT_WARMUP_SETTINGS,
 }
 
 function memoryStorage(): SettingsStorage {
@@ -439,5 +442,54 @@ describe('Показ нажатых нот: выключатель', () => {
       expect(loaded.noteEchoEnabled).toBe(true)
       expect(loaded.glissando).toBe(true)
     }
+  })
+})
+
+describe('Настройки «Разминки» (C-STF-9): хранение', () => {
+  const key = 'piaono.settings.v1'
+
+  it('старые данные без настроек «Разминки» — значения по умолчанию, остальное цело', () => {
+    const storage = memoryStorage()
+    storage.setItem(
+      key,
+      JSON.stringify({ glissando: true, activeMode: 'contour', modeSettings: {} }),
+    )
+    const loaded = loadSettings(storage)
+    expect(loaded.modeSettings.warmup).toEqual(DEFAULT_WARMUP_SETTINGS)
+    expect(loaded.glissando).toBe(true)
+    expect(loaded.activeMode).toBe('contour')
+  })
+
+  it('настройки «Разминки» переживают сохранение и чтение', () => {
+    const storage = memoryStorage()
+    const warmup = {
+      ...DEFAULT_WARMUP_SETTINGS,
+      travelSeconds: 8,
+      clef: 'bass' as const,
+      tonality: 'G-major',
+      autoShift: true,
+    }
+    saveSettings({ ...loadSettings(storage), modeSettings: { ...modeSettings, warmup } }, storage)
+    expect(loadSettings(storage).modeSettings.warmup).toEqual(warmup)
+  })
+
+  it('битое поле заменяется по умолчанию только для себя, остальные поля и режимы целы', () => {
+    const storage = memoryStorage()
+    storage.setItem(
+      key,
+      JSON.stringify({
+        modeSettings: {
+          sequences: { ...DEFAULT_SEQUENCE_SETTINGS, sequences: 4 },
+          warmup: {
+            travelSeconds: 8,
+            bassRange: { low: stepOf('A', 0), high: stepOf('C', 4) },
+          },
+        },
+      }),
+    )
+    const loaded = loadSettings(storage)
+    expect(loaded.modeSettings.warmup.travelSeconds).toBe(8)
+    expect(loaded.modeSettings.warmup.bassRange).toEqual(DEFAULT_WARMUP_SETTINGS.bassRange)
+    expect(loaded.modeSettings.sequences.sequences).toBe(4)
   })
 })

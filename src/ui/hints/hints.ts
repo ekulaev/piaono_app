@@ -111,6 +111,7 @@ export const HINTS = {
     blocks: [
       { kind: 'text', text: 'hint.mode.warmup.1' },
       { kind: 'text', text: 'hint.mode.warmup.2' },
+      { kind: 'text', text: 'hint.mode.warmup.3' },
     ],
   },
 } satisfies Record<string, Hint>

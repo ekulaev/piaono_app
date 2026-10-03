@@ -14,7 +14,7 @@ export const MODES: readonly ModeInfo[] = [
   { id: 'sequences', hasSettings: true },
   { id: 'contour', hasSettings: true },
   { id: 'rhythm', hasSettings: true },
-  { id: 'warmup', hasSettings: false },
+  { id: 'warmup', hasSettings: true },
 ]
 
 /** С этого режима начинает новый пользователь; к нему же возвращаемся при битых данных. */

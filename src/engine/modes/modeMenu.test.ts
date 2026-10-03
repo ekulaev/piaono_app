@@ -1,3 +1,4 @@
+import { DEFAULT_WARMUP_SETTINGS } from '../warmup/settings'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SEQUENCE_SETTINGS } from '../sequences/settings'
 import { back, chooseMode, closeMenu, confirm, editDraft, MENU_CLOSED, openMenu } from './modeMenu'
@@ -19,19 +20,19 @@ describe('Меню режимов и список режимов', () => {
 })
 
 describe('Экран режима', () => {
-  it('Экран «Разминки»: выбор в списке открывает экран режима без настроек', () => {
-    const state = chooseMode(openMenu(), 'warmup', null)
-    expect(state).toEqual({ screen: 'mode', modeId: 'warmup', draft: null })
-    expect(modeInfo('warmup').hasSettings).toBe(false)
+  it('Экран «Разминки»: выбор в списке открывает экран режима с копией настроек', () => {
+    const state = chooseMode(openMenu(), 'warmup', DEFAULT_WARMUP_SETTINGS)
+    expect(state).toEqual({ screen: 'mode', modeId: 'warmup', draft: DEFAULT_WARMUP_SETTINGS })
+    expect(modeInfo('warmup').hasSettings).toBe(true)
   })
 })
 
 describe('Выбрать, Старт, Назад', () => {
   it('Выбрать: меню закрыто, режим становится активным', () => {
-    expect(confirm(chooseMode(openMenu(), 'warmup', null))).toEqual({
+    expect(confirm(chooseMode(openMenu(), 'warmup', DEFAULT_WARMUP_SETTINGS))).toEqual({
       menu: MENU_CLOSED,
       activeMode: 'warmup',
-      settings: null,
+      settings: DEFAULT_WARMUP_SETTINGS,
     })
   })
 

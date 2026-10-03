@@ -14,6 +14,9 @@ import {
   tick,
   type ExerciseState,
 } from './exercise'
+import { UNIFORM } from '../stats/weights'
+import { DEFAULT_WARMUP_SETTINGS } from '../warmup/settings'
+import { stepOf } from '../warmup/steps'
 
 // random = 0.5 даёт одну и ту же ноту; для тестов важна только её высота.
 const random = () => 0.5
@@ -186,5 +189,62 @@ describe('Итог «Разминки» (C-STF-4)', () => {
     expect(again.phase === 'moving' && again.results).toEqual([])
     expect(stop()).toBe(IDLE)
     expect(tick(finish(correct), T0 + 60_000, random).phase).toBe('summary')
+  })
+})
+
+describe('Настройки «Разминки» в упражнении (C-STF-9)', () => {
+  const eight = { ...DEFAULT_WARMUP_SETTINGS, travelSeconds: 8 }
+
+  it('Другое время: нота доходит до ключа за заданное время', () => {
+    const state = start(T0, random, UNIFORM, eight)
+    if (state.phase !== 'moving') throw new Error('ожидалась движущаяся нота')
+    expect(progress(state, T0 + 4000)).toBe(0.5)
+    expect(tick(state, T0 + TRAVEL_MS, random, UNIFORM).phase).toBe('moving')
+    expect(tick(state, T0 + 7999, random, UNIFORM).phase).toBe('moving')
+    expect(tick(state, T0 + 8000, random, UNIFORM)).toMatchObject({
+      phase: 'pause',
+      until: T0 + 8000 + PAUSE_MS,
+    })
+  })
+
+  it('время сессии сохраняется на следующую ноту', () => {
+    const state = start(T0, random, UNIFORM, { ...DEFAULT_WARMUP_SETTINGS, travelSeconds: 2 })
+    const next = tick(state, T0 + 2000 + PAUSE_MS, random, UNIFORM)
+    if (next.phase !== 'moving') throw new Error('ожидалась новая нота')
+    expect(next.appearedAt).toBe(T0 + 2000 + PAUSE_MS)
+    expect(progress(next, next.appearedAt + 1000)).toBe(0.5)
+  })
+
+  it('Нота со знаком проверяется по звучащей высоте: в Соль мажоре верна F♯, а не F', () => {
+    const sol = {
+      ...DEFAULT_WARMUP_SETTINGS,
+      clef: 'treble' as const,
+      tonality: 'G-major',
+      trebleRange: { low: stepOf('F', 4), high: stepOf('G', 4) },
+    }
+    // random = 0 выбирает первую ноту набора — ступень F4, звучащую как F♯4 (66).
+    const state = start(T0, () => 0, UNIFORM, sol)
+    if (state.phase !== 'moving') throw new Error('ожидалась движущаяся нота')
+    expect(state.note).toMatchObject({ pitch: 66, step: stepOf('F', 4), natural: false })
+    const wrong = played(state, 65, T0 + 100)
+    expect(wrong.phase).toBe('moving')
+    const right = played(state, 66, T0 + 100)
+    expect(right.phase).toBe('correct')
+  })
+
+  it('Нота с бекаром проверяется по белой клавише', () => {
+    const sol = {
+      ...DEFAULT_WARMUP_SETTINGS,
+      clef: 'treble' as const,
+      tonality: 'G-major',
+      naturals: true,
+      trebleRange: { low: stepOf('F', 4), high: stepOf('G', 4) },
+    }
+    // Вторая нота набора — F4 с бекаром (65): random 0.3 попадает во вторую из трёх нот.
+    const state = start(T0, () => 0.4, UNIFORM, sol)
+    if (state.phase !== 'moving') throw new Error('ожидалась движущаяся нота')
+    expect(state.note).toMatchObject({ pitch: 65, natural: true })
+    expect(played(state, 66, T0 + 100).phase).toBe('moving')
+    expect(played(state, 65, T0 + 100).phase).toBe('correct')
   })
 })

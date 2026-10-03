@@ -15,6 +15,8 @@ interface Props {
   activeMode: ModeId
   practice: PracticeStats
   hints: HintProgress
+  /** Тональность «Разминки»: по ней называются ноты со знаками в её трудных местах. */
+  warmupTonality: string
   onResetStats: (mode: ModeId) => void
   onResetHints: () => void
   onBack: () => void
@@ -30,6 +32,7 @@ function ProgressScreen({
   activeMode,
   practice,
   hints,
+  warmupTonality,
   onResetStats,
   onResetHints,
   onBack,
@@ -91,7 +94,12 @@ function ProgressScreen({
                       {list.places.map((place) => (
                         <li key={`${place.kind}:${place.key}`}>
                           <span className="progress__place">
-                            {placeLabel(t, place.kind, place.key)}
+                            {placeLabel(
+                              t,
+                              place.kind,
+                              place.key,
+                              mode === 'warmup' ? warmupTonality : undefined,
+                            )}
                           </span>{' '}
                           — {placeLine(place)}
                         </li>

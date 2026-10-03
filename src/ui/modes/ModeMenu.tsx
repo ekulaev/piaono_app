@@ -7,6 +7,8 @@ import RhythmSettingsForm from '../rhythm/RhythmSettingsForm'
 import HintButton from '../hints/HintButton'
 import { modeHintId } from '../hints/hints'
 import SequenceSettingsForm from '../sequences/SequenceSettingsForm'
+import WarmupSettingsForm from '../warmup/WarmupSettingsForm'
+import type { WarmupSettings } from '../../engine/warmup/settings'
 import './ModeMenu.css'
 import { useT } from '../i18n/useI18n'
 
@@ -22,6 +24,8 @@ interface Props {
   onSelect: () => void
   /** «Старт»: сделать режим активным и сразу запустить. */
   onStart: () => void
+  /** Сколько белых клавиш видно на клавиатуре главного экрана; null — клавиатуры нет. */
+  keyboardCapacity: number | null
 }
 
 /**
@@ -44,6 +48,7 @@ function OpenMenu({
   onClose,
   onSelect,
   onStart,
+  keyboardCapacity,
 }: Props) {
   const t = useT()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -141,7 +146,13 @@ function OpenMenu({
                   settings={menu.draft as RhythmSettings}
                   onChange={onEditDraft}
                 />
-              ) : menu.modeId !== 'warmup' && menu.draft ? (
+              ) : menu.modeId === 'warmup' && menu.draft ? (
+                <WarmupSettingsForm
+                  settings={menu.draft as WarmupSettings}
+                  onChange={onEditDraft}
+                  capacity={keyboardCapacity}
+                />
+              ) : menu.draft ? (
                 <SequenceSettingsForm
                   settings={menu.draft as SequenceSettings}
                   onChange={onEditDraft}

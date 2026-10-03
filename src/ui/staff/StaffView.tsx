@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { progress, type ExerciseState } from '../../engine/staff/exercise'
+import { tonalityById } from '../../engine/warmup/keys'
 import { drawNote, drawStaff, notePath, type NoteLook, type StaffGeometry } from './staffDrawing'
 import { useMusicFont, useStaffGeometry } from './staffHooks'
 import './StaffView.css'
@@ -30,12 +31,18 @@ function StaffView({ exercise }: Props) {
         ? 'wrong'
         : 'normal'
 
-  // Слой стана: линии всегда, ключ — только вместе с нотой.
+  // Знаки при ключе выбранной тональности: рисуются сразу после ключа, то есть вместе с нотой.
+  const keySignature =
+    note && (exercise.phase === 'moving' || exercise.phase === 'correct')
+      ? tonalityById(exercise.settings.tonality).signature
+      : null
+
+  // Слой стана: линии всегда, ключ и знаки при ключе — только вместе с нотой.
   useLayoutEffect(() => {
     if (geometry && fontReady && staffRef.current) {
-      drawStaff(staffRef.current, geometry, note?.clef ?? null)
+      drawStaff(staffRef.current, geometry, note?.clef ?? null, keySignature)
     }
-  }, [geometry, fontReady, note?.clef])
+  }, [geometry, fontReady, note?.clef, keySignature])
 
   // Текущее состояние для кадров и начального положения ноты — без лишних перерисовок.
   const exerciseRef = useRef(exercise)
@@ -54,9 +61,12 @@ function StaffView({ exercise }: Props) {
       return
     }
     const drawn = drawNote(host, geometry, note, look)
-    placement.current = { drawnX: drawn.drawnX, ...notePath(geometry, note.clef, drawn.headWidth) }
+    placement.current = {
+      drawnX: drawn.drawnX,
+      ...notePath(geometry, note.clef, drawn.headWidth, keySignature, drawn.leftExtra),
+    }
     moveNote(host, geometry, placement.current, progress(exerciseRef.current, performance.now()))
-  }, [geometry, fontReady, note, look])
+  }, [geometry, fontReady, note, look, keySignature])
 
   // Движение: каждый кадр сдвигаем слой ноты по текущей доле пути.
   useEffect(() => {
