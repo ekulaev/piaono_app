@@ -22,6 +22,11 @@ export interface Settings {
   glissando: boolean
   /** MIDI-вход, который выбрал ученик; null — выбора не было. */
   preferredInput: PreferredInput | null
+  /**
+   * Язык, который выбрал ученик (C-APP-3); null — выбора не было, действует язык системы.
+   * Есть ли такой язык в приложении, решает `resolveLanguage`: хранилище языков не знает.
+   */
+  language: string | null
   /** Режим, который запускает «Старт» на главном экране. */
   activeMode: ModeId
   /**
@@ -39,6 +44,7 @@ export interface Settings {
 const DEFAULT_SETTINGS: Settings = {
   glissando: false,
   preferredInput: null,
+  language: null,
   activeMode: DEFAULT_MODE,
   modeSettings: {
     sequences: DEFAULT_SEQUENCE_SETTINGS,
@@ -60,7 +66,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
     if (!raw) return { ...DEFAULT_SETTINGS }
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS }
-    const { glissando, preferredInput, activeMode, modeSettings } = parsed as Record<
+    const { glissando, preferredInput, language, activeMode, modeSettings } = parsed as Record<
       string,
       unknown
     >
@@ -68,6 +74,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
     return {
       glissando: typeof glissando === 'boolean' ? glissando : DEFAULT_SETTINGS.glissando,
       preferredInput: readPreferredInput(preferredInput),
+      language: typeof language === 'string' && language !== '' ? language : null,
       // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
       activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
       modeSettings: {
