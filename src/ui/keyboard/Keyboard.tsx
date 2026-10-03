@@ -31,6 +31,7 @@ import {
 import type { KeyboardState, KeyInput, Level } from '../../engine/keyboard/types'
 import { useAutoRepeat } from './useAutoRepeat'
 import './Keyboard.css'
+import { useT } from '../i18n/useI18n'
 
 /** Диапазон, на котором центрировать видимую часть. Новый token — новое центрирование. */
 export interface KeyboardFocus {
@@ -63,6 +64,7 @@ interface VisibleWindow {
  * клавиатуры сейчас видна.
  */
 function Keyboard({ state, onInput, focus }: Props) {
+  const t = useT()
   const zoneRef = useRef<HTMLDivElement>(null)
   const keysRef = useRef<HTMLDivElement>(null)
   const size = useZoneSize(zoneRef)
@@ -247,7 +249,7 @@ function Keyboard({ state, onInput, focus }: Props) {
           onStart={setStart}
         />
       )}
-      <div ref={zoneRef} className="kbd" aria-label="Клавиатура пианино">
+      <div ref={zoneRef} className="kbd" aria-label={t('keyboard.label')}>
         {content}
       </div>
     </div>
@@ -320,6 +322,7 @@ function ScrollButton({
   onRelease,
   onKeyboardStep,
 }: ScrollButtonProps) {
+  const t = useT()
   const className = [
     'kbd__scroll',
     `kbd__scroll--${side}`,
@@ -334,7 +337,7 @@ function ScrollButton({
       type="button"
       className={className}
       style={{ width }}
-      aria-label={side === 'left' ? 'Сдвинуть к низким нотам' : 'Сдвинуть к высоким нотам'}
+      aria-label={side === 'left' ? t('keyboard.shiftLow') : t('keyboard.shiftHigh')}
       aria-disabled={blocked}
       onPointerDown={(event) => {
         if (event.pointerType === 'mouse' && event.button !== 0) return

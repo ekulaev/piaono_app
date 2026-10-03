@@ -3,6 +3,7 @@
 // ползунков и флажков браузера, у которых мелкие цели и чужое оформление.
 import { useId, type ReactNode } from 'react'
 import './Controls.css'
+import { useT } from '../i18n/useI18n'
 
 interface ChoiceGroupProps<T extends string> {
   label: string
@@ -64,6 +65,7 @@ interface StepperProps {
 
 /** Число «− N +»: вместо ползунка, у которого мелкая цель и трудное точное перетаскивание. */
 export function Stepper({ label, value, min, max, onChange }: StepperProps) {
+  const t = useT()
   const labelId = useId()
   return (
     <div className="control">
@@ -74,7 +76,7 @@ export function Stepper({ label, value, min, max, onChange }: StepperProps) {
         <button
           type="button"
           className="stepper__button"
-          aria-label="Меньше"
+          aria-label={t('controls.less')}
           disabled={value <= min}
           onClick={() => onChange(value - 1)}
         >
@@ -86,7 +88,7 @@ export function Stepper({ label, value, min, max, onChange }: StepperProps) {
         <button
           type="button"
           className="stepper__button"
-          aria-label="Больше"
+          aria-label={t('controls.more')}
           disabled={value >= max}
           onClick={() => onChange(value + 1)}
         >

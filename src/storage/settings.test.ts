@@ -31,6 +31,7 @@ describe('Глиссандо: хранение настройки', () => {
     expect(loadSettings(memoryStorage())).toEqual({
       glissando: false,
       preferredInput: null,
+      language: null,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -39,12 +40,13 @@ describe('Глиссандо: хранение настройки', () => {
   it('Настройка переживает перезапуск', () => {
     const storage = memoryStorage()
     saveSettings(
-      { glissando: true, preferredInput: null, activeMode: 'warmup', modeSettings },
+      { glissando: true, preferredInput: null, language: null, activeMode: 'warmup', modeSettings },
       storage,
     )
     expect(loadSettings(storage)).toEqual({
       glissando: true,
       preferredInput: null,
+      language: null,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -56,6 +58,7 @@ describe('Глиссандо: хранение настройки', () => {
     expect(loadSettings(storage)).toEqual({
       glissando: false,
       preferredInput: null,
+      language: null,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -63,6 +66,7 @@ describe('Глиссандо: хранение настройки', () => {
     expect(loadSettings(storage)).toEqual({
       glissando: false,
       preferredInput: null,
+      language: null,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -70,6 +74,7 @@ describe('Глиссандо: хранение настройки', () => {
     expect(loadSettings(storage)).toEqual({
       glissando: false,
       preferredInput: null,
+      language: null,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -79,12 +84,19 @@ describe('Глиссандо: хранение настройки', () => {
     expect(loadSettings(brokenStorage)).toEqual({
       glissando: false,
       preferredInput: null,
+      language: null,
       activeMode: 'warmup',
       modeSettings,
     })
     expect(() =>
       saveSettings(
-        { glissando: true, preferredInput: null, activeMode: 'warmup', modeSettings },
+        {
+          glissando: true,
+          preferredInput: null,
+          language: null,
+          activeMode: 'warmup',
+          modeSettings,
+        },
         brokenStorage,
       ),
     ).not.toThrow()
@@ -94,12 +106,19 @@ describe('Глиссандо: хранение настройки', () => {
     expect(loadSettings(null)).toEqual({
       glissando: false,
       preferredInput: null,
+      language: null,
       activeMode: 'warmup',
       modeSettings,
     })
     expect(() =>
       saveSettings(
-        { glissando: true, preferredInput: null, activeMode: 'warmup', modeSettings },
+        {
+          glissando: true,
+          preferredInput: null,
+          language: null,
+          activeMode: 'warmup',
+          modeSettings,
+        },
         null,
       ),
     ).not.toThrow()
@@ -111,7 +130,13 @@ describe('Выбор запоминается и узнаёт вход посл�
     const storage = memoryStorage()
     const synth = { id: 's1', name: 'Synth' }
     saveSettings(
-      { glissando: false, preferredInput: synth, activeMode: 'warmup', modeSettings },
+      {
+        glissando: false,
+        preferredInput: synth,
+        language: null,
+        activeMode: 'warmup',
+        modeSettings,
+      },
       storage,
     )
     expect(loadSettings(storage).preferredInput).toEqual(synth)
@@ -123,6 +148,7 @@ describe('Выбор запоминается и узнаёт вход посл�
     expect(loadSettings(storage)).toEqual({
       glissando: true,
       preferredInput: null,
+      language: null,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -141,7 +167,13 @@ describe('Активный режим запоминается', () => {
   it('Перезапуск: подтверждённый режим сохраняется', () => {
     const storage = memoryStorage()
     saveSettings(
-      { glissando: false, preferredInput: null, activeMode: 'warmup', modeSettings },
+      {
+        glissando: false,
+        preferredInput: null,
+        language: null,
+        activeMode: 'warmup',
+        modeSettings,
+      },
       storage,
     )
     expect(loadSettings(storage).activeMode).toBe('warmup')
@@ -161,6 +193,7 @@ describe('Активный режим запоминается', () => {
     expect(loadSettings(storage)).toEqual({
       glissando: true,
       preferredInput: null,
+      language: null,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -175,6 +208,7 @@ describe('Настройки режима «Последовательности
       {
         glissando: false,
         preferredInput: null,
+        language: null,
         activeMode: 'sequences',
         modeSettings: { ...modeSettings, sequences },
       },
@@ -205,6 +239,7 @@ describe('Настройки «Контура»: хранение (C-STF-5)', ()
       {
         glissando: false,
         preferredInput: null,
+        language: null,
         activeMode: 'contour',
         modeSettings: { ...modeSettings, contour },
       },
@@ -251,6 +286,7 @@ describe('Настройки «Ритма» (C-STF-6)', () => {
       {
         glissando: false,
         preferredInput: null,
+        language: null,
         activeMode: 'rhythm',
         modeSettings: { ...modeSettings, rhythm },
       },
@@ -258,5 +294,38 @@ describe('Настройки «Ритма» (C-STF-6)', () => {
     )
     expect(loadSettings(storage).activeMode).toBe('rhythm')
     expect(loadSettings(storage).modeSettings.rhythm).toEqual(rhythm)
+  })
+})
+
+describe('Язык приложения: хранение (C-APP-3, OB-6, NFR-5)', () => {
+  it('по умолчанию выбора нет', () => {
+    expect(loadSettings(memoryStorage()).language).toBeNull()
+  })
+
+  it('Перезапуск: выбранный язык сохраняется, остальное цело', () => {
+    const storage = memoryStorage()
+    saveSettings(
+      { glissando: true, preferredInput: null, language: 'en', activeMode: 'warmup', modeSettings },
+      storage,
+    )
+    const loaded = loadSettings(storage)
+    expect(loaded.language).toBe('en')
+    expect(loaded.glissando).toBe(true)
+  })
+
+  it('старые данные без поля языка — выбора нет, прочее читается', () => {
+    const storage = memoryStorage()
+    storage.setItem('piaono.settings.v1', '{"glissando":true,"activeMode":"warmup"}')
+    const loaded = loadSettings(storage)
+    expect(loaded.language).toBeNull()
+    expect(loaded.glissando).toBe(true)
+  })
+
+  it('битое значение языка — выбора нет', () => {
+    const storage = memoryStorage()
+    storage.setItem('piaono.settings.v1', '{"language":5,"glissando":true}')
+    expect(loadSettings(storage).language).toBeNull()
+    storage.setItem('piaono.settings.v1', '{"language":""}')
+    expect(loadSettings(storage).language).toBeNull()
   })
 })

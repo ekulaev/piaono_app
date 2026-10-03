@@ -1,14 +1,15 @@
+import type { MessageKey } from '../i18n'
 import type { ConnectionState } from '../midi/types'
 
-/** Короткое название состояния — рядом со значком, в верхней панели и в «Настройках». */
-export const STATUS_TITLE: Record<ConnectionState, string> = {
-  unsupported: 'Этот браузер не умеет работать с пианино',
-  'permission-denied': 'Доступ к пианино запрещён',
-  unavailable: 'Пианино занято',
-  connecting: 'Подключаемся…',
-  'no-device': 'Пианино не подключено',
-  connected: 'Пианино на связи',
-  lost: 'Связь потеряна — восстанавливаю',
+/** Ключ короткого названия состояния — рядом со значком, в верхней панели и в «Настройках». */
+export const STATUS_TITLE_KEY: Record<ConnectionState, MessageKey> = {
+  unsupported: 'status.unsupported',
+  'permission-denied': 'status.permission-denied',
+  unavailable: 'status.unavailable',
+  connecting: 'status.connecting',
+  'no-device': 'status.no-device',
+  connected: 'status.connected',
+  lost: 'status.lost',
 }
 
 /**

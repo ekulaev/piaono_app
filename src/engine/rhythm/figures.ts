@@ -14,21 +14,21 @@ export interface FigureItem {
 
 export interface Figure {
   id: FigureId
-  /** Название для экрана — словами: нотных знаков может не быть в шрифте интерфейса. */
-  label: string
   items: readonly FigureItem[]
 }
 
 const note = (ticks: number): FigureItem => ({ ticks, rest: false })
 const rest = (ticks: number): FigureItem => ({ ticks, rest: true })
 
+// Названия фигур для экрана — словами и в файлах перевода (`figure.<id>`): нотных знаков может
+// не быть в шрифте интерфейса.
 export const FIGURES: Record<FigureId, Figure> = {
-  half: { id: 'half', label: 'половинная', items: [note(4)] },
-  quarter: { id: 'quarter', label: 'четверть', items: [note(2)] },
-  eighths: { id: 'eighths', label: 'две восьмые', items: [note(1), note(1)] },
-  'quarter-rest': { id: 'quarter-rest', label: 'четвертная пауза', items: [rest(2)] },
-  'half-rest': { id: 'half-rest', label: 'половинная пауза', items: [rest(4)] },
-  dotted: { id: 'dotted', label: 'четверть с точкой и восьмая', items: [note(3), note(1)] },
+  half: { id: 'half', items: [note(4)] },
+  quarter: { id: 'quarter', items: [note(2)] },
+  eighths: { id: 'eighths', items: [note(1), note(1)] },
+  'quarter-rest': { id: 'quarter-rest', items: [rest(2)] },
+  'half-rest': { id: 'half-rest', items: [rest(4)] },
+  dotted: { id: 'dotted', items: [note(3), note(1)] },
 }
 
 export type RhythmLevel = 1 | 2 | 3 | 4

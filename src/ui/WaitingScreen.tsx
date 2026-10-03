@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import './WaitingScreen.css'
+import { useT } from './i18n/useI18n'
 
 /** Кнопка по ходу упражнения — в слоте слева от «Старт». */
 export interface SlotButton {
@@ -43,6 +44,7 @@ function WaitingScreen({
   staff,
   keyboard,
 }: Props) {
+  const t = useT()
   return (
     <div className="waiting-screen">
       <main className="waiting">
@@ -62,7 +64,7 @@ function WaitingScreen({
             className="button button--primary waiting__start"
             onClick={onToggleExercise}
           >
-            {exerciseRunning ? 'Стоп' : 'Старт'}
+            {exerciseRunning ? t('main.stop') : t('main.start')}
           </button>
           {/* «Режим» и «?» не разрываются при переносе ряда: «?» всегда сразу справа. */}
           <span className="waiting__mode-group">
@@ -75,7 +77,7 @@ function WaitingScreen({
               aria-disabled={modeMenuOpen}
               aria-expanded={modeMenuOpen}
             >
-              Режим: {activeModeTitle}
+              {t('main.mode', { mode: activeModeTitle })}
             </button>
             {modeHint}
           </span>

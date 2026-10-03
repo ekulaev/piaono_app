@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import HintNotes from './HintNotes'
 import type { Hint } from './hints'
 import './HintDialog.css'
+import { useT } from '../i18n/useI18n'
 
 interface Props {
   hint: Hint
@@ -15,6 +16,7 @@ interface Props {
  * касание затемнения — тоже закрытие. Появляется сразу, без анимации.
  */
 function HintDialog({ hint, onClose }: Props) {
+  const t = useT()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -54,22 +56,22 @@ function HintDialog({ hint, onClose }: Props) {
       <div className="hint__frame">
         <header className="hint__header">
           <h2 id="hint-title" className="hint__title">
-            {hint.title}
+            {t(hint.title)}
           </h2>
           <button ref={closeRef} type="button" className="button" onClick={close}>
-            <span aria-hidden="true">×</span> Закрыть
+            <span aria-hidden="true">×</span> {t('common.close')}
           </button>
         </header>
         <div className="hint__body">
           {hint.blocks.map((block, index) => {
             switch (block.kind) {
               case 'text':
-                return <p key={index}>{block.text}</p>
+                return <p key={index}>{t(block.text)}</p>
               case 'steps':
                 return (
                   <ol key={index} className="hint__steps">
                     {block.steps.map((step) => (
-                      <li key={step}>{step}</li>
+                      <li key={step}>{t(step)}</li>
                     ))}
                   </ol>
                 )
@@ -77,7 +79,7 @@ function HintDialog({ hint, onClose }: Props) {
                 return (
                   <figure key={index} className="hint__figure">
                     <img src={block.src} alt="" />
-                    <figcaption>{block.caption}</figcaption>
+                    <figcaption>{t(block.caption)}</figcaption>
                   </figure>
                 )
               default:

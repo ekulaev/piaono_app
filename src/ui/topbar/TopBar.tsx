@@ -1,8 +1,10 @@
 import type { ConnectionState } from '../../midi/types'
 import { StatusIcon } from '../ConnectionStatus'
-import { STATUS_TITLE, statusClass } from '../connectionTexts'
+import { STATUS_TITLE_KEY, statusClass } from '../connectionTexts'
 import { GearIcon, ProgressIcon, RefreshIcon } from '../icons/Icons'
+import LanguageMenu from './LanguageMenu'
 import './TopBar.css'
+import { useT } from '../i18n/useI18n'
 
 interface Props {
   connectionState: ConnectionState
@@ -17,7 +19,7 @@ interface Props {
 
 /**
  * Верхняя панель — одна на все экраны (C-APP-1, OB-1). Слева статус связи, справа «Обновить»
- * (только когда ждёт новая версия), «Прогресс» и «Настройки». Высота постоянная: ни состояние связи, ни
+ * (только когда ждёт новая версия), «Прогресс», язык (C-APP-3) и «Настройки». Высота постоянная: ни состояние связи, ни
  * появление «Обновить» ничего не сдвигают.
  */
 function TopBar({
@@ -28,15 +30,16 @@ function TopBar({
   updateReady,
   onApplyUpdate,
 }: Props) {
+  const t = useT()
   const settingsOpen = current === 'settings'
-  const title = STATUS_TITLE[connectionState]
+  const title = t(STATUS_TITLE_KEY[connectionState])
   return (
     <header className="topbar">
       <div className="topbar__inner">
         <button
           type="button"
           className={`${statusClass(connectionState)} topbar__status`}
-          aria-label={`${title}. Открыть настройки`}
+          aria-label={t('topbar.statusOpenSettings', { title })}
           onClick={settingsOpen ? undefined : onOpenSettings}
         >
           <StatusIcon />
@@ -53,34 +56,35 @@ function TopBar({
             style={updateReady ? undefined : { visibility: 'hidden' }}
             aria-hidden={!updateReady}
             tabIndex={updateReady ? undefined : -1}
-            title="Обновить приложение"
-            aria-label="Обновить приложение"
+            title={t('topbar.updateApp')}
+            aria-label={t('topbar.updateApp')}
             onClick={onApplyUpdate}
           >
             <RefreshIcon />
-            <span className="topbar__label">Обновить</span>
+            <span className="topbar__label">{t('topbar.update')}</span>
           </button>
           <button
             type="button"
             className="button topbar__button"
             aria-current={current === 'progress' ? 'page' : undefined}
-            title="Прогресс"
-            aria-label="Прогресс"
+            title={t('topbar.progress')}
+            aria-label={t('topbar.progress')}
             onClick={current === 'progress' ? undefined : onOpenProgress}
           >
             <ProgressIcon />
-            <span className="topbar__label">Прогресс</span>
+            <span className="topbar__label">{t('topbar.progress')}</span>
           </button>
+          <LanguageMenu />
           <button
             type="button"
             className="button topbar__button"
             aria-current={settingsOpen ? 'page' : undefined}
-            title="Настройки"
-            aria-label="Настройки"
+            title={t('topbar.settings')}
+            aria-label={t('topbar.settings')}
             onClick={settingsOpen ? undefined : onOpenSettings}
           >
             <GearIcon />
-            <span className="topbar__label">Настройки</span>
+            <span className="topbar__label">{t('topbar.settings')}</span>
           </button>
         </div>
       </div>

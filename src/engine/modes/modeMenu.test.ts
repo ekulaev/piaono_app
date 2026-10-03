@@ -9,17 +9,12 @@ describe('Меню режимов и список режимов', () => {
   })
 
   it('Четыре режима: «Последовательности», «Контур», «Ритм», «Разминка»; неизвестного нет', () => {
-    expect(MODES.map((mode) => mode.title)).toEqual([
-      'Последовательности',
-      'Контур',
-      'Ритм',
-      'Разминка',
-    ])
+    expect(MODES.map((mode) => mode.id)).toEqual(['sequences', 'contour', 'rhythm', 'warmup'])
     expect(isModeId('melody')).toBe(false)
   })
 
   it('по умолчанию активна «Разминка»', () => {
-    expect(modeInfo(DEFAULT_MODE).title).toBe('Разминка')
+    expect(modeInfo(DEFAULT_MODE).id).toBe('warmup')
   })
 })
 

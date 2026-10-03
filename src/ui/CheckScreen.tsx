@@ -2,6 +2,7 @@ import { pitchToNoteName } from '../midi/noteNames'
 import type { MidiNoteEvent } from '../midi/types'
 import ScreenHeader from './ScreenHeader'
 import './CheckScreen.css'
+import { useT } from './i18n/useI18n'
 
 export interface LogEntry {
   id: number
@@ -23,25 +24,30 @@ interface Props {
  * верхней панели; устройства, глиссандо и переподключение — в «Настройках» (C-APP-1, OB-14).
  */
 function CheckScreen({ log, accessError, onBack, onHome }: Props) {
+  const t = useT()
   return (
     <main className="screen check">
-      <ScreenHeader title="Проверка пианино" onBack={onBack} onHome={onHome} />
+      <ScreenHeader title={t('check.title')} onBack={onBack} onHome={onHome} />
 
-      {accessError && <p className="check__error">Ответ системы: {accessError}</p>}
+      {accessError && <p className="check__error">{t('check.error', { error: accessError })}</p>}
 
       <section className="log">
-        <h2>Ноты в реальном времени</h2>
+        <h2>{t('check.logTitle')}</h2>
         {log.length === 0 ? (
-          <p className="log__empty">Сыграй ноту на пианино — она появится здесь.</p>
+          <p className="log__empty">{t('check.empty')}</p>
         ) : (
           <ul className="log__list">
             {log.map(({ id, event }) => (
               <li key={id} className={`log__entry log__entry--${event.type}`}>
                 <span className="log__note">{pitchToNoteName(event.pitch)}</span>
-                <span className="log__pitch">№{event.pitch}</span>
-                <span className="log__kind">{event.type === 'noteOn' ? 'нажата' : 'отпущена'}</span>
+                <span className="log__pitch">{t('check.noteNumber', { pitch: event.pitch })}</span>
+                <span className="log__kind">
+                  {event.type === 'noteOn' ? t('check.pressed') : t('check.released')}
+                </span>
                 {event.type === 'noteOn' && (
-                  <span className="log__velocity">сила {event.velocity}</span>
+                  <span className="log__velocity">
+                    {t('check.velocity', { value: event.velocity })}
+                  </span>
                 )}
               </li>
             ))}

@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
 import type { ConnectionState, MidiDeviceInfo } from '../../midi/types'
 import { StatusIcon } from '../ConnectionStatus'
-import { STATUS_TITLE, statusClass } from '../connectionTexts'
+import { STATUS_TITLE_KEY, statusClass } from '../connectionTexts'
 import HintButton from '../hints/HintButton'
 import { connectionHintId } from '../hints/hints'
 import { Toggle } from '../controls/Controls'
 import ScreenHeader from '../ScreenHeader'
-import { formatBuildDate } from './buildDate'
 import './SettingsScreen.css'
+import { useI18n } from '../i18n/useI18n'
 
 interface Props {
   connectionState: ConnectionState
@@ -59,23 +59,26 @@ function SettingsScreen({
   onApplyUpdate,
   onBack,
 }: Props) {
+  const { t, date } = useI18n()
   const active = devices.find((device) => device.id === activeDeviceId)
   return (
     <main className="screen settings">
-      <ScreenHeader title="Настройки" onBack={onBack} />
+      <ScreenHeader title={t('settings.title')} onBack={onBack} />
 
       {/* Если строки не помещаются по высоте, прокручивается только список. */}
       <ul className="settings__list">
-        <SettingsRow label="Пианино">
+        <SettingsRow label={t('settings.piano')}>
           <span className={`${statusClass(connectionState)} settings__status`}>
             <StatusIcon />
-            <span className="status__title">{STATUS_TITLE[connectionState]}</span>
+            <span className="status__title">{t(STATUS_TITLE_KEY[connectionState])}</span>
           </span>
-          {active && <span className="settings__device-name">{active.name}</span>}
+          {active && (
+            <span className="settings__device-name">{active.name || t('device.unnamed')}</span>
+          )}
           {/* Перезапуск не поможет, если браузер вообще не умеет MIDI (C-APP-1, Р-9). */}
           {connectionState !== 'unsupported' && (
             <button type="button" className="button" onClick={onReconnect}>
-              Переподключить
+              {t('settings.reconnect')}
             </button>
           )}
           {/* Что делать при этом состоянии — в подсказке, а не строкой под строкой (C-APP-2). */}
@@ -83,7 +86,7 @@ function SettingsScreen({
         </SettingsRow>
 
         {devices.length > 1 && (
-          <SettingsRow label="Устройство">
+          <SettingsRow label={t('settings.device')}>
             {/* Каждое устройство — кнопка: касание делает его активным и запоминается. */}
             <ul className="devices__list">
               {devices.map((device) => {
@@ -96,8 +99,8 @@ function SettingsScreen({
                       aria-pressed={isActive}
                       onClick={() => onSelectDevice(device)}
                     >
-                      <span className="device__name">{device.name}</span>
-                      {isActive && <span className="device__mark">слушаю</span>}
+                      <span className="device__name">{device.name || t('device.unnamed')}</span>
+                      {isActive && <span className="device__mark">{t('settings.listening')}</span>}
                     </button>
                   </li>
                 )
@@ -106,21 +109,26 @@ function SettingsScreen({
           </SettingsRow>
         )}
 
-        <SettingsRow label="Проверка пианино">
+        <SettingsRow label={t('settings.check')}>
           <button type="button" className="button" onClick={onOpenCheck}>
-            Открыть
+            {t('settings.open')}
           </button>
         </SettingsRow>
 
-        <SettingsRow label="Глиссандо">
-          <Toggle compact label="Глиссандо" checked={glissando} onChange={onToggleGlissando} />
+        <SettingsRow label={t('settings.glissando')}>
+          <Toggle
+            compact
+            label={t('settings.glissando')}
+            checked={glissando}
+            onChange={onToggleGlissando}
+          />
         </SettingsRow>
 
-        <SettingsRow label="Версия">
-          <span>сборка от {formatBuildDate(__BUILD_DATE__)}</span>
+        <SettingsRow label={t('settings.version')}>
+          <span>{t('settings.build', { date: date(__BUILD_DATE__) })}</span>
           {updateReady && (
             <button type="button" className="button" onClick={onApplyUpdate}>
-              Обновить
+              {t('topbar.update')}
             </button>
           )}
         </SettingsRow>

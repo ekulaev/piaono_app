@@ -6,6 +6,7 @@ import { HINT_BAND } from '../staff/staffDrawing'
 import { useMusicFont, useStaffGeometry } from '../staff/staffHooks'
 import type { HintBlock } from './hints'
 import '../staff/StaffView.css'
+import { useT } from '../i18n/useI18n'
 
 type NotesBlock = Extract<HintBlock, { kind: 'notes' | 'rhythm' }>
 
@@ -14,6 +15,7 @@ type NotesBlock = Extract<HintBlock, { kind: 'notes' | 'rhythm' }>
  * отметок игры. Ширина — по окну, поэтому пример не бывает шире окна (горизонтальной прокрутки нет).
  */
 function HintNotes({ block }: { block: NotesBlock }) {
+  const t = useT()
   const zoneRef = useRef<HTMLDivElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
   const withBand = block.kind === 'notes' && block.intervals === true
@@ -54,7 +56,7 @@ function HintNotes({ block }: { block: NotesBlock }) {
   const style = geometry ? { width: geometry.widthPx, height: geometry.heightPx } : undefined
   return (
     <div ref={zoneRef} className={`staff-zone hint__notes${withBand ? ' hint__notes--band' : ''}`}>
-      <div className="staff" style={style} role="img" aria-label="Нотный пример">
+      <div className="staff" style={style} role="img" aria-label={t('staff.example')}>
         <div ref={hostRef} className="staff__layer" />
       </div>
     </div>

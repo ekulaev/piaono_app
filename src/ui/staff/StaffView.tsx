@@ -3,6 +3,7 @@ import { progress, type ExerciseState } from '../../engine/staff/exercise'
 import { drawNote, drawStaff, notePath, type NoteLook, type StaffGeometry } from './staffDrawing'
 import { useMusicFont, useStaffGeometry } from './staffHooks'
 import './StaffView.css'
+import { useT } from '../i18n/useI18n'
 
 interface Props {
   exercise: ExerciseState
@@ -14,6 +15,7 @@ interface Props {
  * в requestAnimationFrame: в кадре не участвуют ни React, ни VexFlow.
  */
 function StaffView({ exercise }: Props) {
+  const t = useT()
   const zoneRef = useRef<HTMLDivElement>(null)
   const staffRef = useRef<HTMLDivElement>(null)
   const noteRef = useRef<HTMLDivElement>(null)
@@ -79,7 +81,7 @@ function StaffView({ exercise }: Props) {
   const style = geometry ? { width: geometry.widthPx, height: geometry.heightPx } : undefined
   return (
     <div ref={zoneRef} className="staff-zone">
-      <div className="staff" style={style} role="img" aria-label="Нотный стан">
+      <div className="staff" style={style} role="img" aria-label={t('staff.label')}>
         <div ref={staffRef} className="staff__layer" />
         <div ref={noteRef} className="staff__layer staff__note" />
       </div>

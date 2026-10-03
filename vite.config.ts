@@ -27,12 +27,13 @@ export default defineConfig({
       registerType: 'prompt',
       strategies: 'generateSW',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'pwa-icon.svg'],
+      // Манифест один на все языки приложения и английский (C-APP-3, Р-14): на лету он не меняется.
       manifest: {
         id: BASE,
-        name: 'Нотный тренажёр',
-        short_name: 'Ноты',
-        description: 'Тренажёр чтения нот с листа для цифрового пианино',
-        lang: 'ru',
+        name: 'Sight-reading Trainer',
+        short_name: 'Notes',
+        description: 'Sight-reading trainer for digital pianos',
+        lang: 'en',
         start_url: BASE,
         scope: BASE,
         display: 'standalone',

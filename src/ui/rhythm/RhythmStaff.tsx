@@ -3,6 +3,7 @@ import type { RhythmState } from '../../engine/rhythm/session'
 import { useMusicFont, useStaffGeometry } from '../staff/staffHooks'
 import { drawRhythm, fitRhythmGeometry, type NoteLook } from './rhythmDrawing'
 import '../staff/StaffView.css'
+import { useT } from '../i18n/useI18n'
 
 interface Props {
   session: RhythmState
@@ -21,6 +22,7 @@ function looksOf(session: RhythmState): NoteLook[] {
 
 /** Стан «Ритма». Статичный SVG: перерисовка при каждой смене состояния. */
 function RhythmStaff({ session }: Props) {
+  const t = useT()
   const zoneRef = useRef<HTMLDivElement>(null)
   const staffRef = useRef<HTMLDivElement>(null)
   const zoneGeometry = useStaffGeometry(zoneRef)
@@ -52,7 +54,7 @@ function RhythmStaff({ session }: Props) {
   const style = geometry ? { width: geometry.widthPx, height: geometry.heightPx } : undefined
   return (
     <div ref={zoneRef} className="staff-zone">
-      <div className="staff" style={style} role="img" aria-label="Ритмический рисунок">
+      <div className="staff" style={style} role="img" aria-label={t('staff.rhythm')}>
         <div ref={staffRef} className="staff__layer" />
       </div>
     </div>

@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { MODES, modeInfo, type ModeId } from '../../engine/modes/modes'
-import type { HintLevel, HintProgress } from '../../engine/sequences/hints'
+import { MODES, type ModeId } from '../../engine/modes/modes'
+import type { HintProgress } from '../../engine/sequences/hints'
 import type { PracticeStats } from '../../engine/stats/stats'
 import { summarizeMode, type HardPlace } from '../../engine/stats/summary'
 import ConfirmDialog from '../ConfirmDialog'
 import { ChoiceGroup } from '../controls/Controls'
 import ScreenHeader from '../ScreenHeader'
 import './ProgressScreen.css'
+import { placeLabel } from '../i18n/places'
+import { useI18n } from '../i18n/useI18n'
 
 interface Props {
   /** Режим, открытый сначала; выбор на экране активный режим не меняет. */
@@ -16,22 +18,6 @@ interface Props {
   onResetStats: (mode: ModeId) => void
   onResetHints: () => void
   onBack: () => void
-}
-
-/** Уровень подсказок словами (C-STF-3, «Уровни подсказок»). */
-const LEVEL_TEXT: Record<HintLevel, string> = {
-  3: 'якорь с названием и все подсказки',
-  2: 'якорь без названия и все подсказки',
-  1: 'якорь и подсказка к первой ноте',
-  0: 'без подсказок',
-}
-
-const percent = (share: number) => `${Math.round(share * 100)} %`
-const seconds = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} с`
-
-function placeLine(place: HardPlace) {
-  const time = place.avgMs === null ? '' : `, ${seconds(place.avgMs)}`
-  return `${place.attempts} попыток, ${percent(place.cleanShare)} чисто${time}`
 }
 
 type Confirm = 'stats' | 'hints' | null
@@ -50,51 +36,64 @@ function ProgressScreen({
 }: Props) {
   const [mode, setMode] = useState<ModeId>(activeMode)
   const [confirm, setConfirm] = useState<Confirm>(null)
+  const { t, percent, seconds } = useI18n()
   const summary = summarizeMode(mode, practice[mode])
-  const title = modeInfo(mode).title
+  const title = t(`mode.${mode}`)
+
+  /** «5 попыток, 58 % чисто, 2,1 с» — разделитель одинаков на всех языках. */
+  function placeLine(place: HardPlace) {
+    const parts = [
+      t('progress.attemptsCount', { n: place.attempts }),
+      t('progress.cleanShare', { share: percent(place.cleanShare) }),
+    ]
+    if (place.avgMs !== null) parts.push(seconds(place.avgMs))
+    return parts.join(', ')
+  }
   const hintsToReturn = hints.treble.level < 3 || hints.bass.level < 3
 
   return (
     <main className="screen progress">
-      <ScreenHeader title="Прогресс" onBack={onBack} />
+      <ScreenHeader title={t('topbar.progress')} onBack={onBack} />
       <div className="progress__content">
         <ChoiceGroup
-          label="Режим"
+          label={t('progress.mode')}
           value={mode}
           onChange={setMode}
-          options={MODES.map((m) => ({ value: m.id, title: m.title }))}
+          options={MODES.map((m) => ({ value: m.id, title: t(`mode.${m.id}`) }))}
         />
 
         {summary ? (
           <>
             <dl className="progress__totals">
               <div>
-                <dt>Попыток</dt>
+                <dt>{t('stats.attempts')}</dt>
                 <dd>{summary.attempts}</dd>
               </div>
               <div>
-                <dt>Чисто</dt>
+                <dt>{t('progress.clean')}</dt>
                 <dd>{percent(summary.cleanShare)}</dd>
               </div>
               {summary.avgMs !== null && (
                 <div>
-                  <dt>Среднее время</dt>
+                  <dt>{t('progress.avgTime')}</dt>
                   <dd>{seconds(summary.avgMs)}</dd>
                 </div>
               )}
             </dl>
             <div className="progress__lists">
               {summary.lists.map((list) => (
-                <section key={list.title} className="progress__list">
-                  <h2>{list.title}</h2>
+                <section key={list.id} className="progress__list">
+                  <h2>{t(`progress.list.${list.id}`)}</h2>
                   {list.places.length === 0 ? (
-                    <p>Трудных мест пока нет</p>
+                    <p>{t('progress.noHard')}</p>
                   ) : (
                     <ol>
                       {list.places.map((place) => (
-                        <li key={place.label}>
-                          <span className="progress__place">{place.label}</span> —{' '}
-                          {placeLine(place)}
+                        <li key={`${place.kind}:${place.key}`}>
+                          <span className="progress__place">
+                            {placeLabel(t, place.kind, place.key)}
+                          </span>{' '}
+                          — {placeLine(place)}
                         </li>
                       ))}
                     </ol>
@@ -104,20 +103,26 @@ function ProgressScreen({
             </div>
           </>
         ) : (
-          <p className="progress__invite">
-            Здесь появится, что даётся труднее. Сыграй первую сессию в этом режиме
-          </p>
+          <p className="progress__invite">{t('progress.invite')}</p>
         )}
 
         <div className="progress__footer">
           {mode === 'sequences' && (
             <section className="progress__hints">
-              <h2>Подсказки</h2>
+              <h2>{t('progress.hints')}</h2>
               <p>
-                Скрипичный: {hints.treble.level} из 3 — {LEVEL_TEXT[hints.treble.level]}
+                {t('progress.hintsLine', {
+                  clef: t('seqform.clef.treble'),
+                  level: hints.treble.level,
+                  text: t(`progress.level.${hints.treble.level}`),
+                })}
               </p>
               <p>
-                Басовый: {hints.bass.level} из 3 — {LEVEL_TEXT[hints.bass.level]}
+                {t('progress.hintsLine', {
+                  clef: t('seqform.clef.bass'),
+                  level: hints.bass.level,
+                  text: t(`progress.level.${hints.bass.level}`),
+                })}
               </p>
             </section>
           )}
@@ -125,12 +130,12 @@ function ProgressScreen({
           <div className="progress__actions">
             {summary && (
               <button type="button" className="button" onClick={() => setConfirm('stats')}>
-                Сбросить статистику
+                {t('progress.resetStats')}
               </button>
             )}
             {mode === 'sequences' && hintsToReturn && (
               <button type="button" className="button" onClick={() => setConfirm('hints')}>
-                Вернуть подсказки
+                {t('progress.restoreHints')}
               </button>
             )}
           </div>
@@ -139,8 +144,8 @@ function ProgressScreen({
 
       {confirm === 'stats' && (
         <ConfirmDialog
-          question={`Стереть статистику «${title}»?`}
-          details="Трудные места забудутся, тренажёр начнёт этот режим с чистого листа."
+          question={t('progress.confirmStats', { mode: title })}
+          details={t('progress.confirmStatsDetails')}
           onNo={() => setConfirm(null)}
           onYes={() => {
             onResetStats(mode)
@@ -150,8 +155,8 @@ function ProgressScreen({
       )}
       {confirm === 'hints' && (
         <ConfirmDialog
-          question="Вернуть все подсказки?"
-          details="Якорь с названием и подсказки над всеми нотами снова будут показываться в обоих ключах."
+          question={t('progress.confirmHints')}
+          details={t('progress.confirmHintsDetails')}
           onNo={() => setConfirm(null)}
           onYes={() => {
             onResetHints()

@@ -17,12 +17,12 @@ describe('Что улучшилось', () => {
     })
   })
 
-  it('Нота стала точнее: 60 % → 100 %, у басовой — «(бас)»', () => {
+  it('Нота стала точнее: 60 % → 100 %; ключ в ключе места', () => {
     const before = aggregate([...repeat(3, bassC3('clean')), ...repeat(2, bassC3('error'))])
     const session = aggregate(repeat(4, bassC3('clean')))
     expect(improvements(before, session)).toEqual({
       firstSession: false,
-      lines: ['C3 (бас) — точнее: 60 % → 100 %'],
+      lines: [{ kind: 'note', key: 'bass:48', metric: 'accuracy', before: 0.6, now: 1 }],
     })
   })
 
@@ -32,7 +32,7 @@ describe('Что улучшилось', () => {
     const session = aggregate(repeat(3, up3(1400)))
     expect(improvements(before, session)).toEqual({
       firstSession: false,
-      lines: ['↑3 — быстрее: 2,1 с → 1,4 с'],
+      lines: [{ kind: 'interval', key: 'up3', metric: 'speed', before: 2100, now: 1400 }],
     })
   })
 
@@ -58,7 +58,13 @@ describe('Что улучшилось', () => {
     const result = improvements(aggregate(events), aggregate(session))
     if (result.firstSession) throw new Error('ожидалась история')
     expect(result.lines).toHaveLength(3)
-    expect(result.lines[0]).toBe('C4 — точнее: 50 % → 100 %')
+    expect(result.lines[0]).toEqual({
+      kind: 'note',
+      key: 'treble:60',
+      metric: 'accuracy',
+      before: 0.5,
+      now: 1,
+    })
   })
 })
 
@@ -73,7 +79,10 @@ describe('«Что улучшилось» в «Контуре» (C-STF-5)', () =
   it('Вторая сессия Контура: история из одних переходов — не первая сессия, «=» в строке', () => {
     const before = aggregate([...repeat(2, same('clean')), ...repeat(3, same('error'))])
     const result = improvements(before, aggregate(repeat(4, same('clean'))))
-    expect(result).toEqual({ firstSession: false, lines: ['= — точнее: 40 % → 100 %'] })
+    expect(result).toEqual({
+      firstSession: false,
+      lines: [{ kind: 'interval', key: 'same1', metric: 'accuracy', before: 0.4, now: 1 }],
+    })
   })
 })
 
@@ -90,7 +99,7 @@ describe('Что улучшилось у «Ритма» (C-STF-6)', () => {
     const session = aggregate(repeat(4, eighths('clean')))
     expect(improvements(before, session)).toEqual({
       firstSession: false,
-      lines: ['две восьмые — точнее: 40 % → 100 %'],
+      lines: [{ kind: 'figure', key: 'eighths', metric: 'accuracy', before: 0.4, now: 1 }],
     })
   })
 })

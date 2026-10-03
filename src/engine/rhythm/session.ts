@@ -3,7 +3,7 @@
 // рисунок ждёт ученика сколько угодно.
 
 import { applyEvents, type ModeStats, type StatEvent } from '../stats/stats'
-import { FIGURES, isRestFigure, type FigureId } from './figures'
+import { isRestFigure, type FigureId } from './figures'
 import { evaluateTaps, type Mark } from './evaluate'
 import { patternFigures, type Pattern } from './generate'
 
@@ -146,7 +146,7 @@ export interface RhythmSummary {
   early: number
   late: number
   /** До трёх фигур сессии с наибольшей долей попыток с ошибкой; пусто — всё чисто. */
-  hardest: { label: string; errors: number; attempts: number }[]
+  hardest: { id: FigureId; errors: number; attempts: number }[]
 }
 
 export function summarizeRhythm(patterns: Pattern[], history: Mark[][][]): RhythmSummary {
@@ -180,7 +180,7 @@ export function summarizeRhythm(patterns: Pattern[], history: Mark[][][]): Rhyth
     .filter(([, counts]) => counts.errors > 0)
     .sort(([, a], [, b]) => b.errors / b.attempts - a.errors / a.attempts || b.errors - a.errors)
     .slice(0, 3)
-    .map(([id, counts]) => ({ label: FIGURES[id].label, ...counts }))
+    .map(([id, counts]) => ({ id, ...counts }))
 
   const marks = onTime + early + late
   return {

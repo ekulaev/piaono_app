@@ -1,7 +1,6 @@
 // «Что улучшилось» (C-STF-4, OB-11, OB-13, OB-14): сессия против истории до неё.
+// Слова строит интерфейс (C-APP-3): здесь только что улучшилось и числа «было → стало».
 
-import { pitchToNoteName } from '../../midi/noteNames'
-import { FIGURES, isFigureId } from '../rhythm/figures'
 import { hasProgress, TABLES, type ItemStats, type ModeStats, type StatKind } from './stats'
 import { MIN_ATTEMPTS } from './weights'
 
@@ -11,26 +10,24 @@ export const TIME_GAIN = 0.2
 /** Строк в блоке (LIM-3). */
 export const MAX_LINES = 3
 
-export type Improvements = { firstSession: true } | { firstSession: false; lines: string[] }
-
-const percent = (share: number) => `${Math.round(share * 100)} %`
-const seconds = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} с`
-
-/** «C4», «C3 (бас)», «↑3», «=» (на месте), «две восьмые». */
-export function label(kind: StatKind, key: string): string {
-  if (kind === 'figure') return isFigureId(key) ? FIGURES[key].label : key
-  if (kind === 'interval') {
-    if (key.startsWith('same')) return '='
-    const up = key.startsWith('up')
-    return `${up ? '↑' : '↓'}${key.slice(up ? 2 : 4)}`
-  }
-  const [clef, pitch] = key.split(':')
-  return `${pitchToNoteName(Number(pitch))}${clef === 'bass' ? ' (бас)' : ''}`
+/**
+ * Одно улучшение: место, что улучшилось и «было → стало». Для «accuracy» числа — доли 0–1,
+ * для «speed» — среднее время в миллисекундах.
+ */
+export interface ImprovementLine {
+  kind: StatKind
+  key: string
+  metric: 'accuracy' | 'speed'
+  before: number
+  now: number
 }
+
+export type Improvements =
+  { firstSession: true } | { firstSession: false; lines: ImprovementLine[] }
 
 interface Candidate {
   gain: number
-  line: string
+  line: ImprovementLine
 }
 
 function compare(kind: StatKind, key: string, before: ItemStats, now: ItemStats) {
@@ -41,7 +38,7 @@ function compare(kind: StatKind, key: string, before: ItemStats, now: ItemStats)
   if (accNow - accBefore >= ACCURACY_GAIN - 1e-9) {
     candidates.push({
       gain: accNow - accBefore,
-      line: `${label(kind, key)} — точнее: ${percent(accBefore)} → ${percent(accNow)}`,
+      line: { kind, key, metric: 'accuracy', before: accBefore, now: accNow },
     })
   }
   if (before.timeCount >= MIN_ATTEMPTS && now.timeCount >= MIN_ATTEMPTS) {
@@ -49,7 +46,7 @@ function compare(kind: StatKind, key: string, before: ItemStats, now: ItemStats)
     if (gain >= TIME_GAIN - 1e-9) {
       candidates.push({
         gain,
-        line: `${label(kind, key)} — быстрее: ${seconds(before.avgMs)} → ${seconds(now.avgMs)}`,
+        line: { kind, key, metric: 'speed', before: before.avgMs, now: now.avgMs },
       })
     }
   }
