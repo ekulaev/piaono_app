@@ -24,6 +24,8 @@ interface Props {
   slotButton: SlotButton | null
   /** Нотный стан (или итог, или приглашение): занимает всё свободное место над кнопками. */
   staff: ReactNode
+  /** Полоса нажатых нот: между станом и рядом кнопок (C-STF-8). */
+  noteEcho: ReactNode
   /** Экранная клавиатура: видна внизу во всех состояниях связи. */
   keyboard: ReactNode
 }
@@ -42,6 +44,7 @@ function WaitingScreen({
   modeControl,
   slotButton,
   staff,
+  noteEcho,
   keyboard,
 }: Props) {
   const t = useT()
@@ -49,6 +52,8 @@ function WaitingScreen({
     <div className="waiting-screen">
       <main className="waiting">
         {staff}
+
+        {noteEcho}
 
         <nav className="waiting__actions">
           {/* Слот держит место и без кнопки: «Старт» и «Режим» не сдвигаются при запуске. */}

@@ -27,6 +27,8 @@ export interface Settings {
    * Есть ли такой язык в приложении, решает `resolveLanguage`: хранилище языков не знает.
    */
   language: string | null
+  /** Сколько миллисекунд карточка нажатой ноты остаётся на экране (C-STF-8). */
+  noteEchoMs: number
   /** Режим, который запускает «Старт» на главном экране. */
   activeMode: ModeId
   /**
@@ -41,10 +43,17 @@ export interface Settings {
   }
 }
 
+/** Время показа ноты: от 0,5 до 5 с с шагом 0,5 с, по умолчанию 1 с [→ C-STF-8, LIM-2]. */
+export const MIN_NOTE_ECHO_MS = 500
+export const MAX_NOTE_ECHO_MS = 5000
+export const NOTE_ECHO_STEP_MS = 500
+export const DEFAULT_NOTE_ECHO_MS = 1000
+
 const DEFAULT_SETTINGS: Settings = {
   glissando: false,
   preferredInput: null,
   language: null,
+  noteEchoMs: DEFAULT_NOTE_ECHO_MS,
   activeMode: DEFAULT_MODE,
   modeSettings: {
     sequences: DEFAULT_SEQUENCE_SETTINGS,
@@ -66,15 +75,14 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
     if (!raw) return { ...DEFAULT_SETTINGS }
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS }
-    const { glissando, preferredInput, language, activeMode, modeSettings } = parsed as Record<
-      string,
-      unknown
-    >
+    const { glissando, preferredInput, language, noteEchoMs, activeMode, modeSettings } =
+      parsed as Record<string, unknown>
     const savedModes = typeof modeSettings === 'object' && modeSettings !== null ? modeSettings : {}
     return {
       glissando: typeof glissando === 'boolean' ? glissando : DEFAULT_SETTINGS.glissando,
       preferredInput: readPreferredInput(preferredInput),
       language: typeof language === 'string' && language !== '' ? language : null,
+      noteEchoMs: readNoteEchoMs(noteEchoMs),
       // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
       activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
       modeSettings: {
@@ -86,6 +94,16 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
   } catch {
     return { ...DEFAULT_SETTINGS }
   }
+}
+
+/** Время показа ноты: число из допустимых значений, иначе значение по умолчанию. */
+function readNoteEchoMs(value: unknown): number {
+  const valid =
+    typeof value === 'number' &&
+    value >= MIN_NOTE_ECHO_MS &&
+    value <= MAX_NOTE_ECHO_MS &&
+    value % NOTE_ECHO_STEP_MS === 0
+  return valid ? value : DEFAULT_NOTE_ECHO_MS
 }
 
 /** Сохранённый вход: объект со строковыми id и name, иначе «выбора не было». */

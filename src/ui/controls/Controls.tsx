@@ -60,37 +60,59 @@ interface StepperProps {
   value: number
   min: number
   max: number
+  /** На сколько меняется значение за нажатие; по умолчанию 1. */
+  step?: number
+  /** Короткий вид (в строке настроек): название уже стоит рядом, на экране его не повторяем. */
+  compact?: boolean
+  /** Как показать значение («1,0 с»); по умолчанию число как есть. */
+  format?: (value: number) => string
   onChange: (value: number) => void
 }
 
 /** Число «− N +»: вместо ползунка, у которого мелкая цель и трудное точное перетаскивание. */
-export function Stepper({ label, value, min, max, onChange }: StepperProps) {
+export function Stepper({
+  label,
+  value,
+  min,
+  max,
+  step = 1,
+  compact = false,
+  format,
+  onChange,
+}: StepperProps) {
   const t = useT()
   const labelId = useId()
   return (
     <div className="control">
-      <p id={labelId} className="control__label">
-        {label}
-      </p>
-      <div className="stepper" role="group" aria-labelledby={labelId}>
+      {!compact && (
+        <p id={labelId} className="control__label">
+          {label}
+        </p>
+      )}
+      <div
+        className="stepper"
+        role="group"
+        aria-labelledby={compact ? undefined : labelId}
+        aria-label={compact ? label : undefined}
+      >
         <button
           type="button"
           className="stepper__button"
           aria-label={t('controls.less')}
           disabled={value <= min}
-          onClick={() => onChange(value - 1)}
+          onClick={() => onChange(value - step)}
         >
           −
         </button>
         <output className="stepper__value" aria-live="polite">
-          {value}
+          {format ? format(value) : value}
         </output>
         <button
           type="button"
           className="stepper__button"
           aria-label={t('controls.more')}
           disabled={value >= max}
-          onClick={() => onChange(value + 1)}
+          onClick={() => onChange(value + step)}
         >
           +
         </button>

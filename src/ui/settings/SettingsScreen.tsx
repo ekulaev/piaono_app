@@ -4,7 +4,8 @@ import { StatusIcon } from '../ConnectionStatus'
 import { STATUS_TITLE_KEY, statusClass } from '../connectionTexts'
 import HintButton from '../hints/HintButton'
 import { connectionHintId } from '../hints/hints'
-import { Toggle } from '../controls/Controls'
+import { Stepper, Toggle } from '../controls/Controls'
+import { MAX_NOTE_ECHO_MS, MIN_NOTE_ECHO_MS, NOTE_ECHO_STEP_MS } from '../../storage/settings'
 import ScreenHeader from '../ScreenHeader'
 import './SettingsScreen.css'
 import { useI18n } from '../i18n/useI18n'
@@ -20,6 +21,9 @@ interface Props {
   onOpenCheck: () => void
   glissando: boolean
   onToggleGlissando: () => void
+  /** Время показа нажатой ноты в миллисекундах (C-STF-8). */
+  noteEchoMs: number
+  onChangeNoteEchoMs: (ms: number) => void
   updateReady: boolean
   onApplyUpdate: () => void
   onBack: () => void
@@ -55,11 +59,13 @@ function SettingsScreen({
   onOpenCheck,
   glissando,
   onToggleGlissando,
+  noteEchoMs,
+  onChangeNoteEchoMs,
   updateReady,
   onApplyUpdate,
   onBack,
 }: Props) {
-  const { t, date } = useI18n()
+  const { t, date, seconds } = useI18n()
   const active = devices.find((device) => device.id === activeDeviceId)
   return (
     <main className="screen settings">
@@ -121,6 +127,19 @@ function SettingsScreen({
             label={t('settings.glissando')}
             checked={glissando}
             onChange={onToggleGlissando}
+          />
+        </SettingsRow>
+
+        <SettingsRow label={t('settings.noteEcho')}>
+          <Stepper
+            compact
+            label={t('settings.noteEcho')}
+            value={noteEchoMs}
+            min={MIN_NOTE_ECHO_MS}
+            max={MAX_NOTE_ECHO_MS}
+            step={NOTE_ECHO_STEP_MS}
+            format={seconds}
+            onChange={onChangeNoteEchoMs}
           />
         </SettingsRow>
 
