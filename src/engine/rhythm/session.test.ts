@@ -138,7 +138,7 @@ describe('Итог «Ритма» (OB-12)', () => {
       onTimeShare: 11 / 12,
       early: 0,
       late: 1,
-      hardest: [{ label: 'четверть', errors: 1, attempts: 9 }],
+      hardest: [{ id: 'quarter', errors: 1, attempts: 9 }],
     })
   })
 

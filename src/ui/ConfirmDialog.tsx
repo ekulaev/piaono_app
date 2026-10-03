@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import './ConfirmDialog.css'
+import { useT } from './i18n/useI18n'
 
 interface Props {
   /** Вопрос: что именно будет стёрто или изменено. */
@@ -17,6 +18,7 @@ interface Props {
  * вызывается только с экранов «Прогресс» и «Настройки».
  */
 function ConfirmDialog({ question, details, onYes, onNo }: Props) {
+  const t = useT()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const noRef = useRef<HTMLButtonElement>(null)
 
@@ -50,10 +52,10 @@ function ConfirmDialog({ question, details, onYes, onNo }: Props) {
         {details && <p className="confirm__details">{details}</p>}
         <div className="confirm__actions">
           <button ref={noRef} type="button" className="button" onClick={onNo}>
-            Нет
+            {t('dialog.no')}
           </button>
           <button type="button" className="button button--primary" onClick={onYes}>
-            Да
+            {t('dialog.yes')}
           </button>
         </div>
       </div>

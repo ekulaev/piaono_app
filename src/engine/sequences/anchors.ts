@@ -17,17 +17,6 @@ export const MAX_INTERVAL: Record<IntervalChoice, number> = { third: 3, fifth: 5
 /** Самый узкий интервал: прима (повтор ноты) не используется. */
 export const MIN_INTERVAL = 2
 
-/** Для строки «В этом диапазоне — не больше …» (родительный падеж). */
-export const INTERVAL_NAMES: Record<number, string> = {
-  2: 'секунды',
-  3: 'терции',
-  4: 'кварты',
-  5: 'квинты',
-  6: 'сексты',
-  7: 'септимы',
-  8: 'октавы',
-}
-
 /** Направление перехода: вверх, вниз или на месте (повтор ноты, только в «Контуре»). */
 export type Direction = 'up' | 'down' | 'same'
 

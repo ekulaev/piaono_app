@@ -5,6 +5,7 @@ import { useMusicFont, useStaffGeometry } from '../staff/staffHooks'
 import { drawSequence, type StepMark } from './sequenceDrawing'
 import '../staff/StaffView.css'
 import './SequenceStaff.css'
+import { useT } from '../i18n/useI18n'
 
 interface Props {
   session: SessionState
@@ -12,6 +13,7 @@ interface Props {
 
 /** Стан режима «Последовательности». Статичный SVG: перерисовка при каждой смене сессии. */
 function SequenceStaff({ session }: Props) {
+  const t = useT()
   const zoneRef = useRef<HTMLDivElement>(null)
   const staffRef = useRef<HTMLDivElement>(null)
   // Полоса подсказок держится всю сессию с подсказками: стан не прыгает (C-STF-3, OB-10).
@@ -59,12 +61,7 @@ function SequenceStaff({ session }: Props) {
   const style = geometry ? { width: geometry.widthPx, height: geometry.heightPx } : undefined
   return (
     <div ref={zoneRef} className="staff-zone">
-      <div
-        className="staff"
-        style={style}
-        role="img"
-        aria-label="Нотный стан с последовательностью"
-      >
+      <div className="staff" style={style} role="img" aria-label={t('staff.sequence')}>
         <div ref={staffRef} className="staff__layer" />
       </div>
     </div>

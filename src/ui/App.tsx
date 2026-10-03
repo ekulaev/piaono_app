@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { createKeyboardState, reduce } from '../engine/keyboard/keyboardState'
 import type { KeyInput } from '../engine/keyboard/types'
 import { startMidiMonitor } from '../midi/midiAccess'
@@ -40,24 +40,33 @@ import { summarizeWarmup } from '../engine/staff/exercise'
 import NoProgress from './stats/NoProgress'
 import WarmupSummary from './stats/WarmupSummary'
 import * as modeMenu from '../engine/modes/modeMenu'
-import { modeInfo, type ModeId } from '../engine/modes/modes'
+import type { ModeId } from '../engine/modes/modes'
 import WaitingScreen, { type SlotButton } from './WaitingScreen'
 import HintButton from './hints/HintButton'
 import { modeHintId } from './hints/hints'
 import { useAppUpdate } from './useAppUpdate'
+import I18nProvider from './i18n/I18nProvider'
+import { useI18n } from './i18n/useI18n'
+import { AVAILABLE_LANGUAGES, resolveLanguage } from '../i18n'
 
 const MAX_LOG_ENTRIES = 100
 
 /** Экраны под верхней панелью (C-APP-1): главный, «Настройки» и вложенная «Проверка пианино». */
 type Screen = 'main' | 'settings' | 'check' | 'progress'
 
+interface MainProps {
+  settingsRef: MutableRefObject<Settings | null>
+  updateSettings: (change: Partial<Settings>) => void
+}
+
 /**
- * Корень приложения. Владеет единственной подпиской на MIDI и состоянием клавиатуры:
+ * Основное содержимое приложения. Владеет единственной подпиской на MIDI и состоянием клавиатуры:
  * экраны получают их через props, поэтому переход между ними не трогает соединение
  * и не теряет журнал нот. Ноты приходят из двух источников — пианино и касания
  * экранной клавиатуры — и дальше неотличимы.
  */
-function App() {
+function Main({ settingsRef, updateSettings }: MainProps) {
+  const { t } = useI18n()
   const [screen, setScreen] = useState<Screen>('main')
   const [connectionState, setConnectionState] = useState<ConnectionState>('connecting')
   const [devices, setDevices] = useState<MidiDeviceInfo[]>([])
@@ -67,15 +76,6 @@ function App() {
   const nextLogId = useRef(0)
   const monitorRef = useRef<MidiMonitor | null>(null)
   const { updateReady, applyUpdate } = useAppUpdate()
-
-  // Настройки читаются один раз при запуске; меняются и сохраняются целиком.
-  const settingsRef = useRef<Settings | null>(null)
-  settingsRef.current ??= loadSettings()
-  function updateSettings(change: Partial<Settings>) {
-    const next = { ...settingsRef.current!, ...change }
-    settingsRef.current = next
-    saveSettings(next)
-  }
 
   const [keyboard, setKeyboard] = useState(() =>
     createKeyboardState(settingsRef.current!.glissando),
@@ -279,6 +279,8 @@ function App() {
     )
     monitorRef.current = monitor
     return monitor.stop
+    // Выбранное устройство читаем в момент запуска MIDI; его смена не должна перезапускать связь.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [handleKeyInput])
 
   const session = sequences.state
@@ -322,15 +324,18 @@ function App() {
   let slotButton: SlotButton | null = null
   // «Ритм»: одна кнопка по ходу рисунка (C-STF-6, OB-9).
   if (rhythmState.phase === 'ready') {
-    slotButton = { label: 'Пропустить', onClick: rhythm.skip }
+    slotButton = { label: t('slot.skip'), onClick: rhythm.skip }
   } else if (rhythmState.phase === 'tapping') {
-    slotButton = { label: 'Сначала', onClick: rhythm.restart }
+    slotButton = { label: t('slot.restart'), onClick: rhythm.restart }
   } else if (rhythmState.phase === 'evaluated') {
-    slotButton = { label: 'Далее', onClick: rhythm.next }
+    slotButton = { label: t('slot.next'), onClick: rhythm.next }
   } else if (session.phase === 'playing') {
-    slotButton = { label: 'Пропустить', onClick: sequences.skip }
+    slotButton = { label: t('slot.skip'), onClick: sequences.skip }
   } else if (session.phase === 'finished') {
-    const label = sequences.countdown === null ? 'Далее' : `Далее (${sequences.countdown})`
+    const label =
+      sequences.countdown === null
+        ? t('slot.next')
+        : t('slot.nextCountdown', { n: sequences.countdown })
     slotButton = { label, onClick: sequences.next }
   }
 
@@ -425,7 +430,7 @@ function App() {
       <WaitingScreen
         exerciseRunning={exerciseRunning}
         onToggleExercise={exerciseRunning ? finishExercises : () => startMode(activeMode)}
-        activeModeTitle={modeInfo(activeMode).title}
+        activeModeTitle={t(`mode.${activeMode}`)}
         onOpenModes={() => {
           // Пока меню открыто, упражнение не идёт (C-MODE-1, OB-3).
           stopExercises()
@@ -443,7 +448,7 @@ function App() {
           (activeMode === 'sequences' || activeMode === 'contour') && (
             <Toggle
               compact
-              label="Переключать автоматически"
+              label={t('modeControl.autoAdvance')}
               icon={<AutoAdvanceIcon />}
               checked={modeSettings[activeMode].autoAdvance}
               onChange={(autoAdvance) => {
@@ -483,6 +488,37 @@ function App() {
         onStart={() => confirmMode(true)}
       />
     </div>
+  )
+}
+
+/**
+ * Корень приложения: настройки читаются один раз при запуске, меняются и сохраняются целиком;
+ * язык (C-APP-3) — из них или из языка системы и передаётся всему дереву.
+ */
+function App() {
+  const settingsRef = useRef<Settings | null>(null)
+  settingsRef.current ??= loadSettings()
+  const updateSettings = useCallback((change: Partial<Settings>) => {
+    const next = { ...settingsRef.current!, ...change }
+    settingsRef.current = next
+    saveSettings(next)
+  }, [])
+
+  const [language, setLanguage] = useState(() =>
+    resolveLanguage(settingsRef.current!.language, navigator.languages, AVAILABLE_LANGUAGES),
+  )
+  const selectLanguage = useCallback(
+    (code: string) => {
+      setLanguage(code)
+      updateSettings({ language: code })
+    },
+    [updateSettings],
+  )
+
+  return (
+    <I18nProvider language={language} onSelectLanguage={selectLanguage}>
+      <Main settingsRef={settingsRef} updateSettings={updateSettings} />
+    </I18nProvider>
   )
 }
 

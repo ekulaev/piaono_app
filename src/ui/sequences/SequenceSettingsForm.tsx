@@ -1,4 +1,4 @@
-import { INTERVAL_NAMES, MAX_INTERVAL, widestFitting } from '../../engine/sequences/anchors'
+import { MAX_INTERVAL, widestFitting } from '../../engine/sequences/anchors'
 import { RANGES } from '../../engine/sequences/generate'
 import {
   NOTES_PER_STEP_LIMITS,
@@ -7,6 +7,10 @@ import {
 } from '../../engine/sequences/settings'
 import { ChoiceGroup, Stepper, Toggle } from '../controls/Controls'
 import AutoAdvanceIcon from './AutoAdvanceIcon'
+import { useT } from '../i18n/useI18n'
+import type { MessageKey } from '../../i18n'
+
+type T = (key: MessageKey, params?: Record<string, string | number>) => string
 
 interface Props {
   settings: SequenceSettings
@@ -15,23 +19,21 @@ interface Props {
   variant?: 'sequences' | 'contour'
 }
 
-/** Пояснение под настройками, которые действуют только для шагов из одной ноты. */
-const SINGLE_NOTES_ONLY = 'Только для шагов из одной ноты'
-
 /**
  * «В этом диапазоне — не больше …», если выбранный предел шире диапазона. Число белых клавиш
  * у скрипичного и басового диапазона одно, поэтому достаточно скрипичного.
  */
-function intervalNote(settings: SequenceSettings): string | undefined {
+function intervalNote(settings: SequenceSettings, t: T): string | undefined {
   const { low, high } = RANGES[settings.range].treble
   const widest = widestFitting(low, high, settings.intervals)
   return widest < MAX_INTERVAL[settings.intervals]
-    ? `В этом диапазоне — не больше ${INTERVAL_NAMES[widest]}`
+    ? t('seqform.rangeLimit', { name: t(`interval.name.${widest}` as MessageKey) })
     : undefined
 }
 
 /** Настройки режима «Последовательности» на экране режима (меняют только черновик). */
 function SequenceSettingsForm({ settings, onChange, variant = 'sequences' }: Props) {
+  const t = useT()
   const contour = variant === 'contour'
   const set = <K extends keyof SequenceSettings>(key: K, value: SequenceSettings[K]) =>
     onChange({ ...settings, [key]: value })
@@ -41,46 +43,46 @@ function SequenceSettingsForm({ settings, onChange, variant = 'sequences' }: Pro
   return (
     <div className="sequence-settings">
       <ChoiceGroup
-        label="Ключ"
+        label={t('seqform.clef')}
         value={settings.clef}
         onChange={(value) => set('clef', value)}
         options={[
-          { value: 'treble', title: 'Скрипичный' },
-          { value: 'bass', title: 'Басовый' },
-          { value: 'both', title: 'Оба' },
+          { value: 'treble', title: t('seqform.clef.treble') },
+          { value: 'bass', title: t('seqform.clef.bass') },
+          { value: 'both', title: t('seqform.clef.both') },
         ]}
       />
       <ChoiceGroup
-        label="Диапазон"
+        label={t('seqform.range')}
         value={settings.range}
         onChange={(value) => set('range', value)}
         options={[
-          { value: 'position', title: 'Позиция' },
-          { value: 'octave', title: 'Октава' },
-          { value: 'staff', title: 'Весь стан' },
+          { value: 'position', title: t('seqform.range.position') },
+          { value: 'octave', title: t('seqform.range.octave') },
+          { value: 'staff', title: t('seqform.range.staff') },
         ]}
       />
       <ChoiceGroup
-        label="Интервалы"
+        label={t('seqform.intervals')}
         value={settings.intervals}
         onChange={(value) => set('intervals', value)}
         options={[
-          { value: 'third', title: 'До терции' },
-          { value: 'fifth', title: 'До квинты' },
-          { value: 'octave', title: 'До октавы' },
+          { value: 'third', title: t('seqform.intervals.third') },
+          { value: 'fifth', title: t('seqform.intervals.fifth') },
+          { value: 'octave', title: t('seqform.intervals.octave') },
         ]}
         disabled={chords}
-        note={chords ? SINGLE_NOTES_ONLY : intervalNote(settings)}
+        note={chords ? t('seqform.singleNotesOnly') : intervalNote(settings, t)}
       />
       <Stepper
-        label="Последовательностей в сессии"
+        label={t('seqform.sequences')}
         value={settings.sequences}
         {...SEQUENCES_LIMITS}
         onChange={(value) => set('sequences', value)}
       />
       {!contour && (
         <Stepper
-          label="Нот в шаге"
+          label={t('seqform.notesPerStep')}
           value={settings.notesPerStep}
           {...NOTES_PER_STEP_LIMITS}
           onChange={(value) => set('notesPerStep', value)}
@@ -88,15 +90,15 @@ function SequenceSettingsForm({ settings, onChange, variant = 'sequences' }: Pro
       )}
       {!contour && (
         <Toggle
-          label="Подсказки"
+          label={t('seqform.hints')}
           checked={settings.hints}
           onChange={(value) => set('hints', value)}
           disabled={chords}
-          note={chords ? SINGLE_NOTES_ONLY : undefined}
+          note={chords ? t('seqform.singleNotesOnly') : undefined}
         />
       )}
       <Toggle
-        label="Переключать автоматически"
+        label={t('modeControl.autoAdvance')}
         checked={settings.autoAdvance}
         onChange={(value) => set('autoAdvance', value)}
         icon={<AutoAdvanceIcon />}

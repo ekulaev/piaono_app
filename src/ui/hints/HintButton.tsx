@@ -3,6 +3,7 @@ import { QuestionIcon } from '../icons/Icons'
 import HintDialog from './HintDialog'
 import { HINTS, type HintId } from './hints'
 import './HintButton.css'
+import { useT } from '../i18n/useI18n'
 
 interface Props {
   id: HintId
@@ -20,14 +21,15 @@ function HintButton({ id, placement = 'end', beforeOpen }: Props) {
   const [open, setOpen] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const hint = HINTS[id]
+  const t = useT()
   return (
     <>
       <button
         ref={buttonRef}
         type="button"
         className={`hint-button hint-button--${placement}`}
-        aria-label={`Подсказка: ${hint.title}`}
-        title={`Подсказка: ${hint.title}`}
+        aria-label={t('hint.label', { title: t(hint.title) })}
+        title={t('hint.label', { title: t(hint.title) })}
         onClick={() => {
           beforeOpen?.()
           setOpen(true)

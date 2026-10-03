@@ -130,3 +130,28 @@ describe('Файлы переводов (C-APP-3, OB-9, INV-2)', () => {
     }
   })
 })
+
+describe('Тексты не зашиты в экранах (C-APP-3, INV-2)', () => {
+  it('в ui/ нет русских слов вне комментариев', () => {
+    const sources = import.meta.glob<string>(
+      ['../ui/**/*.ts', '../ui/**/*.tsx', '!../ui/**/*.test.*'],
+      {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      },
+    )
+    const offenders: string[] = []
+    for (const [file, source] of Object.entries(sources)) {
+      source.split('\n').forEach((line, index) => {
+        const code = line.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '')
+        const trimmed = code.trim()
+        // Строки внутри блочных комментариев начинаются с «*»; JSX-комментарии — с «{/*».
+        if (trimmed.startsWith('*') || trimmed.startsWith('{/*') || trimmed.startsWith('/*')) return
+        if (/[А-Яа-яЁё]/.test(code)) offenders.push(`${file}:${index + 1}: ${trimmed}`)
+      })
+    }
+    expect(Object.keys(sources).length).toBeGreaterThan(30)
+    expect(offenders).toEqual([])
+  })
+})

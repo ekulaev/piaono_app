@@ -21,8 +21,9 @@ function connectedInputs(access: MIDIAccess): MIDIInput[] {
   return inputs
 }
 
+/** Безымянное устройство — с пустым названием: слова для него подставляет интерфейс (C-APP-3). */
 function toDeviceInfo(input: MIDIInput): MidiDeviceInfo {
-  return { id: input.id, name: input.name ?? 'MIDI-устройство' }
+  return { id: input.id, name: input.name ?? '' }
 }
 
 /** Как часто тихо повторять запрос доступа, пока система MIDI недоступна. */

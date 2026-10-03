@@ -8,6 +8,7 @@ import HintButton from '../hints/HintButton'
 import { modeHintId } from '../hints/hints'
 import SequenceSettingsForm from '../sequences/SequenceSettingsForm'
 import './ModeMenu.css'
+import { useT } from '../i18n/useI18n'
 
 interface Props {
   menu: MenuState
@@ -44,6 +45,7 @@ function OpenMenu({
   onSelect,
   onStart,
 }: Props) {
+  const t = useT()
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Фокус клавиатуры — в меню (первая кнопка экрана), а после закрытия — туда, где был.
@@ -69,7 +71,7 @@ function OpenMenu({
 
   const closeButton = (
     <button type="button" className="button mode-menu__close" onClick={onClose}>
-      <span aria-hidden="true">×</span> Закрыть
+      <span aria-hidden="true">×</span> {t('common.close')}
     </button>
   )
 
@@ -86,11 +88,17 @@ function OpenMenu({
         }}
         onClick={onClose}
       />
-      <div ref={panelRef} className="mode-menu" role="dialog" aria-modal="true" aria-label="Режимы">
+      <div
+        ref={panelRef}
+        className="mode-menu"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('modes.title')}
+      >
         {menu.screen !== 'mode' ? (
           <>
             <header className="mode-menu__header">
-              <h2 className="mode-menu__title">Режимы</h2>
+              <h2 className="mode-menu__title">{t('modes.title')}</h2>
               {closeButton}
             </header>
             <ul className="mode-menu__list">
@@ -105,8 +113,8 @@ function OpenMenu({
                       data-autofocus={index === 0 ? '' : undefined}
                       onClick={() => onChoose(mode.id)}
                     >
-                      <span>{mode.title}</span>
-                      {active && <span className="mode-item__mark">выбран</span>}
+                      <span>{t(`mode.${mode.id}`)}</span>
+                      {active && <span className="mode-item__mark">{t('modes.selected')}</span>}
                     </button>
                   </li>
                 )
@@ -117,11 +125,11 @@ function OpenMenu({
           <>
             <header className="mode-menu__header">
               <button type="button" className="button" data-autofocus="" onClick={onBack}>
-                <span aria-hidden="true">←</span> Назад
+                <span aria-hidden="true">←</span> {t('header.back')}
               </button>
               {/* «?» — сразу после названия: как играть в этом режиме (C-APP-2, OB-10). */}
               <div className="mode-menu__heading">
-                <h2 className="mode-menu__title">{modeInfo(menu.modeId).title}</h2>
+                <h2 className="mode-menu__title">{t(`mode.${menu.modeId}`)}</h2>
                 <HintButton id={modeHintId(menu.modeId)} placement="inline" />
               </div>
               {closeButton}
@@ -141,16 +149,16 @@ function OpenMenu({
                 />
               ) : (
                 !modeInfo(menu.modeId).hasSettings && (
-                  <p className="mode-menu__empty">У этого режима нет настроек</p>
+                  <p className="mode-menu__empty">{t('modes.noSettings')}</p>
                 )
               )}
             </div>
             <footer className="mode-menu__actions">
               <button type="button" className="button" onClick={onSelect}>
-                Выбрать
+                {t('modes.select')}
               </button>
               <button type="button" className="button button--primary" onClick={onStart}>
-                Старт
+                {t('main.start')}
               </button>
             </footer>
           </>

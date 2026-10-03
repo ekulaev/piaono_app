@@ -3,6 +3,7 @@ import type { Improvements as ImprovementsData } from '../../engine/stats/improv
 import Improvements from '../stats/Improvements'
 import '../sequences/SessionSummary.css'
 import './RhythmSummary.css'
+import { useI18n } from '../i18n/useI18n'
 
 interface Props {
   summary: Summary
@@ -13,41 +14,41 @@ interface Props {
 
 /** Итог «Ритма» (C-STF-6, OB-12) на месте стана — та же сетка, что у «Последовательностей». */
 function RhythmSummary({ summary, improvements, onRepeat, onNew }: Props) {
+  const { t, percent } = useI18n()
   return (
-    <section className="summary summary--rhythm" aria-label="Итог сессии">
+    <section className="summary summary--rhythm" aria-label={t('summary.label')}>
       <dl className="summary__counts">
         <div>
-          <dt>Чисто сразу</dt>
+          <dt>{t('rsummary.cleanFirstTry')}</dt>
           <dd>{summary.cleanFirstTry}</dd>
         </div>
         <div>
-          <dt>Попыток</dt>
+          <dt>{t('stats.attempts')}</dt>
           <dd>{summary.attempts}</dd>
         </div>
         <div>
-          <dt>Вовремя</dt>
-          <dd>
-            {summary.onTimeShare === null ? '—' : `${Math.round(summary.onTimeShare * 100)} %`}
-          </dd>
+          <dt>{t('rsummary.onTime')}</dt>
+          <dd>{summary.onTimeShare === null ? '—' : percent(summary.onTimeShare)}</dd>
         </div>
         <div>
-          <dt>Рано</dt>
+          <dt>{t('rsummary.early')}</dt>
           <dd>{summary.early}</dd>
         </div>
         <div>
-          <dt>Поздно</dt>
+          <dt>{t('rsummary.late')}</dt>
           <dd>{summary.late}</dd>
         </div>
       </dl>
       <div className="summary__block summary__hard">
-        <h3>Трудные фигуры</h3>
+        <h3>{t('progress.list.figures')}</h3>
         {summary.hardest.length === 0 ? (
-          <p>{summary.attempts === 0 ? 'Все рисунки пропущены' : 'Все фигуры сыграны чисто'}</p>
+          <p>{summary.attempts === 0 ? t('rsummary.allSkipped') : t('rsummary.allClean')}</p>
         ) : (
           <ol>
-            {summary.hardest.map(({ label, errors, attempts }) => (
-              <li key={label}>
-                <span className="summary__note">{label}</span> — {errors} из {attempts} с ошибкой
+            {summary.hardest.map(({ id, errors, attempts }) => (
+              <li key={id}>
+                <span className="summary__note">{t(`figure.${id}`)}</span> —{' '}
+                {t('rsummary.errorOf', { errors, attempts })}
               </li>
             ))}
           </ol>
@@ -57,10 +58,10 @@ function RhythmSummary({ summary, improvements, onRepeat, onNew }: Props) {
         <Improvements improvements={improvements} />
         <div className="summary__actions">
           <button type="button" className="button" onClick={onRepeat}>
-            Повторить
+            {t('summary.repeat')}
           </button>
           <button type="button" className="button button--primary" onClick={onNew}>
-            Новая
+            {t('summary.new')}
           </button>
         </div>
       </div>

@@ -9,7 +9,7 @@ import {
 } from './hints'
 import { pitchToNoteName } from '../../midi/noteNames'
 import { contourEvents, sequenceEvents } from '../stats/events'
-import { label } from '../stats/improvements'
+import { intervalLabel } from '../stats/labels'
 import { intervalKey } from '../stats/stats'
 import { intervalBetween } from './anchors'
 import { applyEvents, type ModeStats, type StatEvent } from '../stats/stats'
@@ -425,7 +425,7 @@ export function summarize(
               steps[stepIndex - 1][0],
               steps[stepIndex][0],
             )
-            addTime(label('interval', intervalKey(size, direction)), record.reactionMs ?? 0)
+            addTime(intervalLabel(intervalKey(size, direction)), record.reactionMs ?? 0)
           }
         } else {
           // Время шага из нескольких нот относится к каждой его ноте.

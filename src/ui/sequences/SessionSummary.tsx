@@ -2,6 +2,7 @@ import type { SessionSummary as Summary } from '../../engine/sequences/session'
 import type { Improvements as ImprovementsData } from '../../engine/stats/improvements'
 import Improvements from '../stats/Improvements'
 import './SessionSummary.css'
+import { useI18n } from '../i18n/useI18n'
 
 interface Props {
   summary: Summary
@@ -12,49 +13,51 @@ interface Props {
   onNew: () => void
 }
 
-const seconds = (ms: number) => (ms / 1000).toFixed(1).replace('.', ',')
-
 /** Итог сессии на месте нотного стана — не поверх экрана. */
 function SessionSummary({ summary, improvements, contour = false, onRepeat, onNew }: Props) {
+  const { t, percent, seconds } = useI18n()
   return (
-    <section className="summary" aria-label="Итог сессии">
+    <section className="summary" aria-label={t('summary.label')}>
       <dl className="summary__counts">
         <div>
-          <dt>Верно с первой попытки</dt>
+          <dt>{t('summary.correctFirstTry')}</dt>
           <dd>{summary.correctFirstTry}</dd>
         </div>
         <div>
-          <dt>С ошибкой</dt>
+          <dt>{t('summary.withError')}</dt>
           <dd>{summary.withError}</dd>
         </div>
         <div>
-          <dt>Пропущено</dt>
+          <dt>{t('summary.skipped')}</dt>
           <dd>{summary.skipped}</dd>
         </div>
         <div>
-          <dt>Точность</dt>
-          <dd>{summary.accuracy === null ? '—' : `${Math.round(summary.accuracy * 100)} %`}</dd>
+          <dt>{t('summary.accuracy')}</dt>
+          <dd>{summary.accuracy === null ? '—' : percent(summary.accuracy)}</dd>
         </div>
         {summary.withoutHint && (
           <div>
-            <dt>Без подсказки</dt>
+            <dt>{t('summary.withoutHint')}</dt>
             <dd>
               {summary.withoutHint.of === 0
                 ? '—'
-                : `${summary.withoutHint.count} из ${summary.withoutHint.of}`}
+                : t('summary.outOf', {
+                    count: summary.withoutHint.count,
+                    of: summary.withoutHint.of,
+                  })}
             </dd>
           </div>
         )}
       </dl>
       <div className="summary__block summary__slow">
-        <h3>{contour ? 'Медленные переходы' : 'Самые медленные ноты'}</h3>
+        <h3>{contour ? t('summary.slowTransitions') : t('summary.slowNotes')}</h3>
         {summary.slowest.length === 0 ? (
-          <p>{contour ? 'Нет переходов, сыгранных сразу' : 'Все шаги пропущены'}</p>
+          <p>{contour ? t('summary.noTransitions') : t('summary.allSkipped')}</p>
         ) : (
           <ol>
             {summary.slowest.map(({ label, averageMs }) => (
               <li key={label}>
-                <span className="summary__note">{label}</span> — {seconds(averageMs)} с
+                <span className="summary__note">{label}</span> — {seconds(averageMs)}
               </li>
             ))}
           </ol>
@@ -64,10 +67,10 @@ function SessionSummary({ summary, improvements, contour = false, onRepeat, onNe
         <Improvements improvements={improvements} />
         <div className="summary__actions">
           <button type="button" className="button" onClick={onRepeat}>
-            Повторить
+            {t('summary.repeat')}
           </button>
           <button type="button" className="button button--primary" onClick={onNew}>
-            Новая
+            {t('summary.new')}
           </button>
         </div>
       </div>

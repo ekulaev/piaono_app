@@ -1,20 +1,20 @@
 // Перечень режимов упражнения. Порядок массива — порядок в меню режимов.
+// Названия режимов — в файлах перевода (C-APP-3), движок их не знает.
 // В массиве только доступные (реализованные) режимы: чего здесь нет, того нет и в меню.
 
 export type ModeId = 'sequences' | 'contour' | 'rhythm' | 'warmup'
 
 export interface ModeInfo {
   id: ModeId
-  title: string
   /** Есть ли у режима настройки на экране режима. */
   hasSettings: boolean
 }
 
 export const MODES: readonly ModeInfo[] = [
-  { id: 'sequences', title: 'Последовательности', hasSettings: true },
-  { id: 'contour', title: 'Контур', hasSettings: true },
-  { id: 'rhythm', title: 'Ритм', hasSettings: true },
-  { id: 'warmup', title: 'Разминка', hasSettings: false },
+  { id: 'sequences', hasSettings: true },
+  { id: 'contour', hasSettings: true },
+  { id: 'rhythm', hasSettings: true },
+  { id: 'warmup', hasSettings: false },
 ]
 
 /** С этого режима начинает новый пользователь; к нему же возвращаемся при битых данных. */
