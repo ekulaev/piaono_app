@@ -13,6 +13,7 @@
 | `C-APP-1` | Верхняя панель и настройки приложения | Статус связи на любом экране, «Настройки», «Проверка пианино», «Обновить» | 8а | [`C-APP-1`](<C-APP-1 Верхняя панель и настройки приложения.md>) · ready | реализована, change `add-app-settings` | `app-settings`; меняет `connection-status`, `midi-input`, `pwa-shell`, `piano-keyboard`, `staff-exercise`, `sequences-mode`, `rhythm-mode`, `practice-stats` |
 | `C-APP-2` | Элемент «Подсказка» | Кнопка «?» и окно с текстом, шагами, картинками и нотами | 8в | [`C-APP-2`](<C-APP-2 Элемент «Подсказка».md>) · ready | реализована, change `add-hints` | `hint`; меняет `app-settings`, `connection-status`, `mode-menu` |
 | `C-APP-3` | Язык приложения | Выбор языка (русский, English) флагом в верхней панели, язык системы по умолчанию, английский запасной | — | [`C-APP-3`](<C-APP-3 Язык приложения.md>) · ready | в работе, change `add-localization` | `localization`; меняет `app-settings`, `pwa-shell` |
+| `C-APP-4` | Резервная копия прогресса | Сохранить настройки и прогресс в файл и вернуть из файла (смена устройства, переезд на новый адрес) | волна 0 (M-LAUNCH) | [`C-APP-4`](<C-APP-4 Резервная копия прогресса.md>) · draft | не начата | — |
 
 ## Беклог (post-MVP)
 
