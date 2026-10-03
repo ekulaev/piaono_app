@@ -19,7 +19,7 @@
   flex-direction: column;
   gap: 0.5rem;
   min-width: 14rem;
-  /* При нехватке высоты прокручивается сам список, не экран (LIM-6). */
+  /* При нехватке высоты прокручивается сам список, не экран. */
   max-height: calc(100vh - 5rem);
   overflow-y: auto;
   background: var(--paper);
