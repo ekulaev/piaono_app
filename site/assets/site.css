@@ -1,0 +1,638 @@
+/*
+ * Сайт-лендинг (C-LAUNCH-1). Правила дизайна — раздел «Дизайн сайта» спецификации, не CLAUDE.md §6.
+ * Принципы pitch.com: одна мысль на экран, типографика как главный элемент, крупно, много
+ * воздуха; визуал — только настоящий продукт. Один акцент — у кнопки «Открыть тренажёр».
+ * Без анимаций, теней, градиентов и карточек.
+ */
+
+@font-face {
+  font-family: 'Golos Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url(fonts/golos-text-cyrillic-wght-normal.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Golos Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url(fonts/golos-text-latin-ext-wght-normal.woff2) format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Golos Text';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url(fonts/golos-text-latin-wght-normal.woff2) format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* Палитра приложения: «бумага», тёмные «чернила», один акцент. */
+  --paper: #f3ede0;
+  --ink: #221c14;
+  --ink-soft: #4a4032;
+  --accent: #1f6e63;
+  --accent-hover: #17574e;
+  --alert: #6e2416;
+  --alert-bg: #ecdbd2;
+  /* Затемнение поверх видео: текст «бумагой» читается с контрастом выше 7:1. */
+  --veil: rgb(34 28 20 / 0.76);
+
+  --font: 'Golos Text', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --gutter: clamp(1rem, 4vw, 4rem);
+  --topbar-h: 3.5rem;
+  --measure: 72rem;
+
+  /* Шкала: крупные заголовки зависят и от ширины, и от высоты окна, чтобы экран помещался. */
+  --h1: clamp(2.2rem, min(8.5vw, 13svh), 6.5rem);
+  --h2: clamp(1.9rem, min(5.6vw, 9svh), 4.5rem);
+  --lead: clamp(1.1rem, min(2vw, 3.6svh), 1.6rem);
+
+  /* LIM-3: базовый текст 18 px. */
+  font-size: 112.5%;
+}
+
+/* Китайский: системные шрифты, без разрядки, выше межстрочный интервал (NFR-2, LIM-10). */
+:root:lang(zh-Hans) {
+  --font:
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC',
+    'Source Han Sans SC', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-padding-top: var(--topbar-h);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 450;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+:lang(zh-Hans) body,
+body:lang(zh-Hans) {
+  line-height: 1.7;
+  line-break: strict;
+}
+
+/* Немецкий и французский: длинные слова переносятся по слогам, а не вылезают за край. */
+:lang(de),
+:lang(fr) {
+  hyphens: auto;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+:lang(zh-Hans) :is(h1, h2, h3) {
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+
+h2 {
+  font-size: var(--h2);
+  max-width: 18ch;
+}
+
+:lang(zh-Hans) h2 {
+  max-width: 14em;
+}
+
+p,
+ul,
+ol,
+dl,
+figure {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 0.08em;
+}
+
+:focus-visible {
+  outline: 0.1875rem solid var(--accent);
+  outline-offset: 0.1875rem;
+}
+
+/* ---------- Верхняя полоса: название и язык (OB-1, OB-11) ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: var(--topbar-h);
+  padding: 0 var(--gutter);
+  background: var(--paper);
+  border-bottom: 0.125rem solid var(--ink);
+}
+
+.topbar__name {
+  font-weight: 700;
+  text-decoration: none;
+  min-height: 3rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lang {
+  position: relative;
+}
+
+.lang summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
+  border: 0.125rem solid var(--ink);
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+.lang summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Треугольник-указатель: CSS-фигура, не значок-эмодзи. */
+.lang summary::after {
+  content: '';
+  border: 0.35rem solid transparent;
+  border-top-color: currentColor;
+  border-bottom-width: 0;
+}
+
+.lang[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.lang__list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  min-width: 12rem;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--paper);
+  border: 0.125rem solid var(--ink);
+  border-radius: 0.5rem;
+}
+
+.lang__list a {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border-left: 0.3rem solid transparent;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.lang__list a:hover {
+  text-decoration: underline;
+}
+
+/* Текущий язык — полосой слева и жирным, не только цветом (OB-11). */
+.lang__list a[aria-current] {
+  border-left-color: var(--ink);
+  font-weight: 750;
+}
+
+/* ---------- Экраны (OB-1) ---------- */
+
+.screen {
+  min-height: calc(100svh - var(--topbar-h));
+  display: flex;
+  align-items: center;
+  padding: clamp(1.25rem, 6svh, 4rem) var(--gutter);
+}
+
+.screen__inner {
+  width: 100%;
+  max-width: var(--measure);
+  margin: 0 auto;
+  display: grid;
+  /* minmax(0, 1fr): колонка не растягивается под исходную ширину картинок на узком экране. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1rem, 3.5svh, 2.5rem);
+}
+
+/* ---------- Экран 1: что это (OB-2, OB-12) ---------- */
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: var(--paper);
+  /* Постер — фоном: виден и без JavaScript, и пока видео не загрузилось. */
+  background: var(--ink) url(media/keys-poster.webp) center / cover no-repeat;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--veil);
+}
+
+.hero__video {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero__inner {
+  gap: clamp(0.75rem, 3.5svh, 2rem);
+}
+
+.hero__title {
+  font-size: var(--h1);
+  max-width: 12ch;
+}
+
+:lang(zh-Hans) .hero__title {
+  max-width: 9em;
+}
+
+.hero__lead {
+  font-size: var(--lead);
+  font-weight: 500;
+  max-width: 34rem;
+}
+
+.lang-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  font-weight: 600;
+}
+
+.lang-hint a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+/* ---------- Кнопки ---------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0 1.25rem;
+  border-radius: 0.5rem;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Единственный акцент на сайте: «эту ноту играть сейчас» в приложении, «начать» здесь. */
+.button--cta {
+  min-height: 3.5rem;
+  padding: 0 1.75rem;
+  font-size: 1.2rem;
+  background: var(--accent);
+  color: #fff;
+  border: 0.125rem solid var(--accent);
+}
+
+.button--cta:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.hero .button--cta {
+  border-color: var(--paper);
+}
+
+.hero :focus-visible {
+  outline-color: var(--paper);
+}
+
+.button--plain {
+  background: var(--paper);
+  color: var(--ink);
+  border: 0.125rem solid var(--ink);
+}
+
+.linklike {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+  min-height: 3rem;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+}
+
+.cta-note {
+  font-weight: 600;
+}
+
+/* ---------- Экран 2: метод (OB-3) ---------- */
+
+.shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+/* Снимок стана — на той же «бумаге», что и страница: выглядит частью страницы. */
+.shot--wide {
+  max-height: 23svh;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem clamp(1.5rem, 4vw, 3rem);
+}
+
+.modes dt {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.modes dd {
+  margin: 0.25rem 0 0;
+  color: var(--ink-soft);
+}
+
+.method__adaptive {
+  font-size: var(--lead);
+  font-weight: 600;
+  max-width: 40rem;
+}
+
+/* ---------- Экран 3: сделано, чтобы видеть (OB-4) ---------- */
+
+.see {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.see :focus-visible {
+  outline-color: var(--paper);
+}
+
+.feedback {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem clamp(1rem, 3vw, 2rem);
+  max-width: 52rem;
+}
+
+.feedback .shot {
+  max-height: 24svh;
+  object-fit: cover;
+}
+
+.feedback figcaption {
+  margin-top: 0.5rem;
+  font-weight: 650;
+}
+
+.lines {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+  font-size: var(--lead);
+  font-weight: 500;
+  max-width: 46rem;
+}
+
+/* ---------- Экран 4: что нужно и как начать (OB-5, OB-6) ---------- */
+
+.alert {
+  padding: 0.75rem 1rem;
+  border: 0.1875rem solid var(--alert);
+  border-radius: 0.5rem;
+  background: var(--alert-bg);
+  color: var(--alert);
+  font-weight: 700;
+  max-width: 46rem;
+}
+
+/* Номера шагов — реальная последовательность действий, поэтому крупно и по порядку. */
+.steps {
+  list-style: none;
+  padding: 0;
+  counter-reset: step;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem clamp(1rem, 3vw, 2rem);
+}
+
+.steps li {
+  counter-increment: step;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.steps li::before {
+  content: counter(step);
+  display: block;
+  font-size: clamp(2rem, min(5vw, 8svh), 3.5rem);
+  font-weight: 750;
+  line-height: 1;
+  margin-bottom: 0.35rem;
+  color: var(--accent);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem clamp(1.5rem, 4vw, 3rem);
+}
+
+.facts h3 {
+  font-size: 1.2rem;
+  letter-spacing: 0;
+  margin-bottom: 0.4rem;
+}
+
+.facts p + p {
+  margin-top: 0.5rem;
+}
+
+.facts ul {
+  padding-left: 1.2em;
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* ---------- Подвал ---------- */
+
+.footer {
+  padding: 1rem var(--gutter) 2rem;
+  border-top: 0.125rem solid var(--ink);
+}
+
+.footer__links {
+  max-width: var(--measure);
+  margin: 0 auto;
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 2rem;
+}
+
+.footer__links li {
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+}
+
+.footer a {
+  min-height: 3rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---------- Согласие на счётчик (OB-14): полоса внизу, не окно ---------- */
+
+.consent {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding: 0.75rem var(--gutter);
+  background: var(--paper);
+  color: var(--ink);
+  border-top: 0.1875rem solid var(--ink);
+}
+
+.consent[hidden],
+[hidden] {
+  display: none;
+}
+
+.consent__text {
+  flex: 1 1 20rem;
+  font-weight: 500;
+}
+
+.consent__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* ---------- Страница «Конфиденциальность» ---------- */
+
+.page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 8svh, 5rem) var(--gutter);
+  display: grid;
+  gap: 1rem;
+}
+
+.page h1 {
+  font-size: var(--h2);
+  margin-bottom: 0.5rem;
+}
+
+/* ---------- Телефон и низкие окна ---------- */
+
+@media (max-width: 30em) {
+  :root {
+    --topbar-h: 3.25rem;
+  }
+
+  .topbar__name {
+    font-size: 0.95rem;
+  }
+}
+
+/* Узкое по высоте окно (телефон боком): экраны растут по содержимому, а первый — помещается
+   вместе с кнопкой (OB-2). */
+@media (max-height: 30em) {
+  :root {
+    --h1: clamp(1.9rem, min(8vw, 11svh), 6.5rem);
+  }
+
+  .screen {
+    padding-block: 0.75rem;
+  }
+
+  .hero__inner {
+    gap: 0.5rem;
+  }
+
+  .hero__lead {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .lang-hint {
+    font-size: 0.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
