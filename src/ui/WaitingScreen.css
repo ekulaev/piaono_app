@@ -25,9 +25,9 @@
   min-height: 0;
   padding: clamp(0.5rem, min(3vw, 3svh), 2rem) clamp(1rem, 3vw, 2.5rem);
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto auto;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: 'staff staff' 'actions control';
+  grid-template-areas: 'staff staff' 'echo echo' 'actions control';
   gap: clamp(0.5rem, min(2vw, 2svh), 1.5rem);
 }
 
@@ -35,6 +35,14 @@
 .waiting > .summary {
   grid-area: staff;
 }
+
+/* Показ выключен: строки под полосу нет, высота отдана стану (C-STF-8, OB-23). */
+.waiting--no-echo {
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: 'staff staff' 'actions control';
+}
+
+/* Полоса нажатых нот (C-STF-8) задаёт свою высоту и стиль в NoteEchoStrip.css. */
 
 /* Ряд кнопок всегда занимает одну и ту же высоту — появление кнопки ничего не сдвигает. */
 .waiting__actions {
@@ -83,6 +91,9 @@
 @media (max-height: 30rem) {
   .waiting {
     max-width: none;
+    /* Полосы нажатых нот здесь нет (C-STF-8, OB-17): и строки под неё тоже, чтобы не прибавлять зазор. */
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: 'staff staff' 'actions control';
   }
   /* Три кнопки в один ряд. Шрифт 18px — не меньше базового; высота целей та же. */
   .waiting__actions {

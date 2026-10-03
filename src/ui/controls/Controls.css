@@ -94,6 +94,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Заблокированный счётчик: значение сохранено, но приглушено — видно без цвета (кнопки с пунктиром). */
+.stepper--disabled .stepper__value {
+  color: var(--ink-soft);
+}
+
 /* Флажок. */
 .toggle {
   display: flex;
