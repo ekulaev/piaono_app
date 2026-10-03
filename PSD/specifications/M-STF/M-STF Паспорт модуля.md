@@ -17,7 +17,7 @@
 | `C-STF-5` | Режим «Только контур» | Важно только направление: вверх, вниз, на месте | 7а | [`C-STF-5`](<C-STF-5 Режим «Только контур».md>) · ready | реализована, change `add-contour-mode` | `contour-mode`; меняет `mode-menu`, `practice-stats`, `sequences-mode` |
 | `C-STF-6` | Режим «Только ритм» | Рисунок выстукивается любой клавишей, оценка «вовремя / рано / поздно» | 7б | [`C-STF-6`](<C-STF-6 Режим «Только ритм».md>) · ready | реализована, change `add-rhythm-mode` | `rhythm-mode`; меняет `mode-menu`, `practice-stats` |
 | `C-STF-7` | Экран «Прогресс» | Сводка режима, трудные места, уровни подсказок, сброс с подтверждением | 8б | [`C-STF-7`](<C-STF-7 Экран «Прогресс».md>) · ready | реализована, change `add-progress-screen` | `progress-screen`; меняет `app-settings`, `interval-hints`, `practice-stats` |
-| `C-STF-8` | Показ нажатых нот | Полоса под станом: имя ноты (Do Re Mi), буква, октава на языке приложения; до 5 карточек, время показа 0,5–5 с в «Настройках» | — | [`C-STF-8`](<C-STF-8 Показ нажатых нот.md>) · ready | в работе, change `add-note-echo` | `note-echo`; меняет `app-settings`, `staff-exercise`, `connection-status`, `localization` |
+| `C-STF-8` | Показ нажатых нот | Полоса под станом: имя ноты (Do Re Mi), буква, октава на языке приложения; до 5 карточек, время показа 0,5–5 с в «Настройках» | — | [`C-STF-8`](<C-STF-8 Показ нажатых нот.md>) · draft (ред. 2) | в работе, change `add-note-echo` | `note-echo`; меняет `app-settings`, `staff-exercise`, `connection-status`, `localization` |
 
 ## Беклог (post-MVP)
 
