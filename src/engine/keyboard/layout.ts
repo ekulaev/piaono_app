@@ -90,6 +90,15 @@ export function centerStartOn(low: number, high: number, count: number): number 
   return clampStart(center - centerOffset(count), count)
 }
 
+/**
+ * Нота слева (авто-сдвиг «Разминки», C-STF-9): первой видимой становится белая клавиша этой
+ * высоты, у правого края клавиатуры — насколько позволяет край.
+ */
+export function startAtNote(pitch: number, count: number): number {
+  const index = WHITE_PITCHES.findIndex((white) => white >= pitch)
+  return clampStart(index === -1 ? WHITE_KEY_COUNT - 1 : index, count)
+}
+
 /** После смены размера центральная клавиша остаётся в центре, насколько позволяют края. */
 export function resizeStart(start: number, oldCount: number, newCount: number): number {
   const center = start + centerOffset(oldCount)

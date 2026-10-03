@@ -12,6 +12,7 @@ import {
   resizeStart,
   scrollHints,
   shiftStart,
+  startAtNote,
   startFromDrag,
   startFromTapCenter,
   visibleRange,
@@ -239,5 +240,27 @@ describe('Центрирование на диапазоне', () => {
 
   it('у края клавиатуры прижимается к A0', () => {
     expect(centerStartOn(21, 23, 10)).toBe(0)
+  })
+})
+
+describe('Нота слева (авто-сдвиг «Разминки»)', () => {
+  it('нота становится первой видимой клавишей', () => {
+    const b1 = 35
+    const start = startAtNote(b1, 20)
+    expect(visibleRange(start, 20).low).toBe(b1)
+  })
+
+  it('у правого края видимая часть прижимается к C8', () => {
+    const start = startAtNote(C7, 20)
+    expect(start).toBe(WHITE_KEY_COUNT - 20)
+    expect(visibleRange(start, 20).high).toBe(C8)
+  })
+
+  it('видны все клавиши — сдвигать нечего', () => {
+    expect(startAtNote(C4, WHITE_KEY_COUNT)).toBe(0)
+  })
+
+  it('самая низкая нота A0 — начало клавиатуры', () => {
+    expect(startAtNote(A0, 20)).toBe(0)
   })
 })

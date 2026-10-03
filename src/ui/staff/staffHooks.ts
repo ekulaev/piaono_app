@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState, type RefObject } from 'react'
-import { staffGeometry, type StaffGeometry } from './staffDrawing'
+import { STAFF_WIDTH_RATIO, staffGeometry, type StaffGeometry } from './staffDrawing'
 
 /**
  * Размер зоны стана: следим за поворотом, окном, системным шрифтом. hintBand — высота полосы
@@ -15,7 +15,7 @@ export function useStaffGeometry(zoneRef: RefObject<HTMLDivElement | null>, hint
       if (width === 0 || height === 0) return
       setGeometry((prev) =>
         prev &&
-        prev.widthPx === width * 0.9 &&
+        prev.widthPx === width * STAFF_WIDTH_RATIO &&
         prev.heightPx === height &&
         prev.hintBand === hintBand
           ? prev

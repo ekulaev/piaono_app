@@ -1,3 +1,4 @@
+import type { WarmupSettings } from '../../engine/warmup/settings'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as exercise from '../../engine/staff/exercise'
 import type { ExerciseState } from '../../engine/staff/exercise'
@@ -35,9 +36,9 @@ export function useExercise() {
   }, [running, update])
 
   const start = useCallback(
-    (weights: Weights) => {
+    (weights: Weights, settings: WarmupSettings) => {
       weightsRef.current = weights
-      update(exercise.start(performance.now(), Math.random, weights))
+      update(exercise.start(performance.now(), Math.random, weights, settings))
     },
     [update],
   )

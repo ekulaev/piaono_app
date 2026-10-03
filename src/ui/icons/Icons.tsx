@@ -72,3 +72,14 @@ export function QuestionIcon() {
     </Icon>
   )
 }
+
+/** «Внимание»: треугольник с восклицательным знаком; рядом всегда подпись. */
+export function WarningIcon() {
+  return (
+    <Icon>
+      <path d="M12 3 L22 20 H2 Z" />
+      <path d="M12 9.5 V14" />
+      <path d="M12 17 V17.2" />
+    </Icon>
+  )
+}

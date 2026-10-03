@@ -1,49 +1,84 @@
-import { isBlackKey } from '../keyboard/layout'
 import { UNIFORM, weightedPick, type Weights } from '../stats/weights'
+import { alterationOf, tonalityById } from '../warmup/keys'
+import { DEFAULT_WARMUP_SETTINGS, type StepRange, type WarmupSettings } from '../warmup/settings'
+import { naturalPitch, stepLetter } from '../warmup/steps'
 
 export type Clef = 'treble' | 'bass'
 
-/** Нота упражнения: высота (MIDI-номер) и ключ, в котором она записана. */
+/**
+ * Нота упражнения: звучащая высота (MIDI-номер), ключ и написание — ступень на стане и знак
+ * бекара. Знак тональности в ноте не хранится: он стоит при ключе и уже учтён в `pitch`.
+ * По `pitch` нота проверяется и учитывается в статистике, по `step` и `natural` рисуется.
+ */
 export interface StaffNote {
   pitch: number
   clef: Clef
+  /** Ступень на стане (steps.ts): E3, F♯3 и F3 — три разные ноты на двух ступенях. */
+  step: number
+  /** Перед нотой бекар: знак тональности отменён, играть белую клавишу. */
+  natural: boolean
+}
+
+export interface PoolEntry {
+  note: StaffNote
+  /** Вероятность без учёта трудности: нота общей зоны ключей делит её между ключами пополам. */
+  base: number
+}
+
+function rangeOf(settings: WarmupSettings, clef: Clef): StepRange {
+  return clef === 'treble' ? settings.trebleRange : settings.bassRange
+}
+
+function clefsOf(settings: WarmupSettings): readonly Clef[] {
+  // Порядок «басовый, скрипичный» — как в прежней таблице нот: выбор по случайному числу не меняется.
+  if (settings.clef === 'treble') return ['treble']
+  if (settings.clef === 'bass') return ['bass']
+  return ['bass', 'treble']
 }
 
 /**
- * Диапазоны, в которых нота пишется не больше чем с двумя добавочными линиями.
- * Скрипичный ключ: G3 (под второй нижней добавочной) – D6 (над второй верхней).
- * Басовый ключ: B1 (под второй нижней) – F4 (над второй верхней).
+ * Все ноты, из которых «Разминка» выбирает (C-STF-9, OB-13, OB-16): ступени диапазона каждого
+ * включённого ключа, высота — с учётом знаков тональности. Ступень общей зоны ключей входит в оба.
+ * Со включённым бекаром у ступени со знаком при ключе добавляется вторая нота — с бекаром:
+ * это ещё одна нота набора, а не отдельная вероятность (Р-10).
  */
-export const CLEF_RANGES: Record<Clef, { low: number; high: number }> = {
-  treble: { low: 55, high: 86 }, // G3 – D6
-  bass: { low: 35, high: 65 }, // B1 – F4
+export function buildPool(settings: WarmupSettings = DEFAULT_WARMUP_SETTINGS): PoolEntry[] {
+  const clefs = clefsOf(settings)
+  const tonality = tonalityById(settings.tonality)
+  const ranges = clefs.map((clef) => rangeOf(settings, clef))
+  const first = Math.min(...ranges.map((range) => range.low))
+  const last = Math.max(...ranges.map((range) => range.high))
+  const pool: PoolEntry[] = []
+  for (let step = first; step <= last; step++) {
+    const here = clefs.filter((clef) => {
+      const range = rangeOf(settings, clef)
+      return step >= range.low && step <= range.high
+    })
+    const alteration = alterationOf(tonality, stepLetter(step))
+    const variants = alteration !== 0 && settings.naturals ? [false, true] : [false]
+    for (const natural of variants) {
+      const pitch = naturalPitch(step) + (natural ? 0 : alteration)
+      for (const clef of here) {
+        pool.push({ note: { pitch, clef, step, natural }, base: 1 / here.length })
+      }
+    }
+  }
+  return pool
 }
 
-const inRange = (pitch: number, clef: Clef) =>
-  pitch >= CLEF_RANGES[clef].low && pitch <= CLEF_RANGES[clef].high
-
-/** Все белые клавиши от B1 до D6 — объединение диапазонов обоих ключей. */
-const CANDIDATES: readonly number[] = Array.from(
-  { length: CLEF_RANGES.treble.high - CLEF_RANGES.bass.low + 1 },
-  (_, i) => CLEF_RANGES.bass.low + i,
-).filter((pitch) => !isBlackKey(pitch))
-
 /**
- * Пары «нота + ключ» с прежней вероятностью: каждая белая клавиша равновероятна, в общей
- * зоне G3–F4 её вероятность делится между ключами пополам.
+ * Случайная нота набора `buildPool`. Трудные ноты выбираются чаще (C-STF-4, OB-9): вероятность
+ * ноты — прежняя, умноженная на вес; без статистики — равновероятно. random передаётся снаружи
+ * (Math.random в приложении, предсказуемый — в тестах).
  */
-const PAIRS: readonly { note: StaffNote; base: number }[] = CANDIDATES.flatMap((pitch) => {
-  const clefs = (['bass', 'treble'] as const).filter((clef) => inRange(pitch, clef))
-  return clefs.map((clef) => ({ note: { pitch, clef }, base: 1 / clefs.length }))
-})
-
-/**
- * Случайная нота: белая клавиша из общего диапазона; ключ — тот, в диапазон которого она
- * входит, а для общей зоны G3–F4 — случайный. Трудные ноты выбираются чаще (C-STF-4, OB-9):
- * вероятность пары — прежняя, умноженная на вес; без статистики — равновероятно.
- * random передаётся снаружи (Math.random в приложении, предсказуемый — в тестах).
- */
-export function pickNote(random: () => number, weights: Weights = UNIFORM): StaffNote {
-  return weightedPick(PAIRS, ({ note, base }) => base * weights.note(note.clef, note.pitch), random)
-    .note
+export function pickNote(
+  random: () => number,
+  weights: Weights = UNIFORM,
+  settings: WarmupSettings = DEFAULT_WARMUP_SETTINGS,
+): StaffNote {
+  return weightedPick(
+    buildPool(settings),
+    ({ note, base }) => base * weights.note(note.clef, note.pitch),
+    random,
+  ).note
 }

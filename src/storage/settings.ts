@@ -12,6 +12,11 @@ import {
   readRhythmSettings,
   type RhythmSettings,
 } from '../engine/rhythm/settings'
+import {
+  DEFAULT_WARMUP_SETTINGS,
+  readWarmupSettings,
+  type WarmupSettings,
+} from '../engine/warmup/settings'
 import type { PreferredInput } from '../midi/types'
 import { browserStorage, type SettingsStorage } from './browserStorage'
 
@@ -34,7 +39,7 @@ export interface Settings {
   /** Режим, который запускает «Старт» на главном экране. */
   activeMode: ModeId
   /**
-   * Подтверждённые настройки режимов (у «Разминки» их нет). «Контур» хранит свои отдельно —
+   * Подтверждённые настройки режимов. «Контур» хранит свои отдельно —
    * того же вида, «Нот в шаге» и «Подсказки» у него не используются (C-STF-5). У «Ритма» —
    * свои (C-STF-6).
    */
@@ -42,6 +47,8 @@ export interface Settings {
     sequences: SequenceSettings
     contour: SequenceSettings
     rhythm: RhythmSettings
+    /** Настройки «Разминки» (C-STF-9): время хода, ключ, диапазоны, тональность. */
+    warmup: WarmupSettings
   }
 }
 
@@ -62,6 +69,7 @@ const DEFAULT_SETTINGS: Settings = {
     sequences: DEFAULT_SEQUENCE_SETTINGS,
     contour: DEFAULT_SEQUENCE_SETTINGS,
     rhythm: DEFAULT_RHYTHM_SETTINGS,
+    warmup: DEFAULT_WARMUP_SETTINGS,
   },
 }
 
@@ -101,6 +109,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
         sequences: readSequenceSettings((savedModes as Record<string, unknown>).sequences),
         contour: readSequenceSettings((savedModes as Record<string, unknown>).contour),
         rhythm: readRhythmSettings((savedModes as Record<string, unknown>).rhythm),
+        warmup: readWarmupSettings((savedModes as Record<string, unknown>).warmup),
       },
     }
   } catch {

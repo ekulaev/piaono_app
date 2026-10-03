@@ -22,6 +22,7 @@ import {
   scrollHints,
   shiftStart,
   startFromDrag,
+  startAtNote,
   startFromTapCenter,
   visibleRange,
   WHITE_KEY_COUNT,
@@ -33,17 +34,23 @@ import { useAutoRepeat } from './useAutoRepeat'
 import './Keyboard.css'
 import { useT } from '../i18n/useI18n'
 
-/** Диапазон, на котором центрировать видимую часть. Новый token — новое центрирование. */
+/**
+ * Запрос показать участок клавиатуры. align 'center' (по умолчанию): центрировать на диапазоне
+ * low–high; 'left': нота low — крайняя слева (авто-сдвиг «Разминки»). Новый token — новый сдвиг.
+ */
 export interface KeyboardFocus {
   low: number
   high: number
   token: number
+  align?: 'center' | 'left'
 }
 
 interface Props {
   state: KeyboardState
   onInput: (input: KeyInput) => void
   focus?: KeyboardFocus | null
+  /** Вместимость: сколько белых клавиш видно сейчас (52 — все); null — клавиатуры нет. */
+  onCapacity?: (capacity: number | null) => void
 }
 
 interface ZoneSize {
@@ -63,7 +70,7 @@ interface VisibleWindow {
  * и превращает касания в события для него. Своё у неё только одно — какая часть
  * клавиатуры сейчас видна.
  */
-function Keyboard({ state, onInput, focus }: Props) {
+function Keyboard({ state, onInput, focus, onCapacity }: Props) {
   const t = useT()
   const zoneRef = useRef<HTMLDivElement>(null)
   const keysRef = useRef<HTMLDivElement>(null)
@@ -85,8 +92,18 @@ function Keyboard({ state, onInput, focus }: Props) {
   if (layout && focus && focus.token !== focusToken) {
     const count = layout.visibleWhiteCount
     setFocusToken(focus.token)
-    setVisible({ start: centerStartOn(focus.low, focus.high, count), count })
+    const start =
+      focus.align === 'left'
+        ? startAtNote(focus.low, count)
+        : centerStartOn(focus.low, focus.high, count)
+    setVisible({ start, count })
   }
+
+  // Вместимость нужна настройкам «Разминки» (предупреждение о диапазоне): сообщаем при каждой смене.
+  const capacity = layout ? layout.visibleWhiteCount : null
+  useEffect(() => {
+    onCapacity?.(capacity)
+  }, [capacity, onCapacity])
 
   // Актуальное окно для автоповтора: таймер срабатывает между рендерами.
   const visibleRef = useRef(visible)

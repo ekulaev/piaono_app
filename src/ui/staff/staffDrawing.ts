@@ -2,8 +2,16 @@
 // Координаты VexFlow — «условные единицы»: 10 единиц между линиями стана.
 // Под размер зоны всё масштабируется одним коэффициентом (scale).
 
-import { Renderer, Stave, StaveNote, TickContext, type RenderContext } from 'vexflow/bravura'
+import {
+  Accidental,
+  Renderer,
+  Stave,
+  StaveNote,
+  TickContext,
+  type RenderContext,
+} from 'vexflow/bravura'
 import type { Clef, StaffNote } from '../../engine/staff/pickNote'
+import { stepLetter, stepOctave } from '../../engine/warmup/steps'
 
 export const SPACING = 10 // между линиями стана, условные единицы
 /** Над станом: две добавочные линии, головка ноты над второй и поле. */
@@ -20,6 +28,8 @@ export const LEDGER_WIDTH = 3
 export const HINT_BAND = 36
 /** Отступ ноты от правого края стана в начале пути. */
 const RIGHT_PADDING = 12
+/** Ширина стана — доля ширины зоны (C-STF-9, OB-21): слева и справа от стана нет элементов управления. */
+export const STAFF_WIDTH_RATIO = 0.95
 
 export type NoteLook = 'normal' | 'correct' | 'wrong'
 
@@ -37,7 +47,7 @@ export interface StaffGeometry {
 }
 
 /**
- * Размер стана под зону: 90 % ширины, вся высота (C-STF-1, OB-1). Если есть полоса подсказок,
+ * Размер стана под зону: 95 % ширины, вся высота (C-STF-1, OB-1; C-STF-9, OB-21). Если есть полоса подсказок,
  * она занимает верх зоны, а стан с добавочными линиями — остальную высоту (C-STF-3, OB-10).
  */
 export function staffGeometry(
@@ -45,7 +55,7 @@ export function staffGeometry(
   zoneHeightPx: number,
   hintBand = 0,
 ): StaffGeometry {
-  const widthPx = zoneWidthPx * 0.9
+  const widthPx = zoneWidthPx * STAFF_WIDTH_RATIO
   const heightPx = zoneHeightPx
   const scale = heightPx / (hintBand + VIRTUAL_HEIGHT)
   return {
@@ -63,13 +73,23 @@ export function cssColor(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
-export function makeStave(geometry: StaffGeometry, clef: Clef | null): Stave {
+/**
+ * keySignature — знаки при ключе («G», «Bb»); рисуются сразу после ключа и только вместе с ним.
+ */
+export function makeStave(
+  geometry: StaffGeometry,
+  clef: Clef | null,
+  keySignature: string | null = null,
+): Stave {
   const stave = new Stave(0, geometry.staveY, geometry.virtualWidth, {
     leftBar: false, // тактовых черт в упражнении нет
     rightBar: false,
     spaceAboveStaffLn: 0,
   })
-  if (clef) stave.addClef(clef)
+  if (clef) {
+    stave.addClef(clef)
+    if (keySignature && keySignature !== 'C') stave.addKeySignature(keySignature)
+  }
   return stave
 }
 
@@ -83,10 +103,15 @@ export function prepareContext(host: HTMLElement, geometry: StaffGeometry): Rend
 }
 
 /** Слой стана: пять толстых линий и ключ, если на стане есть нота. */
-export function drawStaff(host: HTMLElement, geometry: StaffGeometry, clef: Clef | null) {
+export function drawStaff(
+  host: HTMLElement,
+  geometry: StaffGeometry,
+  clef: Clef | null,
+  keySignature: string | null = null,
+) {
   const context = prepareContext(host, geometry)
   const ink = cssColor('--ink')
-  const stave = makeStave(geometry, clef)
+  const stave = makeStave(geometry, clef, keySignature)
   // Толщину линий берёт контекст отрисовки: стиль стана VexFlow её не применяет.
   context.setLineWidth(LINE_WIDTH)
   context.setStrokeStyle(ink)
@@ -94,16 +119,31 @@ export function drawStaff(host: HTMLElement, geometry: StaffGeometry, clef: Clef
   stave.setContext(context).draw()
 }
 
-/** Путь ноты по горизонтали, условные единицы: от правого края до правой границы ключа. */
-export function notePath(geometry: StaffGeometry, clef: Clef, headWidth: number) {
-  const stave = makeStave(geometry, clef)
+/**
+ * Путь ноты по горизонтали, условные единицы: от правого края до правой границы знаков в начале
+ * стана (ключ и знаки при ключе). leftExtra — сколько слева от головки занимает знак бекара:
+ * в конце пути он тоже не заходит на знаки при ключе.
+ */
+export function notePath(
+  geometry: StaffGeometry,
+  clef: Clef,
+  headWidth: number,
+  keySignature: string | null = null,
+  leftExtra = 0,
+) {
+  const stave = makeStave(geometry, clef, keySignature)
   return {
     startX: geometry.virtualWidth - RIGHT_PADDING - headWidth,
-    endX: stave.getNoteStartX(),
+    endX: stave.getNoteStartX() + leftExtra,
   }
 }
 
-/** Имя ноты для VexFlow: 64 → "e/4". Упражнение даёт только белые клавиши. */
+/** Ступень для VexFlow: E3 → "e/3". Знак тональности не пишется: он стоит при ключе. */
+export function vexKeyOfStep(step: number): string {
+  return `${stepLetter(step).toLowerCase()}/${stepOctave(step)}`
+}
+
+/** Имя белой клавиши для VexFlow: 64 → "e/4" («Последовательности» играют только белые клавиши). */
 export function vexKey(pitch: number): string {
   const names = ['c', 'c', 'd', 'd', 'e', 'f', 'f', 'g', 'g', 'a', 'a', 'b']
   return `${names[pitch % 12]}/${Math.floor(pitch / 12) - 1}`
@@ -113,6 +153,8 @@ export interface DrawnNote {
   /** Где VexFlow нарисовала ноту, условные единицы. */
   drawnX: number
   headWidth: number
+  /** Слева от головки: сколько занимает знак бекара; 0 — знака нет. */
+  leftExtra: number
 }
 
 /**
@@ -135,7 +177,13 @@ export function drawNote(
         : cssColor('--ink')
 
   const stave = makeStave(geometry, null)
-  const staveNote = new StaveNote({ keys: [vexKey(note.pitch)], duration: 'w', clef: note.clef })
+  const staveNote = new StaveNote({
+    keys: [vexKeyOfStep(note.step)],
+    duration: 'w',
+    clef: note.clef,
+  })
+  // Знак при ключе у ноты не рисуется; бекар — рисуется, он отменяет знак при ключе.
+  if (note.natural) staveNote.addModifier(new Accidental('n'), 0)
   staveNote.setStave(stave)
   staveNote.setStyle({ fillStyle: color, strokeStyle: color })
   staveNote.setLedgerLineStyle({ strokeStyle: color, lineWidth: LEDGER_WIDTH })
@@ -162,5 +210,6 @@ export function drawNote(
     context.stroke()
     context.restore()
   }
-  return { drawnX: staveNote.getAbsoluteX(), headWidth }
+  const drawnX = staveNote.getAbsoluteX()
+  return { drawnX, headWidth, leftExtra: Math.max(0, drawnX - box.getX()) }
 }
