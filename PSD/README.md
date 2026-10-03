@@ -32,6 +32,7 @@ PSD/
 | `M-MIDI` | MIDI-слой и индикатор связи | [Паспорт](<specifications/M-MIDI/M-MIDI Паспорт модуля.md>) |
 | `M-MODE` | Меню режимов | [Паспорт](<specifications/M-MODE/M-MODE Паспорт модуля.md>) |
 | `M-STF` | Нотный стан, режимы упражнений, статистика, «Прогресс» | [Паспорт](<specifications/M-STF/M-STF Паспорт модуля.md>) |
+| `M-LAUNCH` | Публичный запуск: домен, лендинг, готовность к чужим пользователям | [Паспорт](<specifications/M-LAUNCH/M-LAUNCH Паспорт модуля.md>) |
 
 ## PSD и OpenSpec: кто за что отвечает
 
