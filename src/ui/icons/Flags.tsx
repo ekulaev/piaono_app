@@ -1,11 +1,9 @@
 // Флаги языков в списке: рисуются значками, не эмодзи (эмодзи-флаги не показываются на части
 // систем; CLAUDE.md §6). Цвета флагов — часть смысла, а не оформления: по ним язык узнают
-// боковым зрением. Толстая тёмная рамка отделяет флаг от «бумаги» (контраст, слабое зрение).
+// боковым зрением. Своей обводки у флага нет: рамка кнопки или строки списка уже есть.
 
 import type { FlagId } from '../../i18n'
 import './Flags.css'
-
-const FRAME = { fill: 'none', stroke: 'var(--ink)', strokeWidth: 2 }
 
 function FlagFrame({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +18,6 @@ function FlagFrame({ children }: { children: React.ReactNode }) {
         <rect width="30" height="20" />
       </clipPath>
       <g clipPath="url(#flag-clip)">{children}</g>
-      <rect x="1" y="1" width="28" height="18" rx="2" {...FRAME} />
     </svg>
   )
 }
