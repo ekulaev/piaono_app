@@ -1,21 +1,24 @@
-// Тональности «Разминки» (C-STF-9, приложение Г): 15 наборов знаков при ключе, в каждом мажор
-// и минор. Ноты строятся из знаков при ключе, поэтому мажор и минор с одними знаками играются
-// одинаково (Р-2): различие только в названии. Слов здесь нет — названия в переводах.
+// Тональности «Разминки» (C-STF-9, приложение Г): 15 наборов знаков при ключе. Мажор и минор с
+// одними знаками не различаются (Р-2, Р-28): знак при ключе один, а ноты задаёт диапазон, поэтому
+// запись одна на набор — в списке она называется «<Мажор> / <Минор>». Слов здесь нет — названия
+// в переводах.
 
 import type { Letter } from './steps'
 
 export type Alteration = -1 | 0 | 1
 
 export interface Tonality {
-  /** Стабильный идентификатор для сохранения и перевода: «G-major», «Fs-minor», «Bb-major». */
+  /**
+   * Стабильный идентификатор для сохранения и перевода — по мажорной тональности набора:
+   * «C-major», «G-major», «Bb-major». Параллельный минор в идентификаторе не нужен.
+   */
   id: string
   /** Число знаков при ключе, 0–7. */
   signs: number
   kind: 'none' | 'sharp' | 'flat'
-  mode: 'major' | 'minor'
   /** Какие ступени (буквы) стоят со знаком, в порядке записи на стане. */
   altered: readonly Letter[]
-  /** Название мажорной тональности с теми же знаками на языке VexFlow: «G», «F#», «Bb». */
+  /** Название мажорной тональности набора на языке VexFlow: «G», «F#», «Bb». */
   signature: string
 }
 
@@ -23,47 +26,31 @@ export interface Tonality {
 const SHARP_ORDER: readonly Letter[] = ['F', 'C', 'G', 'D', 'A', 'E', 'B']
 const FLAT_ORDER: readonly Letter[] = ['B', 'E', 'A', 'D', 'G', 'C', 'F']
 
-/** Тоники по числу знаков: диезные 0–7, бемольные 1–7. Первая — мажор, вторая — минор. */
-const SHARP_TONICS: readonly (readonly [string, string])[] = [
-  ['C', 'A'],
-  ['G', 'E'],
-  ['D', 'B'],
-  ['A', 'Fs'],
-  ['E', 'Cs'],
-  ['B', 'Gs'],
-  ['Fs', 'Ds'],
-  ['Cs', 'As'],
-]
-const FLAT_TONICS: readonly (readonly [string, string])[] = [
-  ['F', 'D'],
-  ['Bb', 'G'],
-  ['Eb', 'C'],
-  ['Ab', 'F'],
-  ['Db', 'Bb'],
-  ['Gb', 'Eb'],
-  ['Cb', 'Ab'],
-]
+/** Мажорные тоники по числу знаков: диезные 0–7, бемольные 1–7. */
+const SHARP_MAJORS = ['C', 'G', 'D', 'A', 'E', 'B', 'Fs', 'Cs']
+const FLAT_MAJORS = ['F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb']
 
 function build(
   signs: number,
   kind: Tonality['kind'],
   order: readonly Letter[],
-  tonics: readonly [string, string],
-): Tonality[] {
-  const altered = order.slice(0, signs)
-  const signature = tonics[0].replace('s', '#')
-  return [
-    { id: `${tonics[0]}-major`, signs, kind, mode: 'major', altered, signature },
-    { id: `${tonics[1]}-minor`, signs, kind, mode: 'minor', altered, signature },
-  ]
+  major: string,
+): Tonality {
+  return {
+    id: `${major}-major`,
+    signs,
+    kind,
+    altered: order.slice(0, signs),
+    signature: major.replace('s', '#'),
+  }
 }
 
-/** 30 тональностей в порядке списка: без знаков, диезы 1–7, бемоли 1–7; в наборе мажор, затем минор. */
+/** 15 тональностей в порядке списка: без знаков, диезы 1–7, бемоли 1–7. */
 export const TONALITIES: readonly Tonality[] = [
-  ...SHARP_TONICS.flatMap((tonics, signs) =>
-    build(signs, signs === 0 ? 'none' : 'sharp', SHARP_ORDER, tonics),
+  ...SHARP_MAJORS.map((major, signs) =>
+    build(signs, signs === 0 ? 'none' : 'sharp', SHARP_ORDER, major),
   ),
-  ...FLAT_TONICS.flatMap((tonics, index) => build(index + 1, 'flat', FLAT_ORDER, tonics)),
+  ...FLAT_MAJORS.map((major, index) => build(index + 1, 'flat', FLAT_ORDER, major)),
 ]
 
 export const DEFAULT_TONALITY_ID = 'C-major'

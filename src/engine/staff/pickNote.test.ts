@@ -163,13 +163,6 @@ describe('Тональность и бекар', () => {
     }
   })
 
-  it('минор с теми же знаками даёт те же ноты, что мажор', () => {
-    const pitches = (id: string) =>
-      buildPool(settings({ tonality: id })).map(({ note }) => note.pitch)
-    expect(pitches('E-minor')).toEqual(pitches('G-major'))
-    expect(pitches('D-minor')).toEqual(pitches('F-major'))
-  })
-
   it('бемоль: в Фа мажоре ступень B звучит как B♭; C♭ мажор — C пишется как B', () => {
     const fa = buildPool(settings({ tonality: 'F-major', clef: 'treble' }))
     const b = fa.find(({ note }) => note.step === stepOf('B', 4))!
