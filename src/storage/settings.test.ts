@@ -32,6 +32,8 @@ describe('Глиссандо: хранение настройки', () => {
       glissando: false,
       preferredInput: null,
       language: null,
+      noteEchoEnabled: true,
+      noteEchoMs: 1000,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -40,13 +42,23 @@ describe('Глиссандо: хранение настройки', () => {
   it('Настройка переживает перезапуск', () => {
     const storage = memoryStorage()
     saveSettings(
-      { glissando: true, preferredInput: null, language: null, activeMode: 'warmup', modeSettings },
+      {
+        glissando: true,
+        preferredInput: null,
+        language: null,
+        noteEchoEnabled: true,
+        noteEchoMs: 1000,
+        activeMode: 'warmup',
+        modeSettings,
+      },
       storage,
     )
     expect(loadSettings(storage)).toEqual({
       glissando: true,
       preferredInput: null,
       language: null,
+      noteEchoEnabled: true,
+      noteEchoMs: 1000,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -59,6 +71,8 @@ describe('Глиссандо: хранение настройки', () => {
       glissando: false,
       preferredInput: null,
       language: null,
+      noteEchoEnabled: true,
+      noteEchoMs: 1000,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -67,6 +81,8 @@ describe('Глиссандо: хранение настройки', () => {
       glissando: false,
       preferredInput: null,
       language: null,
+      noteEchoEnabled: true,
+      noteEchoMs: 1000,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -75,6 +91,8 @@ describe('Глиссандо: хранение настройки', () => {
       glissando: false,
       preferredInput: null,
       language: null,
+      noteEchoEnabled: true,
+      noteEchoMs: 1000,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -85,6 +103,8 @@ describe('Глиссандо: хранение настройки', () => {
       glissando: false,
       preferredInput: null,
       language: null,
+      noteEchoEnabled: true,
+      noteEchoMs: 1000,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -94,6 +114,8 @@ describe('Глиссандо: хранение настройки', () => {
           glissando: true,
           preferredInput: null,
           language: null,
+          noteEchoEnabled: true,
+          noteEchoMs: 1000,
           activeMode: 'warmup',
           modeSettings,
         },
@@ -107,6 +129,8 @@ describe('Глиссандо: хранение настройки', () => {
       glissando: false,
       preferredInput: null,
       language: null,
+      noteEchoEnabled: true,
+      noteEchoMs: 1000,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -116,6 +140,8 @@ describe('Глиссандо: хранение настройки', () => {
           glissando: true,
           preferredInput: null,
           language: null,
+          noteEchoEnabled: true,
+          noteEchoMs: 1000,
           activeMode: 'warmup',
           modeSettings,
         },
@@ -134,6 +160,8 @@ describe('Выбор запоминается и узнаёт вход посл�
         glissando: false,
         preferredInput: synth,
         language: null,
+        noteEchoEnabled: true,
+        noteEchoMs: 1000,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -149,6 +177,8 @@ describe('Выбор запоминается и узнаёт вход посл�
       glissando: true,
       preferredInput: null,
       language: null,
+      noteEchoEnabled: true,
+      noteEchoMs: 1000,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -171,6 +201,8 @@ describe('Активный режим запоминается', () => {
         glissando: false,
         preferredInput: null,
         language: null,
+        noteEchoEnabled: true,
+        noteEchoMs: 1000,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -194,6 +226,8 @@ describe('Активный режим запоминается', () => {
       glissando: true,
       preferredInput: null,
       language: null,
+      noteEchoEnabled: true,
+      noteEchoMs: 1000,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -209,6 +243,8 @@ describe('Настройки режима «Последовательности
         glissando: false,
         preferredInput: null,
         language: null,
+        noteEchoEnabled: true,
+        noteEchoMs: 1000,
         activeMode: 'sequences',
         modeSettings: { ...modeSettings, sequences },
       },
@@ -240,6 +276,8 @@ describe('Настройки «Контура»: хранение (C-STF-5)', ()
         glissando: false,
         preferredInput: null,
         language: null,
+        noteEchoEnabled: true,
+        noteEchoMs: 1000,
         activeMode: 'contour',
         modeSettings: { ...modeSettings, contour },
       },
@@ -287,6 +325,8 @@ describe('Настройки «Ритма» (C-STF-6)', () => {
         glissando: false,
         preferredInput: null,
         language: null,
+        noteEchoEnabled: true,
+        noteEchoMs: 1000,
         activeMode: 'rhythm',
         modeSettings: { ...modeSettings, rhythm },
       },
@@ -305,7 +345,15 @@ describe('Язык приложения: хранение (C-APP-3, OB-6, NFR-5)
   it('Перезапуск: выбранный язык сохраняется, остальное цело', () => {
     const storage = memoryStorage()
     saveSettings(
-      { glissando: true, preferredInput: null, language: 'en', activeMode: 'warmup', modeSettings },
+      {
+        glissando: true,
+        preferredInput: null,
+        language: 'en',
+        noteEchoEnabled: true,
+        noteEchoMs: 1000,
+        activeMode: 'warmup',
+        modeSettings,
+      },
       storage,
     )
     const loaded = loadSettings(storage)
@@ -327,5 +375,69 @@ describe('Язык приложения: хранение (C-APP-3, OB-6, NFR-5)
     expect(loadSettings(storage).language).toBeNull()
     storage.setItem('piaono.settings.v1', '{"language":""}')
     expect(loadSettings(storage).language).toBeNull()
+  })
+})
+
+describe('Время показа ноты: хранение настройки', () => {
+  it('по умолчанию 1 с, старые данные без поля читаются', () => {
+    const storage = memoryStorage()
+    expect(loadSettings(storage).noteEchoMs).toBe(1000)
+    storage.setItem('piaono.settings.v1', '{"glissando":true}')
+    const loaded = loadSettings(storage)
+    expect(loaded.noteEchoMs).toBe(1000)
+    expect(loaded.glissando).toBe(true)
+  })
+
+  it('сохранённое допустимое значение переживает перезапуск', () => {
+    const storage = memoryStorage()
+    saveSettings({ ...loadSettings(storage), noteEchoMs: 2500 }, storage)
+    expect(loadSettings(storage).noteEchoMs).toBe(2500)
+  })
+
+  it('граничные значения допустимы', () => {
+    const storage = memoryStorage()
+    storage.setItem('piaono.settings.v1', '{"noteEchoMs":500}')
+    expect(loadSettings(storage).noteEchoMs).toBe(500)
+    storage.setItem('piaono.settings.v1', '{"noteEchoMs":5000}')
+    expect(loadSettings(storage).noteEchoMs).toBe(5000)
+  })
+
+  it('не число, вне диапазона или не кратное шагу — значение по умолчанию, остальное цело', () => {
+    const storage = memoryStorage()
+    for (const bad of ['"1"', '0', '400', '5500', '1200', 'null']) {
+      storage.setItem('piaono.settings.v1', `{"glissando":true,"noteEchoMs":${bad}}`)
+      const loaded = loadSettings(storage)
+      expect(loaded.noteEchoMs).toBe(1000)
+      expect(loaded.glissando).toBe(true)
+    }
+  })
+})
+
+describe('Показ нажатых нот: выключатель', () => {
+  it('по умолчанию включён, старые данные без поля читаются как «включено»', () => {
+    const storage = memoryStorage()
+    expect(loadSettings(storage).noteEchoEnabled).toBe(true)
+    storage.setItem('piaono.settings.v1', '{"glissando":true,"noteEchoMs":2000}')
+    const loaded = loadSettings(storage)
+    expect(loaded.noteEchoEnabled).toBe(true)
+    expect(loaded.noteEchoMs).toBe(2000)
+  })
+
+  it('выключено переживает перезапуск и не стирает время показа', () => {
+    const storage = memoryStorage()
+    saveSettings({ ...loadSettings(storage), noteEchoEnabled: false, noteEchoMs: 3000 }, storage)
+    const loaded = loadSettings(storage)
+    expect(loaded.noteEchoEnabled).toBe(false)
+    expect(loaded.noteEchoMs).toBe(3000)
+  })
+
+  it('неподходящее значение — включено, остальное цело', () => {
+    const storage = memoryStorage()
+    for (const bad of ['"no"', '0', 'null']) {
+      storage.setItem('piaono.settings.v1', `{"glissando":true,"noteEchoEnabled":${bad}}`)
+      const loaded = loadSettings(storage)
+      expect(loaded.noteEchoEnabled).toBe(true)
+      expect(loaded.glissando).toBe(true)
+    }
   })
 })
