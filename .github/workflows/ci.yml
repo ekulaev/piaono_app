@@ -22,3 +22,6 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: npm run build
+      # Сайт-лендинг (C-LAUNCH-1): сборка и проверки hreflang, размеров, чужих ресурсов.
+      - run: npm run site:build
+      - run: npm run site:check

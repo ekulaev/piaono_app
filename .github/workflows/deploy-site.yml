@@ -1,0 +1,51 @@
+name: Deploy landing site
+
+# Сайт-лендинг (C-LAUNCH-1, Р-1) живёт на корне https://ekulaev.github.io/ — это отдельный
+# репозиторий ekulaev/ekulaev.github.io. Исходники — здесь, в site/; workflow собирает их
+# и отправляет готовую папку site/dist в тот репозиторий. Приложение (/piaono_app/) не трогает.
+#
+# Нужен секрет SITE_DEPLOY_TOKEN: fine-grained токен GitHub с правом Contents: Read and write
+# только на репозиторий ekulaev/ekulaev.github.io. Пока секрета нет — сборка и проверки идут,
+# а публикация пропускается с предупреждением.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy-site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node site/build.mjs
+      - run: node site/check.mjs
+      - name: Publish to ekulaev/ekulaev.github.io
+        env:
+          TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::Нет секрета SITE_DEPLOY_TOKEN — сайт собран и проверен, но не опубликован."
+            exit 0
+          fi
+          cd site/dist
+          git init -q -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Сайт из ekulaev/piaono_app@${GITHUB_SHA::7}"
+          # В целевом репозитории только собранный сайт: каждая публикация заменяет его целиком.
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/ekulaev/ekulaev.github.io.git" main
