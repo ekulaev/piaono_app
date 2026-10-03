@@ -21,6 +21,7 @@ import SequenceStaff from './sequences/SequenceStaff'
 import SessionSummary from './sequences/SessionSummary'
 import { useSequenceSession } from './sequences/useSequenceSession'
 import AutoAdvanceIcon from './sequences/AutoAdvanceIcon'
+import { KeyLabelsIcon } from './icons/Icons'
 import RhythmStaff from './rhythm/RhythmStaff'
 import RhythmSummary from './rhythm/RhythmSummary'
 import { useRhythmSession } from './rhythm/useRhythmSession'
@@ -82,6 +83,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   const [accessError, setAccessError] = useState<string | null>(null)
   // Время показа нажатой ноты (C-STF-8): общее для всех режимов, меняется в «Настройках».
   const [noteEchoEnabled, setNoteEchoEnabled] = useState(() => settingsRef.current!.noteEchoEnabled)
+  const [keyLabels, setKeyLabels] = useState(() => settingsRef.current!.keyLabels)
   const [noteEchoMs, setNoteEchoMs] = useState(() => settingsRef.current!.noteEchoMs)
   const nextLogId = useRef(0)
   const monitorRef = useRef<MidiMonitor | null>(null)
@@ -245,6 +247,11 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   function changeNoteEchoMs(ms: number) {
     setNoteEchoMs(ms)
     updateSettings({ noteEchoMs: ms })
+  }
+
+  function changeKeyLabels(enabled: boolean) {
+    setKeyLabels(enabled)
+    updateSettings({ keyLabels: enabled })
   }
 
   function toggleGlissando() {
@@ -533,6 +540,16 @@ function Main({ settingsRef, updateSettings }: MainProps) {
             />
           )
         }
+        labelsControl={
+          // Одно значение на все режимы (C-KBD-3); переключение не останавливает упражнение.
+          <Toggle
+            compact
+            label={t('keyLabels.toggle')}
+            icon={<KeyLabelsIcon />}
+            checked={keyLabels}
+            onChange={changeKeyLabels}
+          />
+        }
         slotButton={slotButton}
         staff={staff}
         noteEcho={noteEchoEnabled ? <NoteEchoStrip slots={echo.slots} /> : null}
@@ -542,6 +559,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
             onInput={handleKeyInput}
             focus={keyboardFocus.focus}
             onCapacity={setKeyboardCapacity}
+            labels={keyLabels}
           />
         }
       />

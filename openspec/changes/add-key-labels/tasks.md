@@ -2,22 +2,22 @@
 
 ## 1. Настройка (storage)
 
-- [ ] 1.1 `storage/settings.ts`: поле `keyLabels: boolean`, по умолчанию `false`; в `loadSettings` — `typeof keyLabels === 'boolean' ? keyLabels : false`, остальные поля читаются независимо (D4; app-settings «Настройка «Подписи на клавишах»») + тесты в `settings.test.ts`: пустое хранилище → `false`; старая запись без поля → `false`, остальные поля прежние; значение не boolean → `false`, остальные поля прежние; сохранение и чтение `true`; запись одного поля не стирает остальные; проверка: `npm test`
+- [x] 1.1 `storage/settings.ts`: поле `keyLabels: boolean`, по умолчанию `false`; в `loadSettings` — `typeof keyLabels === 'boolean' ? keyLabels : false`, остальные поля читаются независимо (D4; app-settings «Настройка «Подписи на клавишах»») + тесты в `settings.test.ts`: пустое хранилище → `false`; старая запись без поля → `false`, остальные поля прежние; значение не boolean → `false`, остальные поля прежние; сохранение и чтение `true`; запись одного поля не стирает остальные; проверка: `npm test`
 
 ## 2. Состав подписей (engine)
 
-- [ ] 2.1 Тест на `describeNote` по всем 52 белым клавишам (`WHITE_PITCHES`): первая — La/A0, C4 — Do/C4, последняя — Do/C8; для белых нет `sharp`; для 7 нот октавы имена Do, Re, Mi, Fa, Sol, La, Si с буквами C…B (D1; key-labels «Подписи белых клавиш»). Новой функции не вводится; проверка: `npm test`
+- [x] 2.1 Тест на `describeNote` по всем 52 белым клавишам (`WHITE_PITCHES`): первая — La/A0, C4 — Do/C4, последняя — Do/C8; для белых нет `sharp`; для 7 нот октавы имена Do, Re, Mi, Fa, Sol, La, Si с буквами C…B (D1; key-labels «Подписи белых клавиш»). Новой функции не вводится; проверка: `npm test`
 
 ## 3. Подписи на клавишах (ui)
 
-- [ ] 3.1 `ui/keyboard/Keyboard.tsx`: свойство `labels: boolean`; `Key` получает `labeled` (только белые), рисует `<span className="key__label">` с именем ноты и буквой с октавой из `describeNote` (D1, D3)
-- [ ] 3.2 `ui/keyboard/Keyboard.css`: `.key__label` — внизу белой клавиши, по центру, 1.25rem/600/`--ink` и 1rem/500/`--ink-soft`, межстрочный 1.1, отступ снизу 0.25rem, `pointer-events: none`, `white-space: nowrap`; встречное смещение `translateY(calc(-1 * var(--depth)))`; в `.key--pressed` обе строки `--paper`; без переходов и анимаций (D1, D2; OB-2, OB-4, OB-7). Проверка: `npm run lint`, `npm run format:check`
+- [x] 3.1 `ui/keyboard/Keyboard.tsx`: свойство `labels: boolean`; `Key` получает `labeled` (только белые), рисует `<span className="key__label">` с именем ноты и буквой с октавой из `describeNote` (D1, D3)
+- [x] 3.2 `ui/keyboard/Keyboard.css`: `.key__label` — внизу белой клавиши, по центру, 1.25rem/600/`--ink` и 1rem/500/`--ink-soft`, межстрочный 1.1, отступ снизу 0.25rem, `pointer-events: none`, `white-space: nowrap`; встречное смещение `translateY(calc(-1 * var(--depth)))`; в `.key--pressed` обе строки `--paper`; без переходов и анимаций (D1, D2; OB-2, OB-4, OB-7). Проверка: `npm run lint`, `npm run format:check`
 
 ## 4. Флажок в ряду кнопок
 
-- [ ] 4.1 `ui/icons/Icons.tsx`: `KeyLabelsIcon` — линейный значок в стиле остальных; `i18n/locales/ru.ts` и `en.ts`: `keyLabels.toggle` («Подписи на клавишах» / «Key labels»)
+- [x] 4.1 `ui/icons/Icons.tsx`: `KeyLabelsIcon` — линейный значок в стиле остальных; `i18n/locales/ru.ts` и `en.ts`: `keyLabels.toggle` («Подписи на клавишах» / «Key labels»)
 - [ ] 4.2 `ui/WaitingScreen.tsx`, `WaitingScreen.css`: свойство `labelsControl`; колонка `.waiting__mode-control` — flex-ряд из флажка режима и флажка подписей, флажок подписей последний; колонка есть, когда есть клавиатура (D5, D6; OB-9, OB-18)
-- [ ] 4.3 `ui/App.tsx`: состояние `keyLabels` из настроек, переключение сохраняется через `updateSettings`, значение передаётся в `Keyboard` (`labels`) и флажок в `WaitingScreen` — `Toggle compact` с `KeyLabelsIcon`; переключение не останавливает упражнение и не меняет настройки режимов (D4, D5; OB-10, OB-11, OB-13, OB-14)
+- [x] 4.3 `ui/App.tsx`: состояние `keyLabels` из настроек, переключение сохраняется через `updateSettings`, значение передаётся в `Keyboard` (`labels`) и флажок в `WaitingScreen` — `Toggle compact` с `KeyLabelsIcon`; переключение не останавливает упражнение и не меняет настройки режимов (D4, D5; OB-10, OB-11, OB-13, OB-14)
 
 ## 5. Проверка в браузере
 

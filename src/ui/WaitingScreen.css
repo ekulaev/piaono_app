@@ -82,6 +82,13 @@
   grid-area: control;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+}
+
+/* Два флажка в одном ряду с «Режимом»: поля теснее, цели касания те же (≥ 56px). */
+.waiting__mode-control .toggle {
+  padding-inline: 0.5rem;
+  gap: 0.5rem;
 }
 
 /*
@@ -106,7 +113,11 @@
     white-space: nowrap;
   }
   .waiting__actions .waiting__slot {
-    min-width: 9.5em;
+    min-width: 7.5em;
+  }
+  /* Флажки справа (режима и подписей, C-KBD-3) отъедают ширину: зазоры теснее, цели те же. */
+  .waiting__actions {
+    gap: 0.5rem;
   }
   /* Длинное название режима («Последовательности») переносится на вторую строку, а не
      выталкивает кнопку за край экрана. */

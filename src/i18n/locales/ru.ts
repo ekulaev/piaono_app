@@ -72,6 +72,7 @@ const messages = {
   'mode.rhythm': 'Ритм',
   'mode.warmup': 'Разминка',
   'modeControl.autoAdvance': 'Переключать автоматически',
+  'keyLabels.toggle': 'Подписи на клавишах',
   'common.close': 'Закрыть',
   'modes.title': 'Режимы',
   'modes.selected': 'выбран',

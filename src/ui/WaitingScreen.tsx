@@ -20,6 +20,8 @@ interface Props {
   modeHint: ReactNode
   /** Быстрая настройка активного режима на главном экране (флажок «Последовательностей»). */
   modeControl: ReactNode
+  /** Флажок подписей на клавишах (C-KBD-3): самый правый в ряду; нет клавиатуры — нет флажка. */
+  labelsControl: ReactNode
   /** «Пропустить» / «Сначала» / «Далее (N)»; null — слот пуст, но место за ним держится. */
   slotButton: SlotButton | null
   /** Нотный стан (или итог, или приглашение): занимает всё свободное место над кнопками. */
@@ -42,6 +44,7 @@ function WaitingScreen({
   modeMenuOpen,
   modeHint,
   modeControl,
+  labelsControl,
   slotButton,
   staff,
   noteEcho,
@@ -87,7 +90,12 @@ function WaitingScreen({
             {modeHint}
           </span>
         </nav>
-        {modeControl && <div className="waiting__mode-control">{modeControl}</div>}
+        {(modeControl || labelsControl) && (
+          <div className="waiting__mode-control">
+            {modeControl}
+            {labelsControl}
+          </div>
+        )}
       </main>
       <div className="waiting-screen__keyboard">{keyboard}</div>
     </div>
