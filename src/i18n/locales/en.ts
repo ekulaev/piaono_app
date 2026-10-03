@@ -72,6 +72,7 @@ export const messages = {
   'mode.rhythm': 'Rhythm',
   'mode.warmup': 'Warm-up',
   'modeControl.autoAdvance': 'Switch automatically',
+  'keyLabels.toggle': 'Key labels',
   'common.close': 'Close',
   'modes.title': 'Modes',
   'modes.selected': 'selected',

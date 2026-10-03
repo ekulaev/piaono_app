@@ -36,6 +36,8 @@ export interface Settings {
   noteEchoEnabled: boolean
   /** Сколько миллисекунд карточка нажатой ноты остаётся на экране (C-STF-8). */
   noteEchoMs: number
+  /** Подписи нот на белых клавишах (C-KBD-3): одно значение на все режимы; по умолчанию выключено. */
+  keyLabels: boolean
   /** Режим, который запускает «Старт» на главном экране. */
   activeMode: ModeId
   /**
@@ -64,6 +66,7 @@ const DEFAULT_SETTINGS: Settings = {
   language: null,
   noteEchoEnabled: true,
   noteEchoMs: DEFAULT_NOTE_ECHO_MS,
+  keyLabels: false,
   activeMode: DEFAULT_MODE,
   modeSettings: {
     sequences: DEFAULT_SEQUENCE_SETTINGS,
@@ -92,6 +95,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
       language,
       noteEchoEnabled,
       noteEchoMs,
+      keyLabels,
       activeMode,
       modeSettings,
     } = parsed as Record<string, unknown>
@@ -103,6 +107,8 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
       // Нет поля или не boolean — показ включён: старые данные не выключают новую функцию.
       noteEchoEnabled: typeof noteEchoEnabled === 'boolean' ? noteEchoEnabled : true,
       noteEchoMs: readNoteEchoMs(noteEchoMs),
+      // Нет поля или не boolean — выключено: старые данные не меняют привычный вид клавиатуры.
+      keyLabels: typeof keyLabels === 'boolean' ? keyLabels : DEFAULT_SETTINGS.keyLabels,
       // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
       activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
       modeSettings: {

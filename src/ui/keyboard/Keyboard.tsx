@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from 'react'
 import { heldPitches, levelOf } from '../../engine/keyboard/keyboardState'
+import { describeNote } from '../../engine/noteEcho/describeNote'
 import {
   BLACK_TO_WHITE,
   centerStartOn,
@@ -51,6 +52,8 @@ interface Props {
   focus?: KeyboardFocus | null
   /** Вместимость: сколько белых клавиш видно сейчас (52 — все); null — клавиатуры нет. */
   onCapacity?: (capacity: number | null) => void
+  /** Подписи нот на белых клавишах (C-KBD-3). */
+  labels?: boolean
 }
 
 interface ZoneSize {
@@ -70,7 +73,7 @@ interface VisibleWindow {
  * и превращает касания в события для него. Своё у неё только одно — какая часть
  * клавиатуры сейчас видна.
  */
-function Keyboard({ state, onInput, focus, onCapacity }: Props) {
+function Keyboard({ state, onInput, focus, onCapacity, labels = false }: Props) {
   const t = useT()
   const zoneRef = useRef<HTMLDivElement>(null)
   const keysRef = useRef<HTMLDivElement>(null)
@@ -205,6 +208,7 @@ function Keyboard({ state, onInput, focus, onCapacity }: Props) {
           left={i * whiteWidth}
           width={whiteWidth}
           level={levelOf(state, pitch)}
+          labeled={labels}
         />,
       )
       // Чёрная рисуется, только если видны обе её белые соседки.
@@ -305,10 +309,12 @@ interface KeyProps {
   width: number
   /** null — клавиша отпущена. */
   level: Level | null
+  /** Подпись ноты внизу клавиши; только у белых (C-KBD-3). */
+  labeled?: boolean
 }
 
 /** Одна клавиша. memo: при нажатии перерисовывается только она, а не все 88. */
-const Key = memo(function Key({ pitch, black, left, width, level }: KeyProps) {
+const Key = memo(function Key({ pitch, black, left, width, level, labeled = false }: KeyProps) {
   const className = [
     'key',
     black ? 'key--black' : 'key--white',
@@ -317,8 +323,23 @@ const Key = memo(function Key({ pitch, black, left, width, level }: KeyProps) {
     .filter(Boolean)
     .join(' ')
   // data-pitch — номер ноты по MIDI: удобно видеть в инструментах разработчика.
-  return <div className={className} style={{ left, width }} data-pitch={pitch} />
+  return (
+    <div className={className} style={{ left, width }} data-pitch={pitch}>
+      {labeled && !black && <KeyLabel pitch={pitch} />}
+    </div>
+  )
 })
+
+/** Имя ноты и буква с октавой — латиницей на любом языке, как в полосе нажатых нот (C-STF-8). */
+function KeyLabel({ pitch }: { pitch: number }) {
+  const note = describeNote(pitch)
+  return (
+    <span className="key__label">
+      <span className="key__label-name">{note.solfege}</span>
+      <span className="key__label-letter">{`${note.letter}${note.octave}`}</span>
+    </span>
+  )
+}
 
 interface ScrollButtonProps {
   side: Side

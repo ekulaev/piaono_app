@@ -86,6 +86,40 @@
   box-shadow: inset 0 var(--depth) 0 0 var(--paper);
 }
 
+/*
+ * Подпись белой клавиши (C-KBD-3): внизу, ниже чёрных клавиш. Встречное смещение держит её на
+ * месте, пока клавиша опускается: иначе при низкой зоне клавиатуры нижняя строка срезалась бы.
+ */
+.key__label {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(calc(-1 * var(--depth)));
+}
+
+.key__label-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.key__label-letter {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.key--pressed .key__label-name,
+.key--pressed .key__label-letter {
+  color: var(--paper);
+}
+
 /* Кнопки прокрутки — по краям, во всю высоту зоны, шириной в белую клавишу. */
 .kbd__scroll {
   position: absolute;

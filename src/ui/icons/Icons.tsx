@@ -83,3 +83,15 @@ export function WarningIcon() {
     </Icon>
   )
 }
+
+/** «Подписи на клавишах»: белая клавиша с чёрной сверху и двумя строками текста внизу. */
+export function KeyLabelsIcon() {
+  return (
+    <Icon>
+      <rect x="5" y="2.5" width="14" height="19" rx="1.5" />
+      <rect x="5" y="2.5" width="8" height="9.5" fill="currentColor" />
+      <path d="M8.5 16 H15.5" />
+      <path d="M8.5 19 H15.5" />
+    </Icon>
+  )
+}

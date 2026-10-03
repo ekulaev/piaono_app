@@ -37,6 +37,7 @@ describe('Глиссандо: хранение настройки', () => {
       language: null,
       noteEchoEnabled: true,
       noteEchoMs: 1000,
+      keyLabels: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -51,6 +52,7 @@ describe('Глиссандо: хранение настройки', () => {
         language: null,
         noteEchoEnabled: true,
         noteEchoMs: 1000,
+        keyLabels: false,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -62,6 +64,7 @@ describe('Глиссандо: хранение настройки', () => {
       language: null,
       noteEchoEnabled: true,
       noteEchoMs: 1000,
+      keyLabels: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -76,6 +79,7 @@ describe('Глиссандо: хранение настройки', () => {
       language: null,
       noteEchoEnabled: true,
       noteEchoMs: 1000,
+      keyLabels: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -86,6 +90,7 @@ describe('Глиссандо: хранение настройки', () => {
       language: null,
       noteEchoEnabled: true,
       noteEchoMs: 1000,
+      keyLabels: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -96,6 +101,7 @@ describe('Глиссандо: хранение настройки', () => {
       language: null,
       noteEchoEnabled: true,
       noteEchoMs: 1000,
+      keyLabels: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -108,6 +114,7 @@ describe('Глиссандо: хранение настройки', () => {
       language: null,
       noteEchoEnabled: true,
       noteEchoMs: 1000,
+      keyLabels: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -119,6 +126,7 @@ describe('Глиссандо: хранение настройки', () => {
           language: null,
           noteEchoEnabled: true,
           noteEchoMs: 1000,
+          keyLabels: false,
           activeMode: 'warmup',
           modeSettings,
         },
@@ -134,6 +142,7 @@ describe('Глиссандо: хранение настройки', () => {
       language: null,
       noteEchoEnabled: true,
       noteEchoMs: 1000,
+      keyLabels: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -145,6 +154,7 @@ describe('Глиссандо: хранение настройки', () => {
           language: null,
           noteEchoEnabled: true,
           noteEchoMs: 1000,
+          keyLabels: false,
           activeMode: 'warmup',
           modeSettings,
         },
@@ -165,6 +175,7 @@ describe('Выбор запоминается и узнаёт вход посл�
         language: null,
         noteEchoEnabled: true,
         noteEchoMs: 1000,
+        keyLabels: false,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -182,6 +193,7 @@ describe('Выбор запоминается и узнаёт вход посл�
       language: null,
       noteEchoEnabled: true,
       noteEchoMs: 1000,
+      keyLabels: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -206,6 +218,7 @@ describe('Активный режим запоминается', () => {
         language: null,
         noteEchoEnabled: true,
         noteEchoMs: 1000,
+        keyLabels: false,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -231,6 +244,7 @@ describe('Активный режим запоминается', () => {
       language: null,
       noteEchoEnabled: true,
       noteEchoMs: 1000,
+      keyLabels: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -248,6 +262,7 @@ describe('Настройки режима «Последовательности
         language: null,
         noteEchoEnabled: true,
         noteEchoMs: 1000,
+        keyLabels: false,
         activeMode: 'sequences',
         modeSettings: { ...modeSettings, sequences },
       },
@@ -281,6 +296,7 @@ describe('Настройки «Контура»: хранение (C-STF-5)', ()
         language: null,
         noteEchoEnabled: true,
         noteEchoMs: 1000,
+        keyLabels: false,
         activeMode: 'contour',
         modeSettings: { ...modeSettings, contour },
       },
@@ -330,6 +346,7 @@ describe('Настройки «Ритма» (C-STF-6)', () => {
         language: null,
         noteEchoEnabled: true,
         noteEchoMs: 1000,
+        keyLabels: false,
         activeMode: 'rhythm',
         modeSettings: { ...modeSettings, rhythm },
       },
@@ -354,6 +371,7 @@ describe('Язык приложения: хранение (C-APP-3, OB-6, NFR-5)
         language: 'en',
         noteEchoEnabled: true,
         noteEchoMs: 1000,
+        keyLabels: false,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -491,5 +509,40 @@ describe('Настройки «Разминки» (C-STF-9): хранение', 
     expect(loaded.modeSettings.warmup.travelSeconds).toBe(8)
     expect(loaded.modeSettings.warmup.bassRange).toEqual(DEFAULT_WARMUP_SETTINGS.bassRange)
     expect(loaded.modeSettings.sequences.sequences).toBe(4)
+  })
+})
+
+describe('Подписи на клавишах: хранение настройки (C-KBD-3)', () => {
+  const rawRecord = (extra: Record<string, unknown>) => {
+    const storage = memoryStorage()
+    storage.setItem('piaono.settings.v1', JSON.stringify({ glissando: true, ...extra }))
+    return storage
+  }
+
+  it('пустое хранилище → выключено', () => {
+    expect(loadSettings(memoryStorage()).keyLabels).toBe(false)
+  })
+
+  it('старая запись без поля → выключено, остальное прежнее', () => {
+    const loaded = loadSettings(rawRecord({ noteEchoMs: 2500 }))
+    expect(loaded.keyLabels).toBe(false)
+    expect(loaded.glissando).toBe(true)
+    expect(loaded.noteEchoMs).toBe(2500)
+  })
+
+  it('значение не boolean → выключено, остальное прежнее', () => {
+    const loaded = loadSettings(rawRecord({ keyLabels: 'yes', noteEchoMs: 2500 }))
+    expect(loaded.keyLabels).toBe(false)
+    expect(loaded.glissando).toBe(true)
+    expect(loaded.noteEchoMs).toBe(2500)
+  })
+
+  it('включённое значение переживает перезапуск и не стирает остальное', () => {
+    const storage = rawRecord({ noteEchoMs: 2500 })
+    saveSettings({ ...loadSettings(storage), keyLabels: true }, storage)
+    const loaded = loadSettings(storage)
+    expect(loaded.keyLabels).toBe(true)
+    expect(loaded.glissando).toBe(true)
+    expect(loaded.noteEchoMs).toBe(2500)
   })
 })
