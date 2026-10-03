@@ -8,13 +8,15 @@ import { useI18n } from '../i18n/useI18n'
 interface Props {
   summary: Summary
   improvements: ImprovementsData
+  /** Тональность сессии: по ней называются ноты со знаками (C-STF-9, Р-19). */
+  tonality: string
 }
 
 /**
  * Итог «Разминки» после «Стопа» (C-STF-4, OB-12) — на месте стана. Своих кнопок нет:
  * новую сессию начинает «Старт» в ряду кнопок.
  */
-function WarmupSummary({ summary, improvements }: Props) {
+function WarmupSummary({ summary, improvements, tonality }: Props) {
   const { t, percent, seconds } = useI18n()
   return (
     <section className="summary" aria-label={t('warmup.label')}>
@@ -44,14 +46,16 @@ function WarmupSummary({ summary, improvements }: Props) {
           <ol>
             {summary.slowest.map(({ pitch, clef, averageMs }) => (
               <li key={`${clef}:${pitch}`}>
-                <span className="summary__note">{placeLabel(t, 'note', `${clef}:${pitch}`)}</span> —{' '}
-                {seconds(averageMs)}
+                <span className="summary__note">
+                  {placeLabel(t, 'note', `${clef}:${pitch}`, tonality)}
+                </span>{' '}
+                — {seconds(averageMs)}
               </li>
             ))}
           </ol>
         )}
       </div>
-      <Improvements improvements={improvements} />
+      <Improvements improvements={improvements} tonality={tonality} />
     </section>
   )
 }

@@ -449,6 +449,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
       <WarmupSummary
         summary={summarizeWarmup(results)}
         improvements={improvements(warmupBefore.current, aggregate(results.map(warmupEvent)))}
+        tonality={modeSettings.warmup.tonality}
       />
     )
   } else if (!exercise.running && !hasProgress(practice[activeMode])) {
@@ -484,6 +485,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         activeMode={activeMode}
         practice={practice}
         hints={hints}
+        warmupTonality={modeSettings.warmup.tonality}
         onResetStats={resetStats}
         onResetHints={resetHints}
         onBack={() => setScreen('main')}

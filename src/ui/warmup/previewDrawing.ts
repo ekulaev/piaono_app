@@ -84,14 +84,14 @@ export function drawPreview(
       duration: selected ? 'q' : 'w',
       clef: spec.clef,
     })
-    note.renderOptions.drawStem = false
     note.setStave(stave)
     note.setStyle({ fillStyle: color, strokeStyle: color })
+    // Штиль не нужен: нота — только отметка положения (после setStyle, который красит и штиль).
+    note.setStemStyle({ strokeStyle: 'transparent', fillStyle: 'transparent' })
     note.setLedgerLineStyle({ strokeStyle: color, lineWidth: LEDGER_WIDTH })
-    new TickContext()
-      .addTickable(note)
-      .preFormat()
-      .setX(centerOf(step) - note.getGlyphWidth() / 2)
+    // VexFlow считает x от начала нот стана: узнаём этот сдвиг при x = 0 и вычитаем его.
+    const tick = new TickContext().addTickable(note).preFormat().setX(0)
+    tick.setX(centerOf(step) - note.getGlyphWidth() / 2 - note.getAbsoluteX())
     note.setContext(context).draw()
   }
 }

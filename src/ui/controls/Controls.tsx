@@ -357,7 +357,7 @@ export function RangeSlider({
 
   return (
     <div className="control">
-      <div className="slider__head">
+      <div className="slider__head slider__head--stacked">
         <p id={labelId} className="control__label">
           {label}
         </p>

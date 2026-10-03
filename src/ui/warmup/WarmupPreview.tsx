@@ -63,6 +63,8 @@ function WarmupPreview({ settings }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const zone = useZone(rootRef)
   const fontReady = useMusicFont()
+  // Высота стана — всегда половина зоны: один ключ стоит по центру и не крупнее, чем при двух,
+  // иначе головки 23 нот наезжали бы друг на друга.
   const clefs: Clef[] = settings.clef === 'both' ? ['treble', 'bass'] : [settings.clef]
 
   return (
@@ -74,7 +76,7 @@ function WarmupPreview({ settings }: Props) {
             clef={clef}
             settings={settings}
             zone={zone}
-            height={zone.height / clefs.length}
+            height={zone.height / 2}
             fontReady={fontReady}
           />
         ))}
