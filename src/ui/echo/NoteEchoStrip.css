@@ -1,0 +1,71 @@
+/*
+ * Полоса нажатых нот: пять слотов постоянной высоты под зоной стана. Пустая полоса держит то же
+ * место — ничего не прыгает (C-STF-8, OB-13). Цвета нейтральные: акцент — только для «играть сейчас».
+ */
+.note-echo {
+  grid-area: echo;
+  height: 4.5rem;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(0.25rem, 1vw, 0.75rem);
+}
+
+.note-echo__slot {
+  min-width: 0;
+}
+
+.note-echo__card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 0.1875rem solid var(--ink-soft);
+  border-radius: 0.75rem;
+  /* Рамка тоньше на 0,125 rem — паддинг добирает, чтобы текст не дёргался при смене «последней». */
+  padding: 0.125rem;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+  /* Только непрозрачность; положение и размер не анимируются. Длительность — на карточке. */
+  transition-property: opacity;
+  transition-timing-function: linear;
+  transition-duration: var(--fade, 0.15s);
+}
+
+/* Последняя нота толще обводкой: видна формой, а не только прозрачностью (OB-18, LIM-6). */
+.note-echo__card--last {
+  border-width: 0.3125rem;
+  padding: 0;
+}
+
+/* Крупное имя — 2,5 rem; мелкая строка — не меньше 1 rem (C-STF-8, LIM-4). */
+.note-echo__name {
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.note-echo__small {
+  max-width: 100%;
+  padding-inline: 0.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-echo__card {
+    transition: none;
+  }
+}
+
+/* Низкий экран (телефон): места нет, полосы нет (C-STF-8, OB-17). */
+@media (max-height: 30rem) {
+  .note-echo {
+    display: none;
+  }
+}

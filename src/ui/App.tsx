@@ -45,6 +45,8 @@ import WaitingScreen, { type SlotButton } from './WaitingScreen'
 import HintButton from './hints/HintButton'
 import { modeHintId } from './hints/hints'
 import { useAppUpdate } from './useAppUpdate'
+import NoteEchoStrip from './echo/NoteEchoStrip'
+import { useNoteEcho } from './echo/useNoteEcho'
 import I18nProvider from './i18n/I18nProvider'
 import { useI18n } from './i18n/useI18n'
 import { AVAILABLE_LANGUAGES, resolveLanguage } from '../i18n'
@@ -73,6 +75,9 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null)
   const [log, setLog] = useState<LogEntry[]>([])
   const [accessError, setAccessError] = useState<string | null>(null)
+  // Время показа нажатой ноты (C-STF-8): общее для всех режимов, меняется в «Настройках».
+  const [noteEchoEnabled, setNoteEchoEnabled] = useState(() => settingsRef.current!.noteEchoEnabled)
+  const [noteEchoMs, setNoteEchoMs] = useState(() => settingsRef.current!.noteEchoMs)
   const nextLogId = useRef(0)
   const monitorRef = useRef<MidiMonitor | null>(null)
   const { updateReady, applyUpdate } = useAppUpdate()
@@ -92,6 +97,14 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   // «Ритму» нужна не высота, а момент нажатия (C-STF-6).
   const rhythm = useRhythmSession()
   const playedInRhythm = rhythm.played
+  const echo = useNoteEcho(noteEchoMs)
+  // Свежее значение для обработчика нажатий, который не пересоздаётся при смене настройки.
+  const noteEchoEnabledRef = useRef(noteEchoEnabled)
+  useEffect(() => {
+    noteEchoEnabledRef.current = noteEchoEnabled
+  }, [noteEchoEnabled])
+  const pushEcho = echo.push
+  const clearEcho = echo.clear
   const exerciseRunning = exercise.running || sequences.running || rhythm.running
 
   /** Остановить любое упражнение и закрыть итог без нового итога (Режим, Проверка пианино). */
@@ -195,10 +208,28 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         playedInExercise(playedNote.pitch)
         playedInSequences(playedNote.pitch)
         playedInRhythm(playedNote.time)
+        if (noteEchoEnabledRef.current) pushEcho(playedNote.pitch)
       }
     },
-    [playedInExercise, playedInSequences, playedInRhythm],
+    [playedInExercise, playedInSequences, playedInRhythm, pushEcho],
   )
+
+  // Карточки живут только на главном экране: при возврате полоса пуста (C-STF-8, OB-16).
+  useEffect(() => {
+    if (screen !== 'main') clearEcho()
+  }, [screen, clearEcho])
+
+  function changeNoteEchoEnabled(enabled: boolean) {
+    setNoteEchoEnabled(enabled)
+    updateSettings({ noteEchoEnabled: enabled })
+    // Выключили — висящие карточки и их таймеры уходят сразу.
+    if (!enabled) clearEcho()
+  }
+
+  function changeNoteEchoMs(ms: number) {
+    setNoteEchoMs(ms)
+    updateSettings({ noteEchoMs: ms })
+  }
 
   function toggleGlissando() {
     const enabled = !keyboardRef.current.glissando
@@ -400,6 +431,10 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         onOpenCheck={() => setScreen('check')}
         glissando={keyboard.glissando}
         onToggleGlissando={toggleGlissando}
+        noteEchoEnabled={noteEchoEnabled}
+        onChangeNoteEchoEnabled={changeNoteEchoEnabled}
+        noteEchoMs={noteEchoMs}
+        onChangeNoteEchoMs={changeNoteEchoMs}
         updateReady={updateReady}
         onApplyUpdate={applyUpdate}
         onBack={() => setScreen('main')}
@@ -460,6 +495,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         }
         slotButton={slotButton}
         staff={staff}
+        noteEcho={noteEchoEnabled ? <NoteEchoStrip slots={echo.slots} /> : null}
         keyboard={<Keyboard state={keyboard} onInput={handleKeyInput} focus={sequences.focus} />}
       />
     )
