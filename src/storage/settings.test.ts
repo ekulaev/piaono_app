@@ -42,6 +42,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoEnabled: true,
       noteEchoMs: 1000,
       keyLabels: false,
+      keyboardVisible: true,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -57,6 +58,7 @@ describe('Глиссандо: хранение настройки', () => {
         noteEchoEnabled: true,
         noteEchoMs: 1000,
         keyLabels: false,
+        keyboardVisible: true,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -69,6 +71,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoEnabled: true,
       noteEchoMs: 1000,
       keyLabels: false,
+      keyboardVisible: true,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -84,6 +87,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoEnabled: true,
       noteEchoMs: 1000,
       keyLabels: false,
+      keyboardVisible: true,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -95,6 +99,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoEnabled: true,
       noteEchoMs: 1000,
       keyLabels: false,
+      keyboardVisible: true,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -106,6 +111,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoEnabled: true,
       noteEchoMs: 1000,
       keyLabels: false,
+      keyboardVisible: true,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -119,6 +125,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoEnabled: true,
       noteEchoMs: 1000,
       keyLabels: false,
+      keyboardVisible: true,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -131,6 +138,7 @@ describe('Глиссандо: хранение настройки', () => {
           noteEchoEnabled: true,
           noteEchoMs: 1000,
           keyLabels: false,
+          keyboardVisible: true,
           activeMode: 'warmup',
           modeSettings,
         },
@@ -147,6 +155,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoEnabled: true,
       noteEchoMs: 1000,
       keyLabels: false,
+      keyboardVisible: true,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -159,6 +168,7 @@ describe('Глиссандо: хранение настройки', () => {
           noteEchoEnabled: true,
           noteEchoMs: 1000,
           keyLabels: false,
+          keyboardVisible: true,
           activeMode: 'warmup',
           modeSettings,
         },
@@ -180,6 +190,7 @@ describe('Выбор запоминается и узнаёт вход посл�
         noteEchoEnabled: true,
         noteEchoMs: 1000,
         keyLabels: false,
+        keyboardVisible: true,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -198,6 +209,7 @@ describe('Выбор запоминается и узнаёт вход посл�
       noteEchoEnabled: true,
       noteEchoMs: 1000,
       keyLabels: false,
+      keyboardVisible: true,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -223,6 +235,7 @@ describe('Активный режим запоминается', () => {
         noteEchoEnabled: true,
         noteEchoMs: 1000,
         keyLabels: false,
+        keyboardVisible: true,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -249,6 +262,7 @@ describe('Активный режим запоминается', () => {
       noteEchoEnabled: true,
       noteEchoMs: 1000,
       keyLabels: false,
+      keyboardVisible: true,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -267,6 +281,7 @@ describe('Настройки режима «Последовательности
         noteEchoEnabled: true,
         noteEchoMs: 1000,
         keyLabels: false,
+        keyboardVisible: true,
         activeMode: 'sequences',
         modeSettings: { ...modeSettings, sequences },
       },
@@ -301,6 +316,7 @@ describe('Настройки «Контура»: хранение (C-STF-5)', ()
         noteEchoEnabled: true,
         noteEchoMs: 1000,
         keyLabels: false,
+        keyboardVisible: true,
         activeMode: 'contour',
         modeSettings: { ...modeSettings, contour },
       },
@@ -351,6 +367,7 @@ describe('Настройки «Ритма» (C-STF-6)', () => {
         noteEchoEnabled: true,
         noteEchoMs: 1000,
         keyLabels: false,
+        keyboardVisible: true,
         activeMode: 'rhythm',
         modeSettings: { ...modeSettings, rhythm },
       },
@@ -376,6 +393,7 @@ describe('Язык приложения: хранение (C-APP-3, OB-6, NFR-5)
         noteEchoEnabled: true,
         noteEchoMs: 1000,
         keyLabels: false,
+        keyboardVisible: true,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -464,6 +482,52 @@ describe('Показ нажатых нот: выключатель', () => {
       expect(loaded.noteEchoEnabled).toBe(true)
       expect(loaded.glissando).toBe(true)
     }
+  })
+})
+
+describe('Экранная клавиатура: настройка (C-APP-5)', () => {
+  it('по умолчанию показывается, старые данные без поля читаются как «показывать»', () => {
+    const storage = memoryStorage()
+    expect(loadSettings(storage).keyboardVisible).toBe(true)
+    storage.setItem('piaono.settings.v1', '{"glissando":true,"noteEchoMs":2000}')
+    const loaded = loadSettings(storage)
+    expect(loaded.keyboardVisible).toBe(true)
+    expect(loaded.glissando).toBe(true)
+    expect(loaded.noteEchoMs).toBe(2000)
+  })
+
+  it('«скрывать» переживает перезапуск и не стирает остальное', () => {
+    const storage = memoryStorage()
+    saveSettings({ ...loadSettings(storage), keyboardVisible: false, glissando: true }, storage)
+    const loaded = loadSettings(storage)
+    expect(loaded.keyboardVisible).toBe(false)
+    expect(loaded.glissando).toBe(true)
+    expect(loaded.modeSettings).toEqual(modeSettings)
+  })
+
+  it('неподходящее значение — «показывать», остальное цело', () => {
+    const storage = memoryStorage()
+    for (const bad of ['"no"', '0', 'null']) {
+      storage.setItem('piaono.settings.v1', `{"glissando":true,"keyboardVisible":${bad}}`)
+      const loaded = loadSettings(storage)
+      expect(loaded.keyboardVisible).toBe(true)
+      expect(loaded.glissando).toBe(true)
+    }
+  })
+
+  it('запись с полем и без поля читается без потерь настроек режимов', () => {
+    const storage = memoryStorage()
+    const warmup = { ...DEFAULT_WARMUP_SETTINGS, tonality: 'g' }
+    storage.setItem(
+      'piaono.settings.v1',
+      JSON.stringify({ keyboardVisible: false, modeSettings: { warmup } }),
+    )
+    const withField = loadSettings(storage)
+    storage.setItem('piaono.settings.v1', JSON.stringify({ modeSettings: { warmup } }))
+    const withoutField = loadSettings(storage)
+    expect(withField.modeSettings).toEqual(withoutField.modeSettings)
+    expect(withField.keyboardVisible).toBe(false)
+    expect(withoutField.keyboardVisible).toBe(true)
   })
 })
 

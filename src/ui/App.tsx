@@ -68,6 +68,9 @@ import type { DurationsSettings } from '../engine/solfege/durations/settings'
 import { summarize as summarizeSolfege } from '../engine/solfege/session'
 import { isSolfegeModeId, type Task } from '../engine/solfege/types'
 import { taskWeights } from '../engine/stats/weights'
+import { canPlay, keyboardShown } from '../engine/keyboard/availability'
+import { useCompactScreen } from './screen/useCompactScreen'
+import PlayInvite from './PlayInvite'
 
 const MAX_LOG_ENTRIES = 100
 
@@ -96,6 +99,12 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   // Время показа нажатой ноты (C-STF-8): общее для всех режимов, меняется в «Настройках».
   const [noteEchoEnabled, setNoteEchoEnabled] = useState(() => settingsRef.current!.noteEchoEnabled)
   const [keyLabels, setKeyLabels] = useState(() => settingsRef.current!.keyLabels)
+  // Экранная клавиатура (C-APP-5): настройка ученика; на компактном экране клавиатуры нет вовсе.
+  const [keyboardVisible, setKeyboardVisible] = useState(() => settingsRef.current!.keyboardVisible)
+  const compact = useCompactScreen()
+  const shown = keyboardShown(compact, keyboardVisible)
+  // Нечем играть: клавиатуры нет и пианино не на связи — упражнения не запускаются (C-APP-5).
+  const playable = canPlay(shown, connectionState === 'connected')
   const [noteEchoMs, setNoteEchoMs] = useState(() => settingsRef.current!.noteEchoMs)
   const nextLogId = useRef(0)
   const monitorRef = useRef<MidiMonitor | null>(null)
@@ -187,6 +196,8 @@ function Main({ settingsRef, updateSettings }: MainProps) {
    * когда их только что подтвердили в меню и состояние ещё не обновилось.
    */
   function startMode(mode: ModeId, confirmed?: modeMenu.ModeSettings) {
+    // Единственная точка запуска: «Старт», меню режимов и итоги приходят сюда (C-APP-5, OB-6).
+    if (!playable) return
     stopExercises()
     switch (mode) {
       case 'rhythm': {
@@ -285,6 +296,21 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     [playedInExercise, playedInSequences, playedInRhythm, playedInSolfege, pushEcho],
   )
 
+  // Источник нот пропал при идущем упражнении: остановка без итога, как переход в «Настройки»
+  // (C-APP-5, OB-7).
+  useEffect(() => {
+    if (!playable && exerciseRunning) stopExercises()
+    // stopExercises берёт свежие обработчики на каждом рендере; зависим только от условия.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [playable, exerciseRunning])
+
+  // Клавиатура ушла с экрана: касания отпускаются, вместимость неопределена (C-APP-5, OB-14).
+  useEffect(() => {
+    if (shown) return
+    handleKeyInput({ kind: 'releaseTouches' })
+    setKeyboardCapacity(null)
+  }, [shown, handleKeyInput])
+
   // Карточки живут только на главном экране: при возврате полоса пуста (C-STF-8, OB-16).
   useEffect(() => {
     if (screen !== 'main') clearEcho()
@@ -305,6 +331,11 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   function changeKeyLabels(enabled: boolean) {
     setKeyLabels(enabled)
     updateSettings({ keyLabels: enabled })
+  }
+
+  function changeKeyboardVisible(visible: boolean) {
+    setKeyboardVisible(visible)
+    updateSettings({ keyboardVisible: visible })
   }
 
   function toggleGlissando() {
@@ -485,6 +516,14 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [warmupSession?.note, requestKeyboardFocus])
 
+  // Задание сольфеджио на экране и вид его режима: легенда — только для ответа-значения.
+  const solfegeActive =
+    solfegeState.phase === 'asking' || solfegeState.phase === 'done' ? solfegeState : null
+  const solfegeTask = solfegeActive ? solfegeActive.tasks[solfegeActive.index] : null
+  const solfegeView = solfegeTask ? viewOf(solfegeTask) : null
+  const legendLabels =
+    solfegeTask && solfegeView && solfegeTask.answer.kind === 'value' ? solfegeView.legend(t) : null
+
   let staff
   if (menu.screen === 'mode' && menu.modeId === 'warmup' && menu.draft) {
     // Пока открыты настройки «Разминки», в зоне стана — предпросмотр диапазона (C-STF-9, OB-9).
@@ -530,7 +569,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
       />
     )
   } else if (solfegeState.phase === 'asking' || solfegeState.phase === 'done') {
-    staff = <SolfegeStaff session={solfegeState} />
+    staff = <SolfegeStaff session={solfegeState} legendRow={shown ? null : legendLabels} />
   } else if (isSolfegeModeId(activeMode) && !hasProgress(practice[activeMode])) {
     staff = <SolfegeInvite mode={activeMode} />
   } else if (rhythm.running) {
@@ -552,13 +591,18 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     staff = <StaffView exercise={exercise.state} />
   }
 
-  // Задание сольфеджио на экране и вид его режима: легенда — только для ответа-значения.
-  const solfegeActive =
-    solfegeState.phase === 'asking' || solfegeState.phase === 'done' ? solfegeState : null
-  const solfegeTask = solfegeActive ? solfegeActive.tasks[solfegeActive.index] : null
-  const solfegeView = solfegeTask ? viewOf(solfegeTask) : null
-  const legendLabels =
-    solfegeTask && solfegeView && solfegeTask.answer.kind === 'value' ? solfegeView.legend(t) : null
+  // Нечем играть: приглашение вместо нот и итога (C-APP-5, OB-5). Предпросмотр настроек «Разминки»
+  // остаётся: пока меню открыто, главный экран закрыт.
+  const warmupPreviewOpen = menu.screen === 'mode' && menu.modeId === 'warmup' && menu.draft
+  if (!playable && !warmupPreviewOpen) {
+    staff = (
+      <PlayInvite
+        connectionState={connectionState}
+        keyboardHintVisible={!compact}
+        onOpenSettings={openSettings}
+      />
+    )
+  }
 
   let content
   if (screen === 'settings') {
@@ -572,6 +616,10 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         onOpenCheck={() => setScreen('check')}
         glissando={keyboard.glissando}
         onToggleGlissando={toggleGlissando}
+        compact={compact}
+        keyboardShown={shown}
+        keyboardVisible={keyboardVisible}
+        onChangeKeyboardVisible={changeKeyboardVisible}
         noteEchoEnabled={noteEchoEnabled}
         onChangeNoteEchoEnabled={changeNoteEchoEnabled}
         noteEchoMs={noteEchoMs}
@@ -651,35 +699,41 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         }
         labelsControl={
           // Одно значение на все режимы (C-KBD-3); переключение не останавливает упражнение.
-          <Toggle
-            compact
-            label={t('keyLabels.toggle')}
-            icon={<KeyLabelsIcon />}
-            checked={keyLabels}
-            onChange={changeKeyLabels}
-          />
+          // Без клавиатуры подписывать нечего — флажка нет, значение хранится (C-APP-5, OB-19).
+          shown ? (
+            <Toggle
+              compact
+              label={t('keyLabels.toggle')}
+              icon={<KeyLabelsIcon />}
+              checked={keyLabels}
+              onChange={changeKeyLabels}
+            />
+          ) : null
         }
+        startDisabled={!playable}
         slotButton={slotButton}
         staff={staff}
         noteEcho={noteEchoEnabled ? <NoteEchoStrip slots={echo.slots} /> : null}
         keyboard={
-          <Keyboard
-            state={keyboard}
-            onInput={handleKeyInput}
-            focus={keyboardFocus.focus}
-            onCapacity={setKeyboardCapacity}
-            labels={keyLabels}
-            // Сольфеджио: прокрутка в пределах диапазона режима, если он его задаёт (C-SOL-2,
-            // OB-10); полоса легенды держит место, пока режим активен, кроме итога: так стан не
-            // прыгает между заданиями, а итогу хватает высоты (OB-14).
-            bounds={solfegeView?.bounds ?? null}
-            marks={solfegeActive && solfegeView ? solfegeView.marks(solfegeActive) : null}
-            legend={
-              isSolfegeModeId(activeMode) && solfegeState.phase !== 'summary'
-                ? { labels: legendLabels, glyphs: SOLFEGE_VIEWS[activeMode].legendGlyphs }
-                : null
-            }
-          />
+          shown ? (
+            <Keyboard
+              state={keyboard}
+              onInput={handleKeyInput}
+              focus={keyboardFocus.focus}
+              onCapacity={setKeyboardCapacity}
+              labels={keyLabels}
+              // Сольфеджио: прокрутка в пределах диапазона режима, если он его задаёт (C-SOL-2,
+              // OB-10); полоса легенды держит место, пока режим активен, кроме итога: так стан не
+              // прыгает между заданиями, а итогу хватает высоты (OB-14).
+              bounds={solfegeView?.bounds ?? null}
+              marks={solfegeActive && solfegeView ? solfegeView.marks(solfegeActive) : null}
+              legend={
+                isSolfegeModeId(activeMode) && solfegeState.phase !== 'summary'
+                  ? { labels: legendLabels, glyphs: SOLFEGE_VIEWS[activeMode].legendGlyphs }
+                  : null
+              }
+            />
+          ) : null
         }
       />
     )
@@ -707,6 +761,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         onSelect={() => confirmMode(false)}
         onStart={() => confirmMode(true)}
         keyboardCapacity={keyboardCapacity}
+        startDisabled={!playable}
       />
     </div>
   )

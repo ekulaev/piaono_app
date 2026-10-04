@@ -75,6 +75,11 @@ export function reduce(state: KeyboardState, input: KeyInput): ReduceResult {
       return { state: { ...state, touches }, playedNote: null }
     }
 
+    case 'releaseTouches': {
+      if (state.touches.size === 0) return unchanged(state)
+      return { state: { ...state, touches: new Map() }, playedNote: null }
+    }
+
     case 'setGlissando': {
       if (state.glissando === input.enabled) return unchanged(state)
       return { state: { ...state, glissando: input.enabled }, playedNote: null }
