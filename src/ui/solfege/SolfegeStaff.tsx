@@ -2,12 +2,16 @@ import { useLayoutEffect, useRef } from 'react'
 import type { SolfegeState } from '../../engine/solfege/session'
 import { useMusicFont, useStaffGeometry } from '../staff/staffHooks'
 import { viewOf } from './views'
+import LegendRow from './LegendRow'
+import type { LegendLabel } from '../keyboard/Keyboard'
 import '../staff/StaffView.css'
 import './SolfegeStaff.css'
 import { useT } from '../i18n/useI18n'
 
 interface Props {
   session: Extract<SolfegeState, { phase: 'asking' | 'done' }>
+  /** Легенда рядом под станом, когда экранной клавиатуры нет (C-APP-5, OB-17); null — не нужна. */
+  legendRow?: Readonly<Record<number, LegendLabel>> | null
 }
 
 /**
@@ -15,7 +19,7 @@ interface Props {
  * вид режима задания (`views.ts`). Строка формулировки фиксированной высоты: оценка «✓ / ✗»
  * появляется в ней же, стан не прыгает (OB-12).
  */
-function SolfegeStaff({ session }: Props) {
+function SolfegeStaff({ session, legendRow = null }: Props) {
   const t = useT()
   const zoneRef = useRef<HTMLDivElement>(null)
   const staffRef = useRef<HTMLDivElement>(null)
@@ -45,6 +49,7 @@ function SolfegeStaff({ session }: Props) {
           <div ref={staffRef} className="staff__layer" />
         </div>
       </div>
+      {legendRow && <LegendRow labels={legendRow} />}
     </div>
   )
 }

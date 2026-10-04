@@ -30,6 +30,8 @@ interface Props {
   onStart: () => void
   /** Сколько белых клавиш видно на клавиатуре главного экрана; null — клавиатуры нет. */
   keyboardCapacity: number | null
+  /** Нечем играть: «Старт» отключена, «Выбрать» работает (C-APP-5, OB-6). */
+  startDisabled: boolean
 }
 
 /**
@@ -53,6 +55,7 @@ function OpenMenu({
   onSelect,
   onStart,
   keyboardCapacity,
+  startDisabled,
 }: Props) {
   const t = useT()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -182,7 +185,12 @@ function OpenMenu({
               <button type="button" className="button" onClick={onSelect}>
                 {t('modes.select')}
               </button>
-              <button type="button" className="button button--primary" onClick={onStart}>
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={startDisabled ? undefined : onStart}
+                aria-disabled={startDisabled}
+              >
                 {t('main.start')}
               </button>
             </footer>

@@ -21,6 +21,12 @@ interface Props {
   onOpenCheck: () => void
   glissando: boolean
   onToggleGlissando: () => void
+  /** Окно компактное: строки «Экранная клавиатура» нет, клавиатуры нет вовсе (C-APP-5). */
+  compact: boolean
+  /** Клавиатура показана: без неё нет и строки «Глиссандо». */
+  keyboardShown: boolean
+  keyboardVisible: boolean
+  onChangeKeyboardVisible: (visible: boolean) => void
   /** Время показа нажатой ноты в миллисекундах (C-STF-8). */
   noteEchoEnabled: boolean
   onChangeNoteEchoEnabled: (enabled: boolean) => void
@@ -63,6 +69,10 @@ function SettingsScreen({
   onOpenCheck,
   glissando,
   onToggleGlissando,
+  compact,
+  keyboardShown,
+  keyboardVisible,
+  onChangeKeyboardVisible,
   noteEchoEnabled,
   onChangeNoteEchoEnabled,
   noteEchoMs,
@@ -127,14 +137,29 @@ function SettingsScreen({
           </button>
         </SettingsRow>
 
-        <SettingsRow label={t('settings.glissando')}>
-          <Toggle
-            compact
-            label={t('settings.glissando')}
-            checked={glissando}
-            onChange={onToggleGlissando}
-          />
-        </SettingsRow>
+        {/* На компактном экране клавиатуры нет вовсе, строки тоже (C-APP-5, OB-15). */}
+        {!compact && (
+          <SettingsRow label={t('settings.keyboard')}>
+            <Toggle
+              compact
+              label={t('settings.keyboard')}
+              checked={keyboardVisible}
+              onChange={onChangeKeyboardVisible}
+            />
+          </SettingsRow>
+        )}
+
+        {/* Скользить пальцем не по чему, пока клавиатуры нет; значение хранится (OB-11). */}
+        {keyboardShown && (
+          <SettingsRow label={t('settings.glissando')}>
+            <Toggle
+              compact
+              label={t('settings.glissando')}
+              checked={glissando}
+              onChange={onToggleGlissando}
+            />
+          </SettingsRow>
+        )}
 
         <SettingsRow label={t('settings.noteEchoOn')}>
           <Toggle

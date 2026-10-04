@@ -70,7 +70,7 @@ export interface KeyLegend {
  */
 export type LegendLabel = string | { glyph: string; text: string }
 
-function LegendText({ label }: { label: LegendLabel }) {
+export function LegendText({ label }: { label: LegendLabel }) {
   if (typeof label === 'string') return label
   return (
     <>

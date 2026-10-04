@@ -95,3 +95,12 @@ ul {
   border-color: var(--ink);
   color: var(--paper);
 }
+
+/* Главная кнопка недоступна: без тёмной заливки, пунктир и тёмный текст — читается (7:1) и
+   отличается от активной формой и заливкой, а не только цветом (C-APP-5, OB-5). */
+.button--primary:disabled,
+.button--primary[aria-disabled='true'] {
+  background: var(--paper);
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
