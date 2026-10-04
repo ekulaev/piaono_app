@@ -27,7 +27,7 @@ export type HintBlock =
    * Таблица соответствий (сольфеджио: «клавиша → интервал», русские октавы → научные). Ячейка —
    * ключ перевода или текст, который не переводится («C4»).
    */
-  | { kind: 'table'; head: [HintCell, HintCell]; rows: [HintCell, HintCell][] }
+  | { kind: 'table'; head: HintCell[]; rows: HintCell[][] }
 
 export type HintCell = MessageKey | { raw: string }
 
@@ -135,7 +135,11 @@ export const HINTS = {
       { kind: 'text', text: 'hint.mode.intervals.2' },
       {
         kind: 'table',
-        head: ['hint.intervals.keyHead', 'hint.intervals.intervalHead'],
+        head: [
+          'hint.intervals.keyHead',
+          'hint.intervals.legendHead',
+          'hint.intervals.intervalHead',
+        ],
         rows: (
           [
             ['hint.intervals.key.1', 'm2'],
@@ -151,9 +155,8 @@ export const HINTS = {
             ['hint.intervals.key.11', 'M7'],
             ['hint.intervals.key.0', 'P8'],
           ] as const
-        ).map(([key, id]) => [key, `interval.full.${id}`]),
+        ).map(([key, id]) => [key, `interval.short.${id}`, `interval.full.${id}`]),
       },
-      { kind: 'text', text: 'hint.mode.intervals.3' },
       OCTAVES_TABLE,
     ],
   },

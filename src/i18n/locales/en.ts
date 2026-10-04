@@ -297,11 +297,10 @@ export const messages = {
   'hint.mode.intervals.1':
     '“Play the interval”: the first note is on the staff, the interval and its direction are written above it. Play the second note in the right octave — exactly as it would be written on the staff.',
   'hint.mode.intervals.2':
-    '“Name the interval”: both notes are on the staff. Press a key — its distance from C in semitones is the interval. The labels above the keys help; any octave counts. Augmented fourth and diminished fifth sound the same: both are the tritone, F♯.',
+    '“Name the interval”: both notes are on the staff. Interval names are written above the keys — find the label of the interval you see and press that key on the piano or on the screen; any octave counts. The label is the key’s distance from C in semitones. Augmented fourth and diminished fifth sound the same: both are the tritone, “TT”.',
   'hint.intervals.keyHead': 'Key',
+  'hint.intervals.legendHead': 'Label above the key',
   'hint.intervals.intervalHead': 'Interval',
-  'hint.mode.intervals.3':
-    'Workbooks name octaves the Russian way; the app names notes scientifically:',
   'hint.octaves.russian': 'Octave',
   'hint.octaves.scientific': 'Note C',
   'hint.intervals.key.0': 'C',
