@@ -65,6 +65,7 @@ describe('Сохранённая статистика', () => {
       rhythm,
       warmup: valid,
       intervals: emptyModeStats(),
+      durations: emptyModeStats(),
     })
   })
 
@@ -76,6 +77,7 @@ describe('Сохранённая статистика', () => {
       rhythm: emptyModeStats(),
       warmup: valid,
       intervals: emptyModeStats(),
+      durations: emptyModeStats(),
     })
     expect(
       readPracticeStats({ sequences: { notes: { 'alto:60': valid.notes['treble:64'] } } })
@@ -90,6 +92,7 @@ describe('Сохранённая статистика', () => {
       rhythm: emptyModeStats(),
       warmup: emptyModeStats(),
       intervals: emptyModeStats(),
+      durations: emptyModeStats(),
     })
     expect(readPracticeStats('мусор').warmup).toEqual(emptyModeStats())
   })
@@ -200,5 +203,15 @@ describe('Типы заданий сольфеджио (C-SOL-1, OB-16; C-SOL-2,
     })
     expect(read.intervals).toEqual(emptyModeStats())
     expect(read.warmup).toEqual(valid)
+  })
+  it('«Длительности» читаются отдельно; типы «Интервалов» и «Длительностей» не путаются', () => {
+    const durations = aggregate([task('group:16', 'error', null)])
+    const intervals = aggregate([task('play:up:M3', 'clean', 1500)])
+    const read = readPracticeStats({ intervals, durations })
+    expect(read.durations).toEqual(durations)
+    expect(read.intervals).toEqual(intervals)
+    expect(
+      readPracticeStats({ durations: { notes: {}, tasks: { 'group:q': 1 } } }).durations,
+    ).toEqual(emptyModeStats())
   })
 })

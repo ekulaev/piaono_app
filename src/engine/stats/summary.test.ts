@@ -102,3 +102,26 @@ describe('Сводка «Интервалов» (C-SOL-1, OB-18)', () => {
     expect(summarizeMode('intervals', emptyModeStats())).toBeNull()
   })
 })
+
+describe('Сводка «Длительностей» (C-SOL-3, OB-12)', () => {
+  it('основная таблица — задания, «Трудные задания» по типу «род × длительность»', () => {
+    const events = [
+      ...Array.from({ length: 5 }, () => ({
+        kind: 'task' as const,
+        key: 'rest:h',
+        outcome: 'error' as const,
+        ms: null,
+      })),
+      ...Array.from({ length: 3 }, () => ({
+        kind: 'task' as const,
+        key: 'rest:h',
+        outcome: 'clean' as const,
+        ms: 1500,
+      })),
+    ]
+    const summary = summarizeMode('durations', aggregate(events))!
+    expect(summary.attempts).toBe(8)
+    expect(summary.lists[0].id).toBe('tasks')
+    expect(summary.lists[0].places[0]).toMatchObject({ kind: 'task', key: 'rest:h', attempts: 8 })
+  })
+})

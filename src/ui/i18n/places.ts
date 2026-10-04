@@ -5,6 +5,7 @@ import type { StatKind } from '../../engine/stats/stats'
 import { pitchToNoteName } from '../../midi/noteNames'
 import { noteLabel } from '../../engine/warmup/noteLabel'
 import { isIntervalTaskType, parseTaskType } from '../../engine/solfege/intervals/intervals'
+import { isDurationTaskType } from '../../engine/solfege/durations/durations'
 
 type Translate = (key: MessageKey, params?: Record<string, string | number>) => string
 
@@ -28,8 +29,12 @@ function noteName(pitch: number, tonality: string): string {
   return `${letter}${alteration === 1 ? '♯' : alteration === -1 ? '♭' : ''}${octave}`
 }
 
-/** Тип задания «Интервалов» словами: «Узнай: малая терция ↓» (C-SOL-2, OB-12). */
+/**
+ * Тип задания словами: «Узнай: малая терция ↓» (C-SOL-2, OB-12), «Половинная пауза»
+ * (C-SOL-3, OB-12).
+ */
 export function taskLabel(t: Translate, key: string): string {
+  if (isDurationTaskType(key)) return t(`duration.task.${key}`)
   if (!isIntervalTaskType(key)) return key
   const { variant, direction, id } = parseTaskType(key)
   return t(`solfege.task.${variant}`, {

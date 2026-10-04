@@ -1,8 +1,14 @@
 // Задание сольфеджио (C-SOL-1): что показано, какой ответ верный и как его проверять.
 // Ядро не знает содержания режима: интервалы, длительности, гаммы — это content режима.
 
-/** Режимы сольфеджио. Пока один (C-SOL-2). */
-export type SolfegeModeId = 'intervals'
+/** Режимы сольфеджио: «Интервалы» (C-SOL-2) и «Длительности» (C-SOL-3). */
+export type SolfegeModeId = 'intervals' | 'durations'
+
+export const SOLFEGE_MODES: readonly SolfegeModeId[] = ['intervals', 'durations']
+
+export function isSolfegeModeId(value: string): value is SolfegeModeId {
+  return (SOLFEGE_MODES as readonly string[]).includes(value)
+}
 
 /**
  * Ответ-нота: нужно сыграть именно эти ноты, с октавой, по порядку (C-SOL-1, OB-3). Одна нота —

@@ -326,6 +326,37 @@ const messages = {
   'hint.intervals.key.9': 'ля',
   'hint.intervals.key.10': 'ля♯',
   'hint.intervals.key.11': 'си',
+  'mode.durations': 'Длительности',
+  'duration.name.w': 'целая',
+  'duration.name.h': 'половинная',
+  'duration.name.q': 'четвертная',
+  'duration.name.8': 'восьмая',
+  'duration.name.16': 'шестнадцатая',
+  'duration.task.note:w': 'Целая нота',
+  'duration.task.note:h': 'Половинная нота',
+  'duration.task.note:q': 'Четвертная нота',
+  'duration.task.note:8': 'Восьмая нота',
+  'duration.task.note:16': 'Шестнадцатая нота',
+  'duration.task.rest:w': 'Целая пауза',
+  'duration.task.rest:h': 'Половинная пауза',
+  'duration.task.rest:q': 'Четвертная пауза',
+  'duration.task.rest:8': 'Восьмая пауза',
+  'duration.task.rest:16': 'Шестнадцатая пауза',
+  'duration.task.group:8': 'Восьмые под ребром',
+  'duration.task.group:16': 'Шестнадцатые под ребром',
+  'solfege.durations.which': 'Какая длительность?',
+  'durationsform.kinds': 'Что тренировать',
+  'durationsform.kinds.notes': 'Ноты',
+  'durationsform.kinds.rests': 'Паузы',
+  'durationsform.kinds.both': 'Ноты и паузы',
+  'solfege.invite.durations':
+    'Назови клавишей длительность ноты, паузы или группы под ребром. Нажми «Старт».',
+  'hint.mode.durations.title': 'Как играть: Длительности',
+  'hint.mode.durations.1':
+    'На стане нота, пауза или несколько нот под ребром. Назови их длительность, а не высоту.',
+  'hint.mode.durations.2':
+    'Над клавишами до–соль нарисована нота и дробь: до — целая, ре — 1/2, ми — 1/4, фа — 1/8, соль — 1/16. Нажми клавишу нужной длительности на пианино или на экране; подходит любая октава. Нота, пауза и группа одной длительности — одна и та же клавиша.',
+  'hint.durations.durationHead': 'Длительность',
 } satisfies Record<MessageKey, Message>
 
 const ru: Locale<MessageKey> = { code: 'ru', name: 'Русский', flag: 'ru', order: 1, messages }

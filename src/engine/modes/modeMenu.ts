@@ -2,11 +2,12 @@ import type { RhythmSettings } from '../rhythm/settings'
 import type { SequenceSettings } from '../sequences/settings'
 import type { WarmupSettings } from '../warmup/settings'
 import type { IntervalsSettings } from '../solfege/intervals/settings'
+import type { DurationsSettings } from '../solfege/durations/settings'
 import type { ModeId } from './modes'
 
 /** Настройки режима на экране режима. */
 export type ModeSettings =
-  SequenceSettings | RhythmSettings | WarmupSettings | IntervalsSettings | null
+  SequenceSettings | RhythmSettings | WarmupSettings | IntervalsSettings | DurationsSettings | null
 
 /**
  * Меню режимов как автомат: закрыто → список → экран режима → закрыто.

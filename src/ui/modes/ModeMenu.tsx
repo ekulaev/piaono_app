@@ -9,6 +9,8 @@ import { modeHintId } from '../hints/hints'
 import SequenceSettingsForm from '../sequences/SequenceSettingsForm'
 import WarmupSettingsForm from '../warmup/WarmupSettingsForm'
 import IntervalsSettingsForm from '../solfege/IntervalsSettingsForm'
+import DurationsSettingsForm from '../solfege/DurationsSettingsForm'
+import type { DurationsSettings } from '../../engine/solfege/durations/settings'
 import type { IntervalsSettings } from '../../engine/solfege/intervals/settings'
 import type { WarmupSettings } from '../../engine/warmup/settings'
 import './ModeMenu.css'
@@ -157,6 +159,11 @@ function OpenMenu({
               ) : menu.modeId === 'intervals' && menu.draft ? (
                 <IntervalsSettingsForm
                   settings={menu.draft as IntervalsSettings}
+                  onChange={onEditDraft}
+                />
+              ) : menu.modeId === 'durations' && menu.draft ? (
+                <DurationsSettingsForm
+                  settings={menu.draft as DurationsSettings}
                   onChange={onEditDraft}
                 />
               ) : menu.draft ? (

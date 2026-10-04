@@ -31,6 +31,7 @@ const MODE_VIEW: Record<
   rhythm: { main: 'figure', lists: [{ id: 'figures', kind: 'figure' }] },
   warmup: { main: 'note', lists: [{ id: 'notes', kind: 'note' }] },
   intervals: { main: 'task', lists: [{ id: 'tasks', kind: 'task' }] },
+  durations: { main: 'task', lists: [{ id: 'tasks', kind: 'task' }] },
 }
 
 export interface HardPlace {

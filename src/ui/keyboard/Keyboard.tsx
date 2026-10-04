@@ -59,7 +59,25 @@ export type KeyMark = 'correct' | 'wrong'
  * держит место, пока legend не null; labels null — полоса пуста (задание без легенды).
  */
 export interface KeyLegend {
-  labels: Readonly<Record<number, string>> | null
+  labels: Readonly<Record<number, LegendLabel>> | null
+  /** Полоса под значки (выше обычной), даже пока подписей нет. */
+  glyphs?: boolean
+}
+
+/**
+ * Подпись легенды: текст («м3») или значок нотного шрифта над текстом (нота и «1/4»,
+ * C-SOL-3, OB-7). Полоса со значками выше — её высота держится всю сессию режима.
+ */
+export type LegendLabel = string | { glyph: string; text: string }
+
+function LegendText({ label }: { label: LegendLabel }) {
+  if (typeof label === 'string') return label
+  return (
+    <>
+      <span className="legend__glyph">{label.glyph}</span>
+      <span>{label.text}</span>
+    </>
+  )
 }
 
 interface Props {
@@ -323,6 +341,7 @@ function Keyboard({
       {legend && (
         <Legend
           labels={legend.labels}
+          glyphs={legend.glyphs ?? false}
           start={visible?.start ?? 0}
           count={visible?.count ?? 0}
           whiteWidth={layout?.whiteWidthPx ?? 0}
@@ -574,7 +593,8 @@ function MiniKeyboard({ start, count, zoneWidthPx, bounds, onStart }: MiniKeyboa
 }
 
 interface LegendProps {
-  labels: Readonly<Record<number, string>> | null
+  labels: Readonly<Record<number, LegendLabel>> | null
+  glyphs: boolean
   start: number
   count: number
   whiteWidth: number
@@ -587,7 +607,7 @@ interface LegendProps {
  * у каждой видимой октавы; сдвигается вместе с клавиатурой. Пустая полоса держит место —
  * клавиатура и стан не прыгают между заданиями с легендой и без неё.
  */
-function Legend({ labels, start, count, whiteWidth, offset }: LegendProps) {
+function Legend({ labels, glyphs, start, count, whiteWidth, offset }: LegendProps) {
   const items = []
   if (labels) {
     for (let i = 0; i < count; i++) {
@@ -600,7 +620,7 @@ function Legend({ labels, start, count, whiteWidth, offset }: LegendProps) {
             className="legend__item"
             style={{ left: offset + (i + 0.5) * whiteWidth }}
           >
-            {white}
+            <LegendText label={white} />
           </span>,
         )
       }
@@ -613,14 +633,17 @@ function Legend({ labels, start, count, whiteWidth, offset }: LegendProps) {
             className="legend__item legend__item--black"
             style={{ left: offset + i * whiteWidth }}
           >
-            {black}
+            <LegendText label={black} />
           </span>,
         )
       }
     }
   }
   return (
-    <div className="legend" aria-hidden={labels ? undefined : true}>
+    <div
+      className={`legend${glyphs ? ' legend--glyphs' : ''}`}
+      aria-hidden={labels ? undefined : true}
+    >
       {items}
     </div>
   )

@@ -60,16 +60,13 @@ import { useSolfegeSession } from './solfege/useSolfegeSession'
 import SolfegeStaff from './solfege/SolfegeStaff'
 import SolfegeSummary from './solfege/SolfegeSummary'
 import SolfegeInvite from './solfege/SolfegeInvite'
-import { intervalFocus, intervalKeyMarks } from './solfege/intervalsView'
-import {
-  buildIntervalTasks,
-  INTERVALS_RANGE,
-  type IntervalTask,
-} from '../engine/solfege/intervals/generate'
-import { INTERVAL_KEYMAP } from '../engine/solfege/intervals/keymap'
+import { SOLFEGE_VIEWS, viewOf } from './solfege/views'
+import { buildIntervalTasks } from '../engine/solfege/intervals/generate'
 import type { IntervalsSettings } from '../engine/solfege/intervals/settings'
+import { buildDurationTasks } from '../engine/solfege/durations/generate'
+import type { DurationsSettings } from '../engine/solfege/durations/settings'
 import { summarize as summarizeSolfege } from '../engine/solfege/session'
-import type { Task } from '../engine/solfege/types'
+import { isSolfegeModeId, type Task } from '../engine/solfege/types'
 import { taskWeights } from '../engine/stats/weights'
 
 const MAX_LOG_ENTRIES = 100
@@ -126,11 +123,12 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   // «Ритму» нужна не высота, а момент нажатия (C-STF-6).
   const rhythm = useRhythmSession()
   const playedInRhythm = rhythm.played
-  // Сольфеджио (C-SOL-1): на каждом новом задании клавиатура показывает его участок.
+  // Сольфеджио (C-SOL-1): на каждом новом задании клавиатура показывает его участок, если режим
+  // задания этого требует («Длительности» не сдвигают клавиатуру, C-SOL-3, OB-8).
   const showSolfegeTask = useCallback(
     (task: Task) => {
-      const focus = intervalFocus(task as IntervalTask)
-      requestKeyboardFocus(focus.low, focus.high, focus.align)
+      const focus = viewOf(task).focus(task)
+      if (focus) requestKeyboardFocus(focus.low, focus.high, focus.align)
     },
     [requestKeyboardFocus],
   )
@@ -225,6 +223,17 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         )
         break
       }
+      case 'durations': {
+        // «Длительности»: коварные пары чаще, своя статистика заданий (C-SOL-3).
+        const settings = (confirmed as DurationsSettings | undefined) ?? modeSettings.durations
+        const stats = loadProgress().stats.durations
+        solfege.start(
+          buildDurationTasks(settings.tasks, settings.kinds, taskWeights(stats), Math.random),
+          settings.autoAdvance,
+          stats,
+        )
+        break
+      }
       case 'warmup':
         warmupBefore.current = loadProgress().stats.warmup
         exercise.start(
@@ -234,11 +243,6 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         break
     }
   }
-
-  // Короткие названия интервалов над клавишами на языке приложения (C-SOL-2, OB-7).
-  const intervalLegend = Object.fromEntries(
-    Object.entries(INTERVAL_KEYMAP).map(([pc, id]) => [pc, t(`interval.short.${id}`)]),
-  )
 
   /** Подтверждённые настройки режима — с них меню начинает черновик. */
   function confirmedSettings(mode: ModeId): modeMenu.ModeSettings {
@@ -256,6 +260,8 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     else if (chosen === 'warmup' && settings) saveModeSettings(chosen, settings as WarmupSettings)
     else if (chosen === 'intervals' && settings) {
       saveModeSettings(chosen, settings as IntervalsSettings)
+    } else if (chosen === 'durations' && settings) {
+      saveModeSettings(chosen, settings as DurationsSettings)
     } else if (settings) saveModeSettings(chosen, settings as SequenceSettings)
     if (andStart) startMode(chosen, settings ?? undefined)
   }
@@ -414,15 +420,17 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     setPractice((prev) => ({ ...prev, rhythm: stats }))
   }, [rhythmStats])
 
-  // Сольфеджио: событие добавляется, когда задание завершено (C-SOL-1, OB-16).
+  // Сольфеджио: событие добавляется, когда задание завершено (C-SOL-1, OB-16). Статистика — в
+  // режим заданий сессии (INV-5), а не в активный режим.
   const solfegeState = solfege.state
   const solfegeStats = solfegeState.phase === 'idle' ? null : solfegeState.stats
+  const solfegeMode = solfegeState.phase === 'idle' ? null : solfegeState.tasks[0].mode
   useEffect(() => {
-    if (!solfegeStats || solfegeStats.events.length === 0) return
+    if (!solfegeStats || !solfegeMode || solfegeStats.events.length === 0) return
     const stats = applyEvents(solfegeStats.before, solfegeStats.events)
-    saveModeStats('intervals', stats)
-    setPractice((prev) => ({ ...prev, intervals: stats }))
-  }, [solfegeStats])
+    saveModeStats(solfegeMode, stats)
+    setPractice((prev) => ({ ...prev, [solfegeMode]: stats }))
+  }, [solfegeStats, solfegeMode])
 
   const warmupResults = exercise.state.phase === 'idle' ? null : exercise.state.results
   useEffect(() => {
@@ -518,13 +526,13 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         summary={summarizeSolfege(solfegeState.tasks, solfegeState.history)}
         improvements={improvements(stats.before, aggregate(stats.events))}
         onRepeat={solfege.repeat}
-        onNew={() => startMode('intervals')}
+        onNew={() => startMode(solfegeState.tasks[0].mode)}
       />
     )
   } else if (solfegeState.phase === 'asking' || solfegeState.phase === 'done') {
     staff = <SolfegeStaff session={solfegeState} />
-  } else if (activeMode === 'intervals' && !hasProgress(practice.intervals)) {
-    staff = <SolfegeInvite />
+  } else if (isSolfegeModeId(activeMode) && !hasProgress(practice[activeMode])) {
+    staff = <SolfegeInvite mode={activeMode} />
   } else if (rhythm.running) {
     staff = <RhythmStaff session={rhythmState} />
   } else if (sequences.running) {
@@ -544,13 +552,13 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     staff = <StaffView exercise={exercise.state} />
   }
 
-  // Задание сольфеджио на экране и легенда «клавиша → интервал» для «Узнай интервал».
+  // Задание сольфеджио на экране и вид его режима: легенда — только для ответа-значения.
   const solfegeActive =
     solfegeState.phase === 'asking' || solfegeState.phase === 'done' ? solfegeState : null
+  const solfegeTask = solfegeActive ? solfegeActive.tasks[solfegeActive.index] : null
+  const solfegeView = solfegeTask ? viewOf(solfegeTask) : null
   const legendLabels =
-    solfegeActive && solfegeActive.tasks[solfegeActive.index].answer.kind === 'value'
-      ? intervalLegend
-      : null
+    solfegeTask && solfegeView && solfegeTask.answer.kind === 'value' ? solfegeView.legend(t) : null
 
   let content
   if (screen === 'settings') {
@@ -626,15 +634,15 @@ function Main({ settingsRef, updateSettings }: MainProps) {
               }}
             />
           ) : (
-            // «Интервалы»: тот же флажок, та же механика (C-SOL-1, OB-10).
-            activeMode === 'intervals' && (
+            // Режимы сольфеджио: тот же флажок, та же механика (C-SOL-1, OB-10).
+            isSolfegeModeId(activeMode) && (
               <Toggle
                 compact
                 label={t('modeControl.autoAdvance')}
                 icon={<AutoAdvanceIcon />}
-                checked={modeSettings.intervals.autoAdvance}
+                checked={modeSettings[activeMode].autoAdvance}
                 onChange={(autoAdvance) => {
-                  saveModeSettings('intervals', { ...modeSettings.intervals, autoAdvance })
+                  saveModeSettings(activeMode, { ...modeSettings[activeMode], autoAdvance })
                   solfege.setAutoAdvance(autoAdvance)
                 }}
               />
@@ -661,14 +669,14 @@ function Main({ settingsRef, updateSettings }: MainProps) {
             focus={keyboardFocus.focus}
             onCapacity={setKeyboardCapacity}
             labels={keyLabels}
-            // Сольфеджио: прокрутка в пределах диапазона режима, пока идёт задание (C-SOL-2,
+            // Сольфеджио: прокрутка в пределах диапазона режима, если он его задаёт (C-SOL-2,
             // OB-10); полоса легенды держит место, пока режим активен, кроме итога: так стан не
             // прыгает между заданиями, а итогу хватает высоты (OB-14).
-            bounds={solfegeActive ? INTERVALS_RANGE : null}
-            marks={solfegeActive ? intervalKeyMarks(solfegeActive) : null}
+            bounds={solfegeView?.bounds ?? null}
+            marks={solfegeActive && solfegeView ? solfegeView.marks(solfegeActive) : null}
             legend={
-              activeMode === 'intervals' && solfegeState.phase !== 'summary'
-                ? { labels: legendLabels }
+              isSolfegeModeId(activeMode) && solfegeState.phase !== 'summary'
+                ? { labels: legendLabels, glyphs: SOLFEGE_VIEWS[activeMode].legendGlyphs }
                 : null
             }
           />

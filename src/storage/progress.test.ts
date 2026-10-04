@@ -71,6 +71,7 @@ describe('Хранение статистики (C-STF-4)', () => {
         rhythm: emptyModeStats(),
         warmup: stats,
         intervals: emptyModeStats(),
+        durations: emptyModeStats(),
       },
     })
   })
@@ -107,6 +108,7 @@ describe('Хранение статистики (C-STF-4)', () => {
         rhythm: emptyModeStats(),
         warmup: emptyModeStats(),
         intervals: emptyModeStats(),
+        durations: emptyModeStats(),
       },
     })
   })
@@ -126,6 +128,7 @@ describe('Хранение статистики (C-STF-4)', () => {
       rhythm: emptyModeStats(),
       warmup: stats,
       intervals: emptyModeStats(),
+      durations: emptyModeStats(),
     })
   })
 })
@@ -176,5 +179,29 @@ describe('Статистика «Интервалов» (C-SOL-1, NFR-3)', () =>
     )
     expect(loadProgress(storage).stats.intervals).toEqual(emptyModeStats())
     expect(loadProgress(storage).stats.warmup).toEqual(warmup)
+  })
+})
+
+describe('Статистика «Длительностей» (C-SOL-3, OB-12)', () => {
+  it('своя, рядом с «Интервалами»; старая запись без неё читается пустой', () => {
+    const storage = memoryStorage()
+    const intervals = aggregate([{ kind: 'task', key: 'play:up:M3', outcome: 'clean', ms: 900 }])
+    storage.setItem('piaono.progress.v1', JSON.stringify({ stats: { intervals } }))
+    expect(loadProgress(storage).stats.durations).toEqual(emptyModeStats())
+    const durations = aggregate([{ kind: 'task', key: 'rest:h', outcome: 'skip', ms: null }])
+    saveModeStats('durations', durations, storage)
+    expect(loadProgress(storage).stats.durations).toEqual(durations)
+    expect(loadProgress(storage).stats.intervals).toEqual(intervals)
+  })
+
+  it('повреждённая статистика «Длительностей» обнуляет только её', () => {
+    const storage = memoryStorage()
+    const intervals = aggregate([{ kind: 'task', key: 'name:up:TT', outcome: 'error', ms: null }])
+    storage.setItem(
+      'piaono.progress.v1',
+      JSON.stringify({ stats: { intervals, durations: { notes: {}, tasks: { 'rest:x': 1 } } } }),
+    )
+    expect(loadProgress(storage).stats.durations).toEqual(emptyModeStats())
+    expect(loadProgress(storage).stats.intervals).toEqual(intervals)
   })
 })
