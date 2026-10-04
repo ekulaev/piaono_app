@@ -60,7 +60,7 @@ function compare(kind: StatKind, key: string, before: ItemStats, now: ItemStats)
 export function improvements(before: ModeStats, session: ModeStats): Improvements {
   if (!hasProgress(before)) return { firstSession: true }
   const found: Candidate[] = []
-  for (const kind of ['note', 'interval', 'figure'] as const) {
+  for (const kind of ['note', 'interval', 'figure', 'task'] as const) {
     const table = TABLES[kind]
     for (const [key, now] of Object.entries(session[table]) as [string, ItemStats][]) {
       const history = (before[table] as Record<string, ItemStats>)[key]

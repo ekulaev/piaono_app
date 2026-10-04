@@ -13,6 +13,8 @@ import {
   scrollHints,
   shiftStart,
   startAtNote,
+  startEndingAtNote,
+  startShowingOctave,
   startFromDrag,
   startFromTapCenter,
   visibleRange,
@@ -262,5 +264,51 @@ describe('Нота слева (авто-сдвиг «Разминки»)', () =>
 
   it('самая низкая нота A0 — начало клавиатуры', () => {
     expect(startAtNote(A0, 20)).toBe(0)
+  })
+})
+
+describe('Границы прокрутки упражнения (C-SOL-1, Р-23; C-SOL-2, OB-10)', () => {
+  const bounds = { low: 60, high: 84 } // C4–C6: 15 белых клавиш
+  const c4 = WHITE_PITCHES.indexOf(60)
+  const c6 = WHITE_PITCHES.indexOf(84)
+
+  it('без границ — как прежде', () => {
+    expect(isBlocked('left', 0, 11, null)).toBe(true)
+    expect(isBlocked('left', 1, 11, null)).toBe(false)
+    expect(shiftStart(0, -1, 11, null)).toBe(0)
+    expect(shiftStart(10, 1, 11)).toBe(11)
+    expect(isBlocked('right', WHITE_KEY_COUNT - 11, 11)).toBe(true)
+  })
+
+  it('кнопки упираются в C4 и C6', () => {
+    expect(isBlocked('left', c4, 11, bounds)).toBe(true)
+    expect(isBlocked('left', c4 + 1, 11, bounds)).toBe(false)
+    expect(shiftStart(c4, -1, 11, bounds)).toBe(c4)
+    const last = c6 - 11 + 1
+    expect(isBlocked('right', last, 11, bounds)).toBe(true)
+    expect(shiftStart(last, 1, 11, bounds)).toBe(last)
+    expect(visibleRange(last, 11).high).toBe(84)
+  })
+
+  it('мини-клавиатура не уводит за границы', () => {
+    expect(startFromTapCenter(0, 11, 520, bounds)).toBe(c4) // тап у A0
+    expect(startFromDrag(520, 0, 11, 520, bounds)).toBe(c6 - 10)
+  })
+
+  it('клавиатура шире диапазона держит его целиком', () => {
+    expect(shiftStart(0, 0, 20, bounds)).toBe(c6 - 19)
+    expect(shiftStart(c4 + 5, 0, 20, bounds)).toBe(c4)
+  })
+
+  it('нота справа: последней видимой становится эта клавиша', () => {
+    const start = startEndingAtNote(81, 11, bounds) // A5
+    expect(visibleRange(start, 11).high).toBe(81)
+    expect(visibleRange(startEndingAtNote(64, 11, bounds), 11).low).toBe(60) // упор в C4
+  })
+
+  it('октава «до–до»: видна — не двигается, не видна — встаёт от «до»', () => {
+    expect(startShowingOctave(c4, 11, 60, bounds)).toBe(c4)
+    const start = startShowingOctave(c4 + 2, 6, 72, bounds) // видно E4…B4 — октавы нет
+    expect(visibleRange(start, 6).low).toBe(72)
   })
 })

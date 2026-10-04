@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { aggregate, emptyModeStats, type ItemStats, type StatEvent } from './stats'
-import { difficulty, figureWeights, medianAvg, weightedPick, weightOf, weightsFor } from './weights'
+import {
+  difficulty,
+  figureWeights,
+  medianAvg,
+  taskWeights,
+  weightedPick,
+  weightOf,
+  weightsFor,
+} from './weights'
 
 const item = (change: Partial<ItemStats>): ItemStats => ({
   attempts: 5,
@@ -108,5 +116,25 @@ describe('Вес фигуры «Ритма» (C-STF-6, OB-4)', () => {
     expect(
       figureWeights(aggregate([figure('clean'), figure('clean'), figure('clean')]))('eighths'),
     ).toBe(1)
+  })
+})
+
+describe('Вес типа задания сольфеджио (C-SOL-1, OB-2)', () => {
+  const task = (key: string, outcome: 'clean' | 'error' | 'skip') =>
+    ({ kind: 'task', key, outcome, ms: outcome === 'clean' ? 1000 : null }) as const
+
+  it('без статистики все типы равны', () => {
+    const weight = taskWeights(emptyModeStats())
+    expect(weight('play:up:M3')).toBe(weight('name:down:TT'))
+  })
+
+  it('тип с одними ошибками весит втрое больше чистого', () => {
+    const stats = aggregate([
+      ...Array.from({ length: 3 }, () => task('name:down:m6', 'error')),
+      ...Array.from({ length: 3 }, () => task('play:down:m6', 'clean')),
+    ])
+    const weight = taskWeights(stats)
+    expect(weight('name:down:m6')).toBe(3)
+    expect(weight('play:down:m6')).toBe(1)
   })
 })

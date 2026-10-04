@@ -1,0 +1,48 @@
+/*
+ * Задание сольфеджио: строка формулировки сверху, стан под ней. Высота строки постоянная —
+ * оценка появляется в ней же, и стан не прыгает между заданиями (C-SOL-1, OB-12).
+ */
+.solfege-task {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.task-prompt {
+  margin: 0;
+  min-height: 2.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+/* Оценка ответа-значения: заливка и знак, а не только цвет. */
+.task-result {
+  padding: 0.125rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 0.1875rem solid currentColor;
+}
+
+.task-result--correct {
+  background: var(--note-correct);
+  border-color: var(--note-correct);
+  color: var(--paper);
+}
+
+.task-result--wrong {
+  background: var(--note-wrong);
+  border-color: var(--note-wrong);
+  color: var(--paper);
+}
+
+/* Ответ, показанный при пропуске: зелёная рамка без заливки — отличается от «верно». */
+.task-result--answer {
+  color: var(--note-correct);
+  background: var(--paper);
+}
