@@ -315,6 +315,37 @@ export const messages = {
   'hint.intervals.key.9': 'A',
   'hint.intervals.key.10': 'A♯',
   'hint.intervals.key.11': 'B',
+  'mode.durations': 'Durations',
+  'duration.name.w': 'whole',
+  'duration.name.h': 'half',
+  'duration.name.q': 'quarter',
+  'duration.name.8': 'eighth',
+  'duration.name.16': 'sixteenth',
+  'duration.task.note:w': 'Whole note',
+  'duration.task.note:h': 'Half note',
+  'duration.task.note:q': 'Quarter note',
+  'duration.task.note:8': 'Eighth note',
+  'duration.task.note:16': 'Sixteenth note',
+  'duration.task.rest:w': 'Whole rest',
+  'duration.task.rest:h': 'Half rest',
+  'duration.task.rest:q': 'Quarter rest',
+  'duration.task.rest:8': 'Eighth rest',
+  'duration.task.rest:16': 'Sixteenth rest',
+  'duration.task.group:8': 'Beamed eighths',
+  'duration.task.group:16': 'Beamed sixteenths',
+  'solfege.durations.which': 'What duration?',
+  'durationsform.kinds': 'What to practise',
+  'durationsform.kinds.notes': 'Notes',
+  'durationsform.kinds.rests': 'Rests',
+  'durationsform.kinds.both': 'Notes and rests',
+  'solfege.invite.durations':
+    'Name the duration of a note, a rest or a beamed group with a key. Press “Start”.',
+  'hint.mode.durations.title': 'How to play: Durations',
+  'hint.mode.durations.1':
+    'The staff shows a note, a rest or several notes under a beam. Name its duration, not its pitch.',
+  'hint.mode.durations.2':
+    'Above the keys C to G there is a note and a fraction: C — whole, D — 1/2, E — 1/4, F — 1/8, G — 1/16. Press the key with the right duration on the piano or on the screen; any octave counts. A note, a rest and a beamed group of the same duration are answered with the same key.',
+  'hint.durations.durationHead': 'Duration',
 } satisfies Record<string, Message>
 
 export type MessageKey = keyof typeof messages

@@ -4,11 +4,12 @@
 
 import { isFigureId, type FigureId } from '../rhythm/figures'
 import { isIntervalTaskType } from '../solfege/intervals/intervals'
+import { isDurationTaskType } from '../solfege/durations/durations'
 import type { Direction } from '../sequences/anchors'
 import type { Clef } from '../staff/pickNote'
 
 /** Режимы со своей статистикой. */
-export type StatsMode = 'sequences' | 'contour' | 'rhythm' | 'warmup' | 'intervals'
+export type StatsMode = 'sequences' | 'contour' | 'rhythm' | 'warmup' | 'intervals' | 'durations'
 
 export interface ItemStats {
   /** Все законченные попытки. */
@@ -61,6 +62,7 @@ export const emptyPracticeStats = (): PracticeStats => ({
   rhythm: emptyModeStats(),
   warmup: emptyModeStats(),
   intervals: emptyModeStats(),
+  durations: emptyModeStats(),
 })
 
 /**
@@ -149,8 +151,11 @@ const NOTE_KEY = /^(treble|bass):\d{1,3}$/
 /** Интервал вверх или вниз (2–8) либо «на месте» (прима, только в «Контуре»). */
 const INTERVAL_KEY = /^((up|down)[2-8]|same1)$/
 const FIGURE_KEY = { test: isFigureId }
-/** Типы заданий сольфеджио; пока только «Интервалы» (C-SOL-2, OB-12). */
-const TASK_KEY = { test: isIntervalTaskType }
+/**
+ * Типы заданий сольфеджио: «Интервалы» (C-SOL-2, OB-12) и «Длительности» (C-SOL-3, OB-12).
+ * Ключи режимов не пересекаются («play:up:m3» и «rest:h»), поэтому проверка одна на все режимы.
+ */
+const TASK_KEY = { test: (key: string) => isIntervalTaskType(key) || isDurationTaskType(key) }
 
 function readItem(value: unknown): ItemStats | null {
   if (typeof value !== 'object' || value === null) return null
@@ -209,5 +214,6 @@ export function readPracticeStats(value: unknown): PracticeStats {
     rhythm: readModeStats(saved.rhythm),
     warmup: readModeStats(saved.warmup),
     intervals: readModeStats(saved.intervals),
+    durations: readModeStats(saved.durations),
   }
 }

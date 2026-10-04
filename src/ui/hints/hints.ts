@@ -3,6 +3,7 @@
 // Слова — в файлах перевода (C-APP-2, C-APP-3): здесь только ключи и устройство подсказки.
 
 import type { ModeId } from '../../engine/modes/modes'
+import { DURATION_FRACTION } from '../../engine/solfege/durations/durations'
 import type { Mark } from '../../engine/rhythm/evaluate'
 import type { FigureId } from '../../engine/rhythm/figures'
 import type { Meter } from '../../engine/rhythm/generate'
@@ -156,6 +157,32 @@ export const HINTS = {
             ['hint.intervals.key.0', 'P8'],
           ] as const
         ).map(([key, id]) => [key, `interval.short.${id}`, `interval.full.${id}`]),
+      },
+      OCTAVES_TABLE,
+    ],
+  },
+  'mode.durations': {
+    title: 'hint.mode.durations.title',
+    blocks: [
+      { kind: 'text', text: 'hint.mode.durations.1' },
+      { kind: 'text', text: 'hint.mode.durations.2' },
+      {
+        kind: 'table',
+        head: [
+          'hint.intervals.keyHead',
+          'hint.intervals.legendHead',
+          'hint.durations.durationHead',
+        ],
+        // Дроби одинаковы на всех языках — не переводятся (C-SOL-3, OB-11).
+        rows: (
+          [
+            ['hint.intervals.key.0', 'w'],
+            ['hint.intervals.key.2', 'h'],
+            ['hint.intervals.key.4', 'q'],
+            ['hint.intervals.key.5', '8'],
+            ['hint.intervals.key.7', '16'],
+          ] as const
+        ).map(([key, id]) => [key, { raw: DURATION_FRACTION[id] }, `duration.name.${id}`]),
       },
       OCTAVES_TABLE,
     ],

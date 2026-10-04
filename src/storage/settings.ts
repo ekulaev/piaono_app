@@ -22,6 +22,11 @@ import {
   readIntervalsSettings,
   type IntervalsSettings,
 } from '../engine/solfege/intervals/settings'
+import {
+  DEFAULT_DURATIONS_SETTINGS,
+  readDurationsSettings,
+  type DurationsSettings,
+} from '../engine/solfege/durations/settings'
 import type { PreferredInput } from '../midi/types'
 import { browserStorage, type SettingsStorage } from './browserStorage'
 
@@ -58,6 +63,7 @@ export interface Settings {
     warmup: WarmupSettings
     /** Настройки «Интервалов» (C-SOL-2): что тренировать, заданий в сессии, автопереход. */
     intervals: IntervalsSettings
+    durations: DurationsSettings
   }
 }
 
@@ -81,6 +87,7 @@ const DEFAULT_SETTINGS: Settings = {
     rhythm: DEFAULT_RHYTHM_SETTINGS,
     warmup: DEFAULT_WARMUP_SETTINGS,
     intervals: DEFAULT_INTERVALS_SETTINGS,
+    durations: DEFAULT_DURATIONS_SETTINGS,
   },
 }
 
@@ -125,6 +132,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
         rhythm: readRhythmSettings((savedModes as Record<string, unknown>).rhythm),
         warmup: readWarmupSettings((savedModes as Record<string, unknown>).warmup),
         intervals: readIntervalsSettings((savedModes as Record<string, unknown>).intervals),
+        durations: readDurationsSettings((savedModes as Record<string, unknown>).durations),
       },
     }
   } catch {

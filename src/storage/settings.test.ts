@@ -3,6 +3,7 @@ import { DEFAULT_RHYTHM_SETTINGS } from '../engine/rhythm/settings'
 import { DEFAULT_SEQUENCE_SETTINGS } from '../engine/sequences/settings'
 import { DEFAULT_WARMUP_SETTINGS } from '../engine/warmup/settings'
 import { DEFAULT_INTERVALS_SETTINGS } from '../engine/solfege/intervals/settings'
+import { DEFAULT_DURATIONS_SETTINGS } from '../engine/solfege/durations/settings'
 import { stepOf } from '../engine/warmup/steps'
 import { loadSettings, saveSettings, type SettingsStorage } from './settings'
 
@@ -12,6 +13,7 @@ const modeSettings = {
   rhythm: DEFAULT_RHYTHM_SETTINGS,
   warmup: DEFAULT_WARMUP_SETTINGS,
   intervals: DEFAULT_INTERVALS_SETTINGS,
+  durations: DEFAULT_DURATIONS_SETTINGS,
 }
 
 function memoryStorage(): SettingsStorage {
@@ -573,6 +575,24 @@ describe('Настройки «Интервалов» (C-SOL-1, NFR-3; C-SOL-2)'
       { ...loadSettings(storage), modeSettings: { ...modeSettings, intervals } },
       storage,
     )
+    expect(loadSettings(storage).modeSettings.intervals).toEqual(intervals)
+  })
+
+  it('«Длительности»: старые данные — по умолчанию, сохранённые переживают перезапуск', () => {
+    const storage = memoryStorage()
+    const intervals = { variant: 'play' as const, tasks: 4, autoAdvance: false }
+    storage.setItem('piaono.settings.v1', JSON.stringify({ modeSettings: { intervals } }))
+    expect(loadSettings(storage).modeSettings.durations).toEqual(DEFAULT_DURATIONS_SETTINGS)
+    expect(loadSettings(storage).modeSettings.intervals).toEqual(intervals)
+    const durations = { kinds: 'rests' as const, tasks: 7, autoAdvance: true }
+    saveSettings(
+      {
+        ...loadSettings(storage),
+        modeSettings: { ...loadSettings(storage).modeSettings, durations },
+      },
+      storage,
+    )
+    expect(loadSettings(storage).modeSettings.durations).toEqual(durations)
     expect(loadSettings(storage).modeSettings.intervals).toEqual(intervals)
   })
 })
