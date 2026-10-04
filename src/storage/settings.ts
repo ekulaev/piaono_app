@@ -17,6 +17,11 @@ import {
   readWarmupSettings,
   type WarmupSettings,
 } from '../engine/warmup/settings'
+import {
+  DEFAULT_INTERVALS_SETTINGS,
+  readIntervalsSettings,
+  type IntervalsSettings,
+} from '../engine/solfege/intervals/settings'
 import type { PreferredInput } from '../midi/types'
 import { browserStorage, type SettingsStorage } from './browserStorage'
 
@@ -51,6 +56,8 @@ export interface Settings {
     rhythm: RhythmSettings
     /** Настройки «Разминки» (C-STF-9): время хода, ключ, диапазоны, тональность. */
     warmup: WarmupSettings
+    /** Настройки «Интервалов» (C-SOL-2): что тренировать, заданий в сессии, автопереход. */
+    intervals: IntervalsSettings
   }
 }
 
@@ -73,6 +80,7 @@ const DEFAULT_SETTINGS: Settings = {
     contour: DEFAULT_SEQUENCE_SETTINGS,
     rhythm: DEFAULT_RHYTHM_SETTINGS,
     warmup: DEFAULT_WARMUP_SETTINGS,
+    intervals: DEFAULT_INTERVALS_SETTINGS,
   },
 }
 
@@ -116,6 +124,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
         contour: readSequenceSettings((savedModes as Record<string, unknown>).contour),
         rhythm: readRhythmSettings((savedModes as Record<string, unknown>).rhythm),
         warmup: readWarmupSettings((savedModes as Record<string, unknown>).warmup),
+        intervals: readIntervalsSettings((savedModes as Record<string, unknown>).intervals),
       },
     }
   } catch {

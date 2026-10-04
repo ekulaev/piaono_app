@@ -64,6 +64,7 @@ describe('Сохранённая статистика', () => {
       contour,
       rhythm,
       warmup: valid,
+      intervals: emptyModeStats(),
     })
   })
 
@@ -74,6 +75,7 @@ describe('Сохранённая статистика', () => {
       contour: emptyModeStats(),
       rhythm: emptyModeStats(),
       warmup: valid,
+      intervals: emptyModeStats(),
     })
     expect(
       readPracticeStats({ sequences: { notes: { 'alto:60': valid.notes['treble:64'] } } })
@@ -87,6 +89,7 @@ describe('Сохранённая статистика', () => {
       contour: emptyModeStats(),
       rhythm: emptyModeStats(),
       warmup: emptyModeStats(),
+      intervals: emptyModeStats(),
     })
     expect(readPracticeStats('мусор').warmup).toEqual(emptyModeStats())
   })
@@ -139,5 +142,63 @@ describe('Фигуры «Ритма» (C-STF-6)', () => {
     })
     expect(read.rhythm).toEqual(emptyModeStats())
     expect(read.sequences).toEqual(valid)
+  })
+})
+
+describe('Типы заданий сольфеджио (C-SOL-1, OB-16; C-SOL-2, OB-12)', () => {
+  const task = (
+    key: string,
+    outcome: StatEvent['outcome'],
+    ms: number | null = null,
+  ): StatEvent => ({
+    kind: 'task',
+    key,
+    outcome,
+    ms,
+  })
+
+  it('задания копятся своей таблицей: чисто, после ошибок, пропуск', () => {
+    const stats = aggregate([
+      task('name:up:TT', 'clean', 2400),
+      task('name:up:TT', 'error'),
+      task('play:down:m3', 'skip'),
+    ])
+    expect(stats.tasks['name:up:TT']).toEqual({
+      attempts: 2,
+      clean: 1,
+      errors: 1,
+      skips: 0,
+      timeCount: 1,
+      avgMs: 2400,
+    })
+    expect(stats.tasks['play:down:m3'].skips).toBe(1)
+    expect(stats.notes).toEqual({})
+    expect(hasProgress(stats)).toBe(true)
+  })
+
+  it('«Интервалы» читаются рядом с прежними режимами', () => {
+    const intervals = aggregate([task('play:up:M3', 'clean', 1500)])
+    const read = readPracticeStats({ intervals })
+    expect(read.intervals).toEqual(intervals)
+    expect(read.warmup).toEqual(emptyModeStats())
+  })
+
+  it('старая запись без «Интервалов» и без таблицы заданий читается без потерь', () => {
+    const old = { notes: { 'treble:64': aggregate([note('clean', 700)]).notes['treble:64'] } }
+    const read = readPracticeStats({ warmup: old })
+    expect(read.warmup.notes['treble:64'].clean).toBe(1)
+    expect(read.warmup.tasks).toEqual({})
+    expect(read.intervals).toEqual(emptyModeStats())
+  })
+
+  it('неизвестный тип задания — «Интервалы» пустые, другие режимы не тронуты', () => {
+    const valid = aggregate([note('clean', 700)])
+    const item = aggregate([task('name:up:TT', 'clean', 1000)]).tasks['name:up:TT']
+    const read = readPracticeStats({
+      warmup: valid,
+      intervals: { notes: {}, tasks: { 'name:up:A4': item } },
+    })
+    expect(read.intervals).toEqual(emptyModeStats())
+    expect(read.warmup).toEqual(valid)
   })
 })

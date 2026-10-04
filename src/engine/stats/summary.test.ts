@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emptyModeStats, type ItemStats, type ModeStats } from './stats'
+import { aggregate, emptyModeStats, type ItemStats, type ModeStats } from './stats'
 import { summarizeMode } from './summary'
 
 const item = (attempts: number, clean: number, avgMs = 0, timeCount = 0): ItemStats => ({
@@ -69,5 +69,36 @@ describe('Сводка режима (C-STF-7)', () => {
     )!
     expect(s.lists.map((l) => l.id)).toEqual(['notes', 'intervals'])
     expect(s.attempts).toBe(3)
+  })
+})
+
+describe('Сводка «Интервалов» (C-SOL-1, OB-18)', () => {
+  it('основная таблица — задания, список «Трудные задания»', () => {
+    const events = [
+      ...Array.from({ length: 4 }, () => ({
+        kind: 'task' as const,
+        key: 'name:up:TT',
+        outcome: 'error' as const,
+        ms: null,
+      })),
+      ...Array.from({ length: 2 }, () => ({
+        kind: 'task' as const,
+        key: 'name:up:TT',
+        outcome: 'clean' as const,
+        ms: 2000,
+      })),
+    ]
+    const summary = summarizeMode('intervals', aggregate(events))!
+    expect(summary.attempts).toBe(6)
+    expect(summary.lists).toEqual([
+      {
+        id: 'tasks',
+        places: [{ kind: 'task', key: 'name:up:TT', attempts: 6, cleanShare: 2 / 6, avgMs: 2000 }],
+      },
+    ])
+  })
+
+  it('без статистики — нет сводки', () => {
+    expect(summarizeMode('intervals', emptyModeStats())).toBeNull()
   })
 })
