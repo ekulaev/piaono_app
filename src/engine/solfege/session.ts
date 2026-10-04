@@ -224,7 +224,7 @@ export function countdownSeconds(state: SolfegeState, now: number): number | nul
 }
 
 /** Сколько трудных типов заданий в итоге сессии. */
-export const MAX_HARD_TYPES = 5
+export const MAX_HARD_TYPES = 3
 
 export interface SolfegeSummary {
   clean: number

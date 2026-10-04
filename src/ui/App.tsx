@@ -56,6 +56,21 @@ import { useNoteEcho } from './echo/useNoteEcho'
 import I18nProvider from './i18n/I18nProvider'
 import { useI18n } from './i18n/useI18n'
 import { AVAILABLE_LANGUAGES, resolveLanguage } from '../i18n'
+import { useSolfegeSession } from './solfege/useSolfegeSession'
+import SolfegeStaff from './solfege/SolfegeStaff'
+import SolfegeSummary from './solfege/SolfegeSummary'
+import SolfegeInvite from './solfege/SolfegeInvite'
+import { intervalFocus, intervalKeyMarks } from './solfege/intervalsView'
+import {
+  buildIntervalTasks,
+  INTERVALS_RANGE,
+  type IntervalTask,
+} from '../engine/solfege/intervals/generate'
+import { INTERVAL_KEYMAP } from '../engine/solfege/intervals/keymap'
+import type { IntervalsSettings } from '../engine/solfege/intervals/settings'
+import { summarize as summarizeSolfege } from '../engine/solfege/session'
+import type { Task } from '../engine/solfege/types'
+import { taskWeights } from '../engine/stats/weights'
 
 const MAX_LOG_ENTRIES = 100
 
@@ -111,6 +126,16 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   // «Ритму» нужна не высота, а момент нажатия (C-STF-6).
   const rhythm = useRhythmSession()
   const playedInRhythm = rhythm.played
+  // Сольфеджио (C-SOL-1): на каждом новом задании клавиатура показывает его участок.
+  const showSolfegeTask = useCallback(
+    (task: Task) => {
+      const focus = intervalFocus(task as IntervalTask)
+      requestKeyboardFocus(focus.low, focus.high, focus.align)
+    },
+    [requestKeyboardFocus],
+  )
+  const solfege = useSolfegeSession(showSolfegeTask)
+  const playedInSolfege = solfege.press
   const echo = useNoteEcho(noteEchoMs)
   // Свежее значение для обработчика нажатий, который не пересоздаётся при смене настройки.
   const noteEchoEnabledRef = useRef(noteEchoEnabled)
@@ -119,13 +144,14 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   }, [noteEchoEnabled])
   const pushEcho = echo.push
   const clearEcho = echo.clear
-  const exerciseRunning = exercise.running || sequences.running || rhythm.running
+  const exerciseRunning = exercise.running || sequences.running || rhythm.running || solfege.running
 
   /** Остановить любое упражнение и закрыть итог без нового итога (Режим, Проверка пианино). */
   function stopExercises() {
     exercise.stop()
     sequences.stop()
     rhythm.stop()
+    solfege.stop()
   }
 
   /** «Стоп»: «Разминка» показывает итог (C-STF-4, OB-12), остальные режимы — нет. */
@@ -133,6 +159,8 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     exercise.finish()
     sequences.stop()
     rhythm.stop()
+    // Сольфеджио: «Стоп» без итога, итог — после последнего задания (C-SOL-1, OB-17).
+    solfege.stop()
   }
 
   // Статистика режимов (C-STF-4): что уже записано — для приглашения «Ещё нет прогресса».
@@ -186,6 +214,17 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         )
         break
       }
+      case 'intervals': {
+        // «Интервалы»: задания по трудности типов, своя статистика заданий (C-SOL-2).
+        const settings = (confirmed as IntervalsSettings | undefined) ?? modeSettings.intervals
+        const stats = loadProgress().stats.intervals
+        solfege.start(
+          buildIntervalTasks(settings.tasks, settings.variant, taskWeights(stats), Math.random),
+          settings.autoAdvance,
+          stats,
+        )
+        break
+      }
       case 'warmup':
         warmupBefore.current = loadProgress().stats.warmup
         exercise.start(
@@ -195,6 +234,11 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         break
     }
   }
+
+  // Короткие названия интервалов над клавишами на языке приложения (C-SOL-2, OB-7).
+  const intervalLegend = Object.fromEntries(
+    Object.entries(INTERVAL_KEYMAP).map(([pc, id]) => [pc, t(`interval.short.${id}`)]),
+  )
 
   /** Подтверждённые настройки режима — с них меню начинает черновик. */
   function confirmedSettings(mode: ModeId): modeMenu.ModeSettings {
@@ -210,7 +254,9 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     updateSettings({ activeMode: chosen })
     if (chosen === 'rhythm' && settings) saveModeSettings(chosen, settings as RhythmSettings)
     else if (chosen === 'warmup' && settings) saveModeSettings(chosen, settings as WarmupSettings)
-    else if (settings) saveModeSettings(chosen, settings as SequenceSettings)
+    else if (chosen === 'intervals' && settings) {
+      saveModeSettings(chosen, settings as IntervalsSettings)
+    } else if (settings) saveModeSettings(chosen, settings as SequenceSettings)
     if (andStart) startMode(chosen, settings ?? undefined)
   }
 
@@ -226,10 +272,11 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         playedInExercise(playedNote.pitch)
         playedInSequences(playedNote.pitch)
         playedInRhythm(playedNote.time)
+        playedInSolfege(playedNote.pitch)
         if (noteEchoEnabledRef.current) pushEcho(playedNote.pitch)
       }
     },
-    [playedInExercise, playedInSequences, playedInRhythm, pushEcho],
+    [playedInExercise, playedInSequences, playedInRhythm, playedInSolfege, pushEcho],
   )
 
   // Карточки живут только на главном экране: при возврате полоса пуста (C-STF-8, OB-16).
@@ -367,6 +414,16 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     setPractice((prev) => ({ ...prev, rhythm: stats }))
   }, [rhythmStats])
 
+  // Сольфеджио: событие добавляется, когда задание завершено (C-SOL-1, OB-16).
+  const solfegeState = solfege.state
+  const solfegeStats = solfegeState.phase === 'idle' ? null : solfegeState.stats
+  useEffect(() => {
+    if (!solfegeStats || solfegeStats.events.length === 0) return
+    const stats = applyEvents(solfegeStats.before, solfegeStats.events)
+    saveModeStats('intervals', stats)
+    setPractice((prev) => ({ ...prev, intervals: stats }))
+  }, [solfegeStats])
+
   const warmupResults = exercise.state.phase === 'idle' ? null : exercise.state.results
   useEffect(() => {
     if (!warmupResults || warmupResults.length === 0) return
@@ -383,6 +440,14 @@ function Main({ settingsRef, updateSettings }: MainProps) {
     slotButton = { label: t('slot.restart'), onClick: rhythm.restart }
   } else if (rhythmState.phase === 'evaluated') {
     slotButton = { label: t('slot.next'), onClick: rhythm.next }
+  } else if (solfegeState.phase === 'asking') {
+    slotButton = { label: t('slot.skip'), onClick: solfege.skip }
+  } else if (solfegeState.phase === 'done') {
+    const label =
+      solfege.countdown === null
+        ? t('slot.next')
+        : t('slot.nextCountdown', { n: solfege.countdown })
+    slotButton = { label, onClick: solfege.next }
   } else if (session.phase === 'playing') {
     slotButton = { label: t('slot.skip'), onClick: sequences.skip }
   } else if (session.phase === 'finished') {
@@ -446,6 +511,20 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         onNew={() => startMode('rhythm')}
       />
     )
+  } else if (solfegeState.phase === 'summary') {
+    const stats = solfegeState.stats
+    staff = (
+      <SolfegeSummary
+        summary={summarizeSolfege(solfegeState.tasks, solfegeState.history)}
+        improvements={improvements(stats.before, aggregate(stats.events))}
+        onRepeat={solfege.repeat}
+        onNew={() => startMode('intervals')}
+      />
+    )
+  } else if (solfegeState.phase === 'asking' || solfegeState.phase === 'done') {
+    staff = <SolfegeStaff session={solfegeState} />
+  } else if (activeMode === 'intervals' && !hasProgress(practice.intervals)) {
+    staff = <SolfegeInvite />
   } else if (rhythm.running) {
     staff = <RhythmStaff session={rhythmState} />
   } else if (sequences.running) {
@@ -464,6 +543,14 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   } else {
     staff = <StaffView exercise={exercise.state} />
   }
+
+  // Задание сольфеджио на экране и легенда «клавиша → интервал» для «Узнай интервал».
+  const solfegeActive =
+    solfegeState.phase === 'asking' || solfegeState.phase === 'done' ? solfegeState : null
+  const legendLabels =
+    solfegeActive && solfegeActive.tasks[solfegeActive.index].answer.kind === 'value'
+      ? intervalLegend
+      : null
 
   let content
   if (screen === 'settings') {
@@ -527,7 +614,7 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         modeControl={
           // Флажок меняет настройку активного режима (C-STF-5: и в «Контуре»). У «Разминки» и
           // «Ритма» его нет: «Ритм» сам не переходит к следующему рисунку (C-STF-6, OB-2).
-          (activeMode === 'sequences' || activeMode === 'contour') && (
+          activeMode === 'sequences' || activeMode === 'contour' ? (
             <Toggle
               compact
               label={t('modeControl.autoAdvance')}
@@ -538,6 +625,20 @@ function Main({ settingsRef, updateSettings }: MainProps) {
                 sequences.setAutoAdvance(autoAdvance)
               }}
             />
+          ) : (
+            // «Интервалы»: тот же флажок, та же механика (C-SOL-1, OB-10).
+            activeMode === 'intervals' && (
+              <Toggle
+                compact
+                label={t('modeControl.autoAdvance')}
+                icon={<AutoAdvanceIcon />}
+                checked={modeSettings.intervals.autoAdvance}
+                onChange={(autoAdvance) => {
+                  saveModeSettings('intervals', { ...modeSettings.intervals, autoAdvance })
+                  solfege.setAutoAdvance(autoAdvance)
+                }}
+              />
+            )
           )
         }
         labelsControl={
@@ -560,6 +661,16 @@ function Main({ settingsRef, updateSettings }: MainProps) {
             focus={keyboardFocus.focus}
             onCapacity={setKeyboardCapacity}
             labels={keyLabels}
+            // Сольфеджио: прокрутка в пределах диапазона режима, пока идёт задание (C-SOL-2,
+            // OB-10); полоса легенды держит место, пока режим активен, кроме итога: так стан не
+            // прыгает между заданиями, а итогу хватает высоты (OB-14).
+            bounds={solfegeActive ? INTERVALS_RANGE : null}
+            marks={solfegeActive ? intervalKeyMarks(solfegeActive) : null}
+            legend={
+              activeMode === 'intervals' && solfegeState.phase !== 'summary'
+                ? { labels: legendLabels }
+                : null
+            }
           />
         }
       />

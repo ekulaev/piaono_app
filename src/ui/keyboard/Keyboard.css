@@ -120,6 +120,75 @@
   color: var(--paper);
 }
 
+/*
+ * Отметка клавиши после ответа сольфеджио (C-SOL-1): заливка и знак — не только цвет.
+ * Верная — зелёная с «✓», неверная — красная с «✗»; знак у верхнего края, над подписью.
+ */
+.key--correct,
+.key--white.key--correct {
+  background: var(--note-correct);
+}
+
+.key--wrong,
+.key--white.key--wrong {
+  background: var(--note-wrong);
+}
+
+.key__mark {
+  position: absolute;
+  inset-inline: 0;
+  top: 0.5rem;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--paper);
+  pointer-events: none;
+}
+
+.key--black .key__mark {
+  font-size: 1.25rem;
+}
+
+.key--correct .key__label-name,
+.key--correct .key__label-letter,
+.key--wrong .key__label-name,
+.key--wrong .key__label-letter {
+  color: var(--paper);
+}
+
+/*
+ * Легенда над клавишами (C-SOL-1, OB-14): полоса между мини-клавиатурой и клавишами.
+ * Подписи крупные (не мельче 18 px), над серединой своей клавиши; у чёрных — на светлой плашке
+ * с рамкой, чтобы соседние подписи белых и чёрных клавиш не сливались.
+ */
+.legend {
+  position: relative;
+  flex: none;
+  height: 2.25rem;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.legend__item {
+  position: absolute;
+  top: 0.125rem;
+  transform: translateX(-50%);
+  padding: 0 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+  color: var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.legend__item--black {
+  border: 0.125rem solid var(--ink);
+  border-radius: 0.375rem;
+  line-height: 1.5rem;
+}
+
 /* Кнопки прокрутки — по краям, во всю высоту зоны, шириной в белую клавишу. */
 .kbd__scroll {
   position: absolute;
@@ -233,4 +302,15 @@
   border-radius: 0.25rem;
   background: transparent;
   pointer-events: none;
+}
+
+/*
+ * Низкий экран (телефон в ландшафте): места под полосу легенды нет — она вытолкнула бы клавиатуру
+ * на кнопки. Здесь экранной клавиатуры быть не должно вовсе (компактный экран, C-APP-5); пока он
+ * не сделан, легенда скрыта, ответ «клавиша = значение» работает и без неё.
+ */
+@media (max-height: 30rem) {
+  .legend {
+    display: none;
+  }
 }

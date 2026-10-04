@@ -294,6 +294,39 @@ const messages = {
   'solfege.direction.down': 'вниз',
   'solfege.task.play': 'Сыграй: {interval} {arrow}',
   'solfege.task.name': 'Узнай: {interval} {arrow}',
+  'solfege.intervals.which': 'Какой интервал?',
+  'staff.solfege': 'Задание на нотном стане',
+  'intervalsform.variant': 'Что тренировать',
+  'intervalsform.variant.play': 'Сыграй интервал',
+  'intervalsform.variant.name': 'Узнай интервал',
+  'intervalsform.variant.both': 'Оба',
+  'solfegeform.tasks': 'Заданий в сессии',
+  'ssummary.allClean': 'Все задания решены сразу',
+  'solfege.invite.intervals':
+    'Сыграй вторую ноту интервала или узнай интервал по двум нотам. Нажми «Старт».',
+  'hint.mode.intervals.title': 'Как играть: Интервалы',
+  'hint.mode.intervals.1':
+    '«Сыграй интервал»: на стане первая нота, над станом — интервал и направление. Сыграй вторую ноту в нужной октаве — ровно ту, что была бы нарисована на стане.',
+  'hint.mode.intervals.2':
+    '«Узнай интервал»: на стане обе ноты. Нажми клавишу — её расстояние от «до» в полутонах и есть интервал. Подписи над клавишами подскажут; подходит любая октава. Увеличенная кварта и уменьшённая квинта звучат одинаково: это тритон, фа♯.',
+  'hint.intervals.keyHead': 'Клавиша',
+  'hint.intervals.intervalHead': 'Интервал',
+  'hint.mode.intervals.3':
+    'В тетради октавы названы по-русски, приложение называет ноты по-научному:',
+  'hint.octaves.russian': 'Октава',
+  'hint.octaves.scientific': 'Нота «до»',
+  'hint.intervals.key.0': 'до',
+  'hint.intervals.key.1': 'до♯',
+  'hint.intervals.key.2': 'ре',
+  'hint.intervals.key.3': 'ре♯',
+  'hint.intervals.key.4': 'ми',
+  'hint.intervals.key.5': 'фа',
+  'hint.intervals.key.6': 'фа♯',
+  'hint.intervals.key.7': 'соль',
+  'hint.intervals.key.8': 'соль♯',
+  'hint.intervals.key.9': 'ля',
+  'hint.intervals.key.10': 'ля♯',
+  'hint.intervals.key.11': 'си',
 } satisfies Record<MessageKey, Message>
 
 const ru: Locale<MessageKey> = { code: 'ru', name: 'Русский', flag: 'ru', order: 1, messages }

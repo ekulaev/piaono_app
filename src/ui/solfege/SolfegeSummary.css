@@ -1,0 +1,17 @@
+/*
+ * Итог сольфеджио: названия трудных заданий длинные («Узнай: большая септима ↓»), поэтому их
+ * колонка ограничена по ширине и строки переносятся — три колонки остаются в один ряд.
+ */
+.summary--solfege .summary__hard {
+  max-width: 18rem;
+}
+
+.summary--solfege .summary__counts {
+  min-width: 0;
+}
+
+/* Если итог выше зоны, он прокручивается от верха, а не обрезается сверху. */
+.summary--solfege {
+  align-content: safe center;
+  align-items: safe center;
+}

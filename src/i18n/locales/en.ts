@@ -283,6 +283,39 @@ export const messages = {
   'solfege.direction.down': 'down',
   'solfege.task.play': 'Play: {interval} {arrow}',
   'solfege.task.name': 'Name: {interval} {arrow}',
+  'solfege.intervals.which': 'Which interval?',
+  'staff.solfege': 'Task on the staff',
+  'intervalsform.variant': 'Practice',
+  'intervalsform.variant.play': 'Play the interval',
+  'intervalsform.variant.name': 'Name the interval',
+  'intervalsform.variant.both': 'Both',
+  'solfegeform.tasks': 'Tasks per session',
+  'ssummary.allClean': 'All tasks right the first time',
+  'solfege.invite.intervals':
+    'Play the second note of an interval or name the interval from two notes. Press “Start”.',
+  'hint.mode.intervals.title': 'How to play: Intervals',
+  'hint.mode.intervals.1':
+    '“Play the interval”: the first note is on the staff, the interval and its direction are written above it. Play the second note in the right octave — exactly as it would be written on the staff.',
+  'hint.mode.intervals.2':
+    '“Name the interval”: both notes are on the staff. Press a key — its distance from C in semitones is the interval. The labels above the keys help; any octave counts. Augmented fourth and diminished fifth sound the same: both are the tritone, F♯.',
+  'hint.intervals.keyHead': 'Key',
+  'hint.intervals.intervalHead': 'Interval',
+  'hint.mode.intervals.3':
+    'Workbooks name octaves the Russian way; the app names notes scientifically:',
+  'hint.octaves.russian': 'Octave',
+  'hint.octaves.scientific': 'Note C',
+  'hint.intervals.key.0': 'C',
+  'hint.intervals.key.1': 'C♯',
+  'hint.intervals.key.2': 'D',
+  'hint.intervals.key.3': 'D♯',
+  'hint.intervals.key.4': 'E',
+  'hint.intervals.key.5': 'F',
+  'hint.intervals.key.6': 'F♯',
+  'hint.intervals.key.7': 'G',
+  'hint.intervals.key.8': 'G♯',
+  'hint.intervals.key.9': 'A',
+  'hint.intervals.key.10': 'A♯',
+  'hint.intervals.key.11': 'B',
 } satisfies Record<string, Message>
 
 export type MessageKey = keyof typeof messages
