@@ -16,6 +16,7 @@ import {
   vexKey,
   type StaffGeometry,
 } from '../staff/staffDrawing'
+import { ARROW, fitHintScale, HINT_FONT_SIZE, intervalHintWidth } from './hintFit'
 
 export type StepMark = 'pending' | 'current' | 'correct' | 'skipped'
 
@@ -41,14 +42,12 @@ const RIGHT_PADDING = 30
 const CURRENT_BAR_OFFSET = 4 * SPACING + 34
 
 /**
- * Подсказки в полосе над станом. Размер шрифта 30 единиц — высота цифры около 21 единицы,
- * не меньше двух промежутков стана (C-STF-3, NFR-1). Базовая линия — у нижнего края полосы.
+ * Подсказки в полосе над станом. В исходном размере (hintFit) высота цифры около 21 единицы —
+ * не меньше двух промежутков стана (C-STF-3, NFR-1); в плотной последовательности подсказки
+ * уменьшаются, чтобы не налезать друг на друга. Базовая линия — у нижнего края полосы.
  */
-const HINT_FONT_SIZE = 30
 const HINT_BASELINE_FROM_BOTTOM = 7
 const HINT_FONT = 'system-ui, "Segoe UI", Roboto, sans-serif'
-/** Стрелка рядом с цифрой: высота как у цифры, толстая — видна боковым зрением. */
-const ARROW = { height: 21, headHeight: 9, headWidth: 13, stemWidth: 4, gap: 4 }
 
 function makeNote(
   keys: number[],
@@ -84,18 +83,50 @@ function strokeShape(context: RenderContext, color: string, dash: number[], draw
  * рисуя ноты, VexFlow переключает шрифт контекста на нотный. Размер — строкой в px: число
  * VexFlow считает в пунктах (pt). text-anchor применяется к элементу, который создаст fillText.
  */
-function hintText(context: RenderContext, text: string, x: number, baseline: number) {
+/** Шрифт подсказки: задаётся перед каждым выводом и замером текста. */
+function setHintFont(context: RenderContext, scale: number) {
+  context.setFont(HINT_FONT, `${HINT_FONT_SIZE * scale}px`, 600)
+}
+
+/** Ширина текста подсказки в исходном размере — замер реальным шрифтом, а не оценка. */
+function measureHint(context: RenderContext, text: string): number {
   context.save()
-  context.setFont(HINT_FONT, `${HINT_FONT_SIZE}px`, 600)
+  setHintFont(context, 1)
+  const { width } = context.measureText(text)
+  context.restore()
+  return width
+}
+
+function hintText(
+  context: RenderContext,
+  text: string,
+  x: number,
+  baseline: number,
+  scale: number,
+) {
+  context.save()
+  setHintFont(context, scale)
   context.setFillStyle(cssColor('--ink'))
   if (context instanceof SVGContext) context.attributes['text-anchor'] = 'middle'
   context.fillText(text, x, baseline)
   context.restore()
 }
 
-/** Стрелка вверх или вниз: стержень и треугольный наконечник, залитые одним путём. */
-function drawArrow(context: RenderContext, centerX: number, top: number, up: boolean) {
-  const { height, headHeight, headWidth, stemWidth } = ARROW
+/**
+ * Стрелка вверх или вниз: стержень и треугольный наконечник, залитые одним путём.
+ * Высота как у цифры, толстая — видна боковым зрением.
+ */
+function drawArrow(
+  context: RenderContext,
+  centerX: number,
+  top: number,
+  up: boolean,
+  scale: number,
+) {
+  const height = ARROW.height * scale
+  const headHeight = ARROW.headHeight * scale
+  const headWidth = ARROW.headWidth * scale
+  const stemWidth = ARROW.stemWidth * scale
   const tipY = up ? top : top + height
   const baseY = up ? top + headHeight : top + height - headHeight
   const tailY = up ? top + height : top
@@ -120,21 +151,25 @@ function drawIntervalHint(
   interval: Interval,
   centerX: number,
   baseline: number,
+  digitWidth: number,
+  scale: number,
 ) {
-  const digitWidth = HINT_FONT_SIZE * 0.56
-  const total = ARROW.headWidth + ARROW.gap + digitWidth
-  const left = centerX - total / 2
+  const headWidth = ARROW.headWidth * scale
+  const arrowGap = ARROW.gap * scale
+  const left = centerX - (intervalHintWidth(digitWidth) * scale) / 2
   drawArrow(
     context,
-    left + ARROW.headWidth / 2,
-    baseline - ARROW.height,
+    left + headWidth / 2,
+    baseline - ARROW.height * scale,
     interval.direction === 'up',
+    scale,
   )
   hintText(
     context,
     String(interval.size),
-    left + ARROW.headWidth + ARROW.gap + digitWidth / 2,
+    left + headWidth + arrowGap + (digitWidth * scale) / 2,
     baseline,
+    scale,
   )
 }
 
@@ -170,6 +205,13 @@ export function drawSequence(host: HTMLElement, geometry: StaffGeometry, view: S
   const gap = available / (view.steps.length + firstStep)
   const currentBarY = geometry.staveY + CURRENT_BAR_OFFSET
   const hintBaseline = geometry.hintBand - HINT_BASELINE_FROM_BOTTOM
+  // Один масштаб на все подсказки интервалов: зависит только от расстояния между позициями,
+  // поэтому подсказки одного размера и не меняются, когда появляются после ошибки.
+  // Ширина цифры — по самой широкой из 2–8, чтобы масштаб не зависел от чисел на стане.
+  const digitWidth = hints
+    ? Math.max(...'2345678'.split('').map((d) => measureHint(context, d)))
+    : 0
+  const intervalScale = fitHintScale(gap, intervalHintWidth(digitWidth))
 
   if (hints && visibility.anchor) {
     // Якорь — полая головка основного цвета; не играется (OB-12).
@@ -177,7 +219,9 @@ export function drawSequence(host: HTMLElement, geometry: StaffGeometry, view: S
     anchorNote.setContext(context).draw()
     if (visibility.anchorLabel) {
       const centerX = anchorNote.getAbsoluteX() + anchorNote.getGlyphWidth() / 2
-      hintText(context, pitchToNoteName(anchor), centerX, hintBaseline)
+      const label = pitchToNoteName(anchor)
+      const labelScale = fitHintScale(gap, measureHint(context, label))
+      hintText(context, label, centerX, hintBaseline, labelScale)
     }
   }
 
@@ -249,7 +293,14 @@ export function drawSequence(host: HTMLElement, geometry: StaffGeometry, view: S
       const from = index === 0 ? anchor : view.steps[index - 1][0]
       context.save()
       context.setFillStyle(ink)
-      drawIntervalHint(context, intervalBetween(from, keys[0]), centerX, hintBaseline)
+      drawIntervalHint(
+        context,
+        intervalBetween(from, keys[0]),
+        centerX,
+        hintBaseline,
+        digitWidth,
+        intervalScale,
+      )
       context.restore()
     }
   })
