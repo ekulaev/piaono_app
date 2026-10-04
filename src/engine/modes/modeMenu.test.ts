@@ -9,8 +9,15 @@ describe('Меню режимов и список режимов', () => {
     expect(openMenu()).toEqual({ screen: 'list' })
   })
 
-  it('Четыре режима: «Последовательности», «Контур», «Ритм», «Разминка»; неизвестного нет', () => {
-    expect(MODES.map((mode) => mode.id)).toEqual(['sequences', 'contour', 'rhythm', 'warmup'])
+  it('Пять режимов: прежние четыре в прежнем порядке, затем «Интервалы»; неизвестного нет', () => {
+    expect(MODES.map((mode) => mode.id)).toEqual([
+      'sequences',
+      'contour',
+      'rhythm',
+      'warmup',
+      'intervals',
+    ])
+    expect(modeInfo('intervals').hasSettings).toBe(true)
     expect(isModeId('melody')).toBe(false)
   })
 

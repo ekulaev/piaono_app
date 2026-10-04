@@ -70,6 +70,7 @@ describe('Хранение статистики (C-STF-4)', () => {
         contour: emptyModeStats(),
         rhythm: emptyModeStats(),
         warmup: stats,
+        intervals: emptyModeStats(),
       },
     })
   })
@@ -105,6 +106,7 @@ describe('Хранение статистики (C-STF-4)', () => {
         contour: emptyModeStats(),
         rhythm: emptyModeStats(),
         warmup: emptyModeStats(),
+        intervals: emptyModeStats(),
       },
     })
   })
@@ -123,6 +125,7 @@ describe('Хранение статистики (C-STF-4)', () => {
       contour: emptyModeStats(),
       rhythm: emptyModeStats(),
       warmup: stats,
+      intervals: emptyModeStats(),
     })
   })
 })
@@ -150,5 +153,28 @@ describe('Сброс (C-STF-7)', () => {
     resetHintProgress(storage)
     expect(loadProgress(storage).hints).toEqual(DEFAULT_HINT_PROGRESS)
     expect(loadProgress(storage).stats.sequences).toEqual(stats)
+  })
+})
+
+describe('Статистика «Интервалов» (C-SOL-1, NFR-3)', () => {
+  it('сохраняется рядом с прежними режимами и не трогает их', () => {
+    const storage = memoryStorage()
+    const warmup = aggregate([{ kind: 'note', key: 'treble:64', outcome: 'clean', ms: 700 }])
+    const intervals = aggregate([{ kind: 'task', key: 'play:up:M3', outcome: 'clean', ms: 900 }])
+    saveModeStats('warmup', warmup, storage)
+    saveModeStats('intervals', intervals, storage)
+    expect(loadProgress(storage).stats.warmup).toEqual(warmup)
+    expect(loadProgress(storage).stats.intervals).toEqual(intervals)
+  })
+
+  it('повреждённая статистика «Интервалов» обнуляет только её', () => {
+    const storage = memoryStorage()
+    const warmup = aggregate([{ kind: 'note', key: 'treble:64', outcome: 'clean', ms: 700 }])
+    storage.setItem(
+      'piaono.progress.v1',
+      JSON.stringify({ stats: { warmup, intervals: { notes: {}, tasks: 'мусор' } } }),
+    )
+    expect(loadProgress(storage).stats.intervals).toEqual(emptyModeStats())
+    expect(loadProgress(storage).stats.warmup).toEqual(warmup)
   })
 })

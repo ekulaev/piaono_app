@@ -65,9 +65,34 @@ export function computeLayout(zoneWidthPx: number, remPx: number): KeyboardLayou
   }
 }
 
+/**
+ * Границы прокрутки, которые задаёт упражнение (режим сольфеджио, C-SOL-1 Р-23): нижняя и
+ * верхняя ноты диапазона. null — границ нет, клавиатура листается от A0 до C8.
+ */
+export interface ScrollBounds {
+  low: number
+  high: number
+}
+
+/** Допустимые индексы первой видимой белой клавиши при границах (или вся клавиатура). */
+function startLimits(count: number, bounds: ScrollBounds | null): { min: number; max: number } {
+  const keyboardMax = WHITE_KEY_COUNT - count
+  if (!bounds) return { min: 0, max: keyboardMax }
+  const lowIndex = WHITE_PITCHES.findIndex((pitch) => pitch >= bounds.low)
+  const highIndex = WHITE_PITCHES.findLastIndex((pitch) => pitch <= bounds.high)
+  // Уже диапазона — листается внутри него; шире — держит его целиком.
+  const a = lowIndex
+  const b = highIndex - count + 1
+  return {
+    min: Math.max(0, Math.min(a, b)),
+    max: Math.min(keyboardMax, Math.max(a, b)),
+  }
+}
+
 /** Индекс первой видимой белой клавиши держится в допустимых пределах. */
-function clampStart(start: number, count: number): number {
-  return Math.min(Math.max(0, start), WHITE_KEY_COUNT - count)
+function clampStart(start: number, count: number, bounds: ScrollBounds | null = null): number {
+  const { min, max } = startLimits(count, bounds)
+  return Math.min(Math.max(min, start), max)
 }
 
 function centerOffset(count: number): number {
@@ -83,38 +108,98 @@ export function initialStart(count: number): number {
  * Центрирование на диапазоне нот (начало последовательности): в центр видимой части встаёт
  * белая клавиша у середины диапазона, у краёв клавиатуры — насколько позволяют края.
  */
-export function centerStartOn(low: number, high: number, count: number): number {
+export function centerStartOn(
+  low: number,
+  high: number,
+  count: number,
+  bounds: ScrollBounds | null = null,
+): number {
   const middle = (low + high) / 2
   const index = WHITE_PITCHES.findIndex((pitch) => pitch >= middle)
   const center = index === -1 ? WHITE_KEY_COUNT - 1 : index
-  return clampStart(center - centerOffset(count), count)
+  return clampStart(center - centerOffset(count), count, bounds)
 }
 
 /**
  * Нота слева (авто-сдвиг «Разминки», C-STF-9): первой видимой становится белая клавиша этой
  * высоты, у правого края клавиатуры — насколько позволяет край.
  */
-export function startAtNote(pitch: number, count: number): number {
+export function startAtNote(
+  pitch: number,
+  count: number,
+  bounds: ScrollBounds | null = null,
+): number {
   const index = WHITE_PITCHES.findIndex((white) => white >= pitch)
-  return clampStart(index === -1 ? WHITE_KEY_COUNT - 1 : index, count)
+  return clampStart(index === -1 ? WHITE_KEY_COUNT - 1 : index, count, bounds)
+}
+
+/**
+ * Нота справа («Интервалы», задание вниз, C-SOL-2 OB-9): последней видимой становится белая
+ * клавиша этой высоты (у чёрной — соседняя белая выше), у краёв — насколько позволяют края.
+ */
+export function startEndingAtNote(
+  pitch: number,
+  count: number,
+  bounds: ScrollBounds | null = null,
+): number {
+  const index = WHITE_PITCHES.findIndex((white) => white >= pitch)
+  const last = index === -1 ? WHITE_KEY_COUNT - 1 : index
+  return clampStart(last - count + 1, count, bounds)
+}
+
+/**
+ * Видна ли целая октава «до–до» (легенда «Узнай интервал», C-SOL-2 OB-11): если да — start
+ * прежний, иначе первой видимой становится «до» low.
+ */
+export function startShowingOctave(
+  start: number,
+  count: number,
+  low: number,
+  bounds: ScrollBounds | null = null,
+): number {
+  const { low: first, high: last } = visibleRange(start, count)
+  for (let c = Math.ceil(first / 12) * 12; c + 12 <= last; c += 12) {
+    if (!bounds || (c >= bounds.low && c + 12 <= bounds.high))
+      return clampStart(start, count, bounds)
+  }
+  return startAtNote(low, count, bounds)
 }
 
 /** После смены размера центральная клавиша остаётся в центре, насколько позволяют края. */
-export function resizeStart(start: number, oldCount: number, newCount: number): number {
+export function resizeStart(
+  start: number,
+  oldCount: number,
+  newCount: number,
+  bounds: ScrollBounds | null = null,
+): number {
   const center = start + centerOffset(oldCount)
-  return clampStart(center - centerOffset(newCount), newCount)
+  return clampStart(center - centerOffset(newCount), newCount, bounds)
 }
 
 /** Сдвиг видимой части на delta белых клавиш (отрицательный — к низким нотам). */
-export function shiftStart(start: number, delta: number, count: number): number {
-  return clampStart(start + delta, count)
+export function shiftStart(
+  start: number,
+  delta: number,
+  count: number,
+  bounds: ScrollBounds | null = null,
+): number {
+  return clampStart(start + delta, count, bounds)
 }
 
 export type Side = 'left' | 'right'
 
-/** Кнопка заблокирована, когда в видимой части уже есть A0 (левая) или C8 (правая). */
-export function isBlocked(side: Side, start: number, count: number): boolean {
-  return side === 'left' ? start <= 0 : start + count >= WHITE_KEY_COUNT
+/**
+ * Кнопка заблокирована, когда в видимой части уже есть A0 (левая) или C8 (правая), а при
+ * границах упражнения — их нижняя или верхняя нота (C-SOL-1, Р-23).
+ */
+export function isBlocked(
+  side: Side,
+  start: number,
+  count: number,
+  bounds: ScrollBounds | null = null,
+): boolean {
+  const { min, max } = startLimits(count, bounds)
+  return side === 'left' ? start <= min : start >= max
 }
 
 export interface VisibleRange {
@@ -160,9 +245,14 @@ export function cursorRect(start: number, count: number, zoneWidthPx: number): C
  * Целевой start, чтобы центр курсора совпал с точкой тапа (с точностью до белой клавиши).
  * Упор в края — через clampStart. При count === 52 всегда 0 (двигать некуда).
  */
-export function startFromTapCenter(xPx: number, count: number, zoneWidthPx: number): number {
+export function startFromTapCenter(
+  xPx: number,
+  count: number,
+  zoneWidthPx: number,
+  bounds: ScrollBounds | null = null,
+): number {
   const w = miniWhiteWidth(zoneWidthPx)
-  return clampStart(Math.round(xPx / w - count / 2), count)
+  return clampStart(Math.round(xPx / w - count / 2), count, bounds)
 }
 
 /**
@@ -175,9 +265,10 @@ export function startFromDrag(
   grabOffsetWhite: number,
   count: number,
   zoneWidthPx: number,
+  bounds: ScrollBounds | null = null,
 ): number {
   const w = miniWhiteWidth(zoneWidthPx)
-  return clampStart(Math.round(xPx / w - grabOffsetWhite), count)
+  return clampStart(Math.round(xPx / w - grabOffsetWhite), count, bounds)
 }
 
 /**

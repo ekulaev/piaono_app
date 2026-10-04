@@ -23,10 +23,24 @@ export type HintBlock =
   | { kind: 'notes'; clef: Clef; pitches: number[]; anchor?: number; intervals?: boolean }
   /** Ритмический пример, как в «Ритме»: фигуры одного такта и, если нужно, оценки нот. */
   | { kind: 'rhythm'; meter: Meter; figures: FigureId[]; marks?: Mark[] }
+  /**
+   * Таблица соответствий (сольфеджио: «клавиша → интервал», русские октавы → научные). Ячейка —
+   * ключ перевода или текст, который не переводится («C4»).
+   */
+  | { kind: 'table'; head: HintCell[]; rows: HintCell[][] }
+
+export type HintCell = MessageKey | { raw: string }
 
 export interface Hint {
   title: MessageKey
   blocks: HintBlock[]
+}
+
+/** Русская нумерация октав и научные названия (C-SOL-1, OB-20; приложение Г). */
+const OCTAVES_TABLE: HintBlock = {
+  kind: 'table',
+  head: ['hint.octaves.russian', 'hint.octaves.scientific'],
+  rows: ([2, 3, 4, 5, 6] as const).map((n) => [`octave.${n}`, { raw: `C${n}` }]),
 }
 
 const CONNECT_STEPS: HintBlock = {
@@ -112,6 +126,38 @@ export const HINTS = {
       { kind: 'text', text: 'hint.mode.warmup.1' },
       { kind: 'text', text: 'hint.mode.warmup.2' },
       { kind: 'text', text: 'hint.mode.warmup.3' },
+    ],
+  },
+  'mode.intervals': {
+    title: 'hint.mode.intervals.title',
+    blocks: [
+      { kind: 'text', text: 'hint.mode.intervals.1' },
+      { kind: 'text', text: 'hint.mode.intervals.2' },
+      {
+        kind: 'table',
+        head: [
+          'hint.intervals.keyHead',
+          'hint.intervals.legendHead',
+          'hint.intervals.intervalHead',
+        ],
+        rows: (
+          [
+            ['hint.intervals.key.1', 'm2'],
+            ['hint.intervals.key.2', 'M2'],
+            ['hint.intervals.key.3', 'm3'],
+            ['hint.intervals.key.4', 'M3'],
+            ['hint.intervals.key.5', 'P4'],
+            ['hint.intervals.key.6', 'TT'],
+            ['hint.intervals.key.7', 'P5'],
+            ['hint.intervals.key.8', 'm6'],
+            ['hint.intervals.key.9', 'M6'],
+            ['hint.intervals.key.10', 'm7'],
+            ['hint.intervals.key.11', 'M7'],
+            ['hint.intervals.key.0', 'P8'],
+          ] as const
+        ).map(([key, id]) => [key, `interval.short.${id}`, `interval.full.${id}`]),
+      },
+      OCTAVES_TABLE,
     ],
   },
 } satisfies Record<string, Hint>

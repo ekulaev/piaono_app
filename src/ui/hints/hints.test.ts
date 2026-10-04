@@ -36,6 +36,11 @@ describe('Подсказки (C-APP-2)', () => {
         if (block.kind === 'text') keys.push(block.text)
         if (block.kind === 'steps') keys.push(...block.steps)
         if (block.kind === 'image') keys.push(block.caption)
+        if (block.kind === 'table') {
+          for (const cell of [...block.head, ...block.rows.flat()]) {
+            if (typeof cell === 'string') keys.push(cell)
+          }
+        }
       }
       for (const key of keys) {
         expect((DEFAULT_LOCALE.messages as Record<string, unknown>)[key], `en:${key}`).toBeTruthy()

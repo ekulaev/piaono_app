@@ -13,7 +13,7 @@ export const MAX_HARD = 5
  * Какой список трудных мест: интерфейс называет его по этому идентификатору (C-APP-3). «Контур»
  * показывает интервалы как «переходы» — поэтому у него свой.
  */
-export type HardListId = 'notes' | 'intervals' | 'transitions' | 'figures'
+export type HardListId = 'notes' | 'intervals' | 'transitions' | 'figures' | 'tasks'
 
 /** Основная таблица режима — для общих чисел — и его списки трудных мест (LIM-1). */
 const MODE_VIEW: Record<
@@ -30,6 +30,7 @@ const MODE_VIEW: Record<
   contour: { main: 'interval', lists: [{ id: 'transitions', kind: 'interval' }] },
   rhythm: { main: 'figure', lists: [{ id: 'figures', kind: 'figure' }] },
   warmup: { main: 'note', lists: [{ id: 'notes', kind: 'note' }] },
+  intervals: { main: 'task', lists: [{ id: 'tasks', kind: 'task' }] },
 }
 
 export interface HardPlace {
@@ -73,10 +74,10 @@ export function summarizeMode(mode: StatsMode, stats: ModeStats): ModeSummary | 
 
 /**
  * Ключ порядка при равной трудности: нота или интервал — как они выглядят на экране («C4», «↑3»),
- * фигура — по идентификатору. От языка не зависит (C-APP-3: порядок одинаков на всех языках).
+ * фигура и задание — по идентификатору. От языка не зависит (C-APP-3: порядок одинаков на всех языках).
  */
 function sortText(kind: StatKind, key: string): string {
-  if (kind === 'figure') return key
+  if (kind === 'figure' || kind === 'task') return key
   if (kind === 'interval') return intervalLabel(key)
   const [clef, pitch] = key.split(':')
   return `${pitchToNoteName(Number(pitch))}${clef === 'bass' ? ' (bass)' : ''}`

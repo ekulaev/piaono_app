@@ -68,6 +68,15 @@ export function figureWeights(stats: ModeStats): (id: FigureId) => number {
 }
 
 /**
+ * Вес типа задания по статистике режима сольфеджио (C-SOL-1, OB-2): та же трудность, медиана
+ * времени — по таблице заданий режима. Без статистики все веса одинаковы.
+ */
+export function taskWeights(stats: ModeStats): (type: string) => number {
+  const median = medianAvg(Object.values(stats.tasks))
+  return (type) => weightOf(difficulty(stats.tasks[type], median))
+}
+
+/**
  * Взвешенный выбор одним вызовом random(). При равных весах результат совпадает с
  * options[floor(r × n)] — прежним равновероятным выбором.
  */

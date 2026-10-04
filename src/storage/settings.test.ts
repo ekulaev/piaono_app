@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_RHYTHM_SETTINGS } from '../engine/rhythm/settings'
 import { DEFAULT_SEQUENCE_SETTINGS } from '../engine/sequences/settings'
 import { DEFAULT_WARMUP_SETTINGS } from '../engine/warmup/settings'
+import { DEFAULT_INTERVALS_SETTINGS } from '../engine/solfege/intervals/settings'
 import { stepOf } from '../engine/warmup/steps'
 import { loadSettings, saveSettings, type SettingsStorage } from './settings'
 
@@ -10,6 +11,7 @@ const modeSettings = {
   contour: DEFAULT_SEQUENCE_SETTINGS,
   rhythm: DEFAULT_RHYTHM_SETTINGS,
   warmup: DEFAULT_WARMUP_SETTINGS,
+  intervals: DEFAULT_INTERVALS_SETTINGS,
 }
 
 function memoryStorage(): SettingsStorage {
@@ -544,5 +546,33 @@ describe('Подписи на клавишах: хранение настрой�
     expect(loaded.keyLabels).toBe(true)
     expect(loaded.glissando).toBe(true)
     expect(loaded.noteEchoMs).toBe(2500)
+  })
+})
+
+describe('Настройки «Интервалов» (C-SOL-1, NFR-3; C-SOL-2)', () => {
+  it('старые данные без поля — «Интервалы» по умолчанию, остальное сохраняется', () => {
+    const storage = memoryStorage()
+    storage.setItem(
+      'piaono.settings.v1',
+      JSON.stringify({
+        glissando: true,
+        activeMode: 'warmup',
+        modeSettings: { sequences: { clef: 'bass' } },
+      }),
+    )
+    const settings = loadSettings(storage)
+    expect(settings.modeSettings.intervals).toEqual(DEFAULT_INTERVALS_SETTINGS)
+    expect(settings.modeSettings.sequences.clef).toBe('bass')
+    expect(settings.glissando).toBe(true)
+  })
+
+  it('сохранённые настройки «Интервалов» переживают перезапуск', () => {
+    const storage = memoryStorage()
+    const intervals = { variant: 'name' as const, tasks: 5, autoAdvance: true }
+    saveSettings(
+      { ...loadSettings(storage), modeSettings: { ...modeSettings, intervals } },
+      storage,
+    )
+    expect(loadSettings(storage).modeSettings.intervals).toEqual(intervals)
   })
 })

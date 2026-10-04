@@ -107,3 +107,21 @@
 .hint__notes--band {
   height: 11rem;
 }
+
+/* Таблица соответствий в подсказке (сольфеджио): крупно, с толстыми линиями строк. */
+.hint__table {
+  border-collapse: collapse;
+  margin-block: 0.5rem;
+  font-size: 1.125rem;
+}
+
+.hint__table th,
+.hint__table td {
+  padding: 0.375rem 1rem;
+  text-align: left;
+  border-bottom: 0.125rem solid var(--border);
+}
+
+.hint__table th {
+  font-weight: 600;
+}

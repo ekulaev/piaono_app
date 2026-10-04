@@ -149,6 +149,14 @@ export function vexKey(pitch: number): string {
   return `${names[pitch % 12]}/${Math.floor(pitch / 12) - 1}`
 }
 
+/**
+ * Знак у ноты для VexFlow (C-SOL-2, OB-5): +1 — диез, −1 — бемоль, 0 — без знака. Знаков при
+ * ключе в сольфеджио нет, поэтому знак рисуется у самой ноты.
+ */
+export function vexAccidental(alteration: -1 | 0 | 1): '#' | 'b' | null {
+  return alteration === 1 ? '#' : alteration === -1 ? 'b' : null
+}
+
 export interface DrawnNote {
   /** Где VexFlow нарисовала ноту, условные единицы. */
   drawnX: number

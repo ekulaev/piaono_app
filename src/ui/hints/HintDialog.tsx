@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import HintNotes from './HintNotes'
-import type { Hint } from './hints'
+import type { Hint, HintCell } from './hints'
 import './HintDialog.css'
 import { useT } from '../i18n/useI18n'
 
@@ -17,6 +17,7 @@ interface Props {
  */
 function HintDialog({ hint, onClose }: Props) {
   const t = useT()
+  const cellText = (cell: HintCell) => (typeof cell === 'string' ? t(cell) : cell.raw)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -81,6 +82,27 @@ function HintDialog({ hint, onClose }: Props) {
                     <img src={block.src} alt="" />
                     <figcaption>{t(block.caption)}</figcaption>
                   </figure>
+                )
+              case 'table':
+                return (
+                  <table key={index} className="hint__table">
+                    <thead>
+                      <tr>
+                        {block.head.map((cell, i) => (
+                          <th key={i}>{cellText(cell)}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {block.rows.map((row, r) => (
+                        <tr key={r}>
+                          {row.map((cell, i) => (
+                            <td key={i}>{cellText(cell)}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )
               default:
                 return <HintNotes key={index} block={block} />

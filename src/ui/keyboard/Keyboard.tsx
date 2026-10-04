@@ -24,10 +24,13 @@ import {
   shiftStart,
   startFromDrag,
   startAtNote,
+  startEndingAtNote,
   startFromTapCenter,
+  startShowingOctave,
   visibleRange,
   WHITE_KEY_COUNT,
   WHITE_PITCHES,
+  type ScrollBounds,
   type Side,
 } from '../../engine/keyboard/layout'
 import type { KeyboardState, KeyInput, Level } from '../../engine/keyboard/types'
@@ -37,13 +40,26 @@ import { useT } from '../i18n/useI18n'
 
 /**
  * Запрос показать участок клавиатуры. align 'center' (по умолчанию): центрировать на диапазоне
- * low–high; 'left': нота low — крайняя слева (авто-сдвиг «Разминки»). Новый token — новый сдвиг.
+ * low–high; 'left': нота low — крайняя слева (авто-сдвиг «Разминки»); 'right': нота high —
+ * крайняя справа («Интервалы», задание вниз); 'octave': видна целая октава «до–до», иначе — от
+ * «до» low (легенда «Узнай интервал»). Новый token — новый сдвиг.
  */
 export interface KeyboardFocus {
   low: number
   high: number
   token: number
-  align?: 'center' | 'left'
+  align?: 'center' | 'left' | 'right' | 'octave'
+}
+
+/** Отметка клавиши после ответа сольфеджио: верная — зелёная, неверная — красная (C-SOL-1). */
+export type KeyMark = 'correct' | 'wrong'
+
+/**
+ * Легенда над клавишами (C-SOL-1, OB-14): ступень от «до» (0–11) → подпись. Полоса легенды
+ * держит место, пока legend не null; labels null — полоса пуста (задание без легенды).
+ */
+export interface KeyLegend {
+  labels: Readonly<Record<number, string>> | null
 }
 
 interface Props {
@@ -54,6 +70,12 @@ interface Props {
   onCapacity?: (capacity: number | null) => void
   /** Подписи нот на белых клавишах (C-KBD-3). */
   labels?: boolean
+  /** Границы прокрутки упражнения (C-SOL-1, Р-23); null — листается от A0 до C8. */
+  bounds?: ScrollBounds | null
+  /** Отметки клавиш: высота → верно или неверно. */
+  marks?: ReadonlyMap<number, KeyMark> | null
+  /** Легенда над клавишами; null — полосы нет. */
+  legend?: KeyLegend | null
 }
 
 interface ZoneSize {
@@ -73,7 +95,16 @@ interface VisibleWindow {
  * и превращает касания в события для него. Своё у неё только одно — какая часть
  * клавиатуры сейчас видна.
  */
-function Keyboard({ state, onInput, focus, onCapacity, labels = false }: Props) {
+function Keyboard({
+  state,
+  onInput,
+  focus,
+  onCapacity,
+  labels = false,
+  bounds = null,
+  marks = null,
+  legend = null,
+}: Props) {
   const t = useT()
   const zoneRef = useRef<HTMLDivElement>(null)
   const keysRef = useRef<HTMLDivElement>(null)
@@ -86,8 +117,18 @@ function Keyboard({ state, onInput, focus, onCapacity, labels = false }: Props) 
   // рендера — штатный приём React для производного состояния).
   if (layout && visible?.count !== layout.visibleWhiteCount) {
     const count = layout.visibleWhiteCount
-    const start = visible ? resizeStart(visible.start, visible.count, count) : initialStart(count)
+    const start = visible
+      ? resizeStart(visible.start, visible.count, count, bounds)
+      : shiftStart(initialStart(count), 0, count, bounds)
     setVisible({ start, count })
+  }
+  // Упражнение задало или сняло границы: видимая часть сразу встаёт внутрь них.
+  const boundsKey = bounds ? `${bounds.low}-${bounds.high}` : ''
+  const [appliedBounds, setAppliedBounds] = useState(boundsKey)
+  if (boundsKey !== appliedBounds) {
+    setAppliedBounds(boundsKey)
+    if (visible)
+      setVisible({ ...visible, start: shiftStart(visible.start, 0, visible.count, bounds) })
   }
   // Центрирование по запросу (начало последовательности) — один раз на token, дальше
   // видимую часть двигает только ученик.
@@ -95,10 +136,13 @@ function Keyboard({ state, onInput, focus, onCapacity, labels = false }: Props) 
   if (layout && focus && focus.token !== focusToken) {
     const count = layout.visibleWhiteCount
     setFocusToken(focus.token)
-    const start =
-      focus.align === 'left'
-        ? startAtNote(focus.low, count)
-        : centerStartOn(focus.low, focus.high, count)
+    let start: number
+    if (focus.align === 'left') start = startAtNote(focus.low, count, bounds)
+    else if (focus.align === 'right') start = startEndingAtNote(focus.high, count, bounds)
+    else if (focus.align === 'octave') {
+      const current = visible?.count === count ? visible.start : initialStart(count)
+      start = startShowingOctave(current, count, focus.low, bounds)
+    } else start = centerStartOn(focus.low, focus.high, count, bounds)
     setVisible({ start, count })
   }
 
@@ -108,18 +152,21 @@ function Keyboard({ state, onInput, focus, onCapacity, labels = false }: Props) 
     onCapacity?.(capacity)
   }, [capacity, onCapacity])
 
-  // Актуальное окно для автоповтора: таймер срабатывает между рендерами.
+  // Актуальное окно и границы для автоповтора: таймер срабатывает между рендерами.
   const visibleRef = useRef(visible)
   visibleRef.current = visible
+  const boundsRef = useRef(bounds)
+  boundsRef.current = bounds
   const autoRepeat = useAutoRepeat()
 
   /** Сдвиг на одну белую клавишу; false — если в эту сторону уже некуда. */
   function step(side: Side): boolean {
     const current = visibleRef.current
-    if (!current || isBlocked(side, current.start, current.count)) return false
+    const limits = boundsRef.current
+    if (!current || isBlocked(side, current.start, current.count, limits)) return false
     const next = {
       ...current,
-      start: shiftStart(current.start, side === 'left' ? -1 : 1, current.count),
+      start: shiftStart(current.start, side === 'left' ? -1 : 1, current.count, limits),
     }
     visibleRef.current = next
     setVisible(next)
@@ -209,6 +256,7 @@ function Keyboard({ state, onInput, focus, onCapacity, labels = false }: Props) 
           width={whiteWidth}
           level={levelOf(state, pitch)}
           labeled={labels}
+          mark={marks?.get(pitch) ?? null}
         />,
       )
       // Чёрная рисуется, только если видны обе её белые соседки.
@@ -221,6 +269,7 @@ function Keyboard({ state, onInput, focus, onCapacity, labels = false }: Props) 
             left={i * whiteWidth - blackWidth / 2}
             width={blackWidth}
             level={levelOf(state, pitch - 1)}
+            mark={marks?.get(pitch - 1) ?? null}
           />,
         )
       }
@@ -232,7 +281,7 @@ function Keyboard({ state, onInput, focus, onCapacity, labels = false }: Props) 
         side={side}
         width={whiteWidth}
         hinted={hints[side]}
-        blocked={isBlocked(side, visible.start, visible.count)}
+        blocked={isBlocked(side, visible.start, visible.count, bounds)}
         onPress={() => autoRepeat.start(() => step(side))}
         onRelease={autoRepeat.stop}
         onKeyboardStep={() => step(side)}
@@ -267,7 +316,17 @@ function Keyboard({ state, onInput, focus, onCapacity, labels = false }: Props) 
           start={visible.start}
           count={visible.count}
           zoneWidthPx={size.width}
+          bounds={bounds}
           onStart={setStart}
+        />
+      )}
+      {legend && (
+        <Legend
+          labels={legend.labels}
+          start={visible?.start ?? 0}
+          count={visible?.count ?? 0}
+          whiteWidth={layout?.whiteWidthPx ?? 0}
+          offset={layout?.showButtons ? layout.whiteWidthPx : 0}
         />
       )}
       <div ref={zoneRef} className="kbd" aria-label={t('keyboard.label')}>
@@ -311,20 +370,36 @@ interface KeyProps {
   level: Level | null
   /** Подпись ноты внизу клавиши; только у белых (C-KBD-3). */
   labeled?: boolean
+  /** Отметка после ответа сольфеджио: заливка и знак ✓ или ✗. */
+  mark?: KeyMark | null
 }
 
 /** Одна клавиша. memo: при нажатии перерисовывается только она, а не все 88. */
-const Key = memo(function Key({ pitch, black, left, width, level, labeled = false }: KeyProps) {
+const Key = memo(function Key({
+  pitch,
+  black,
+  left,
+  width,
+  level,
+  labeled = false,
+  mark = null,
+}: KeyProps) {
   const className = [
     'key',
     black ? 'key--black' : 'key--white',
     level !== null && `key--pressed key--level-${level}`,
+    mark && `key--${mark}`,
   ]
     .filter(Boolean)
     .join(' ')
   // data-pitch — номер ноты по MIDI: удобно видеть в инструментах разработчика.
   return (
     <div className={className} style={{ left, width }} data-pitch={pitch}>
+      {mark && (
+        <span className="key__mark" aria-hidden="true">
+          {mark === 'correct' ? '✓' : '✗'}
+        </span>
+      )}
       {labeled && !black && <KeyLabel pitch={pitch} />}
     </div>
   )
@@ -404,6 +479,8 @@ interface MiniKeyboardProps {
   count: number
   /** Полная ширина зоны клавиатуры (вместе с кнопками прокрутки). */
   zoneWidthPx: number
+  /** Границы прокрутки упражнения: курсор за них не уходит (C-SOL-2, OB-10). */
+  bounds: ScrollBounds | null
   onStart: (start: number) => void
 }
 
@@ -412,7 +489,7 @@ interface MiniKeyboardProps {
  * Курсор выводится из start/count, поэтому всегда совпадает с видимой частью. Клавиши мини
  * не играют — компонент лишь двигает видимую часть (C-KBD-2). Без анимаций.
  */
-function MiniKeyboard({ start, count, zoneWidthPx, onStart }: MiniKeyboardProps) {
+function MiniKeyboard({ start, count, zoneWidthPx, bounds, onStart }: MiniKeyboardProps) {
   const ref = useRef<HTMLDivElement>(null)
   // Перетаскивание: какой указатель тянет и за какую белую клавишу курсора взялись.
   const grab = useRef<{ pointerId: number; offsetWhite: number } | null>(null)
@@ -438,14 +515,14 @@ function MiniKeyboard({ start, count, zoneWidthPx, onStart }: MiniKeyboardProps)
       grab.current = { pointerId: event.pointerId, offsetWhite: x / w - start }
     } else {
       // Тап по затемнённой области — сразу центрируем курсор по точке; перетаскивания нет (OB-6).
-      onStart(startFromTapCenter(x, count, zoneWidthPx))
+      onStart(startFromTapCenter(x, count, zoneWidthPx, bounds))
     }
   }
 
   function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
     const g = grab.current
     if (!g || g.pointerId !== event.pointerId) return
-    onStart(startFromDrag(xAt(event), g.offsetWhite, count, zoneWidthPx))
+    onStart(startFromDrag(xAt(event), g.offsetWhite, count, zoneWidthPx, bounds))
   }
 
   function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
@@ -492,6 +569,59 @@ function MiniKeyboard({ start, count, zoneWidthPx, onStart }: MiniKeyboardProps)
           <div className="mini__cursor" style={{ left: rect.leftPx, width: rect.widthPx }} />
         </>
       )}
+    </div>
+  )
+}
+
+interface LegendProps {
+  labels: Readonly<Record<number, string>> | null
+  start: number
+  count: number
+  whiteWidth: number
+  /** Ширина левой кнопки прокрутки: клавиши начинаются правее неё. */
+  offset: number
+}
+
+/**
+ * Полоса легенды над клавишами (C-SOL-1, OB-14): подпись стоит над серединой своей клавиши,
+ * у каждой видимой октавы; сдвигается вместе с клавиатурой. Пустая полоса держит место —
+ * клавиатура и стан не прыгают между заданиями с легендой и без неё.
+ */
+function Legend({ labels, start, count, whiteWidth, offset }: LegendProps) {
+  const items = []
+  if (labels) {
+    for (let i = 0; i < count; i++) {
+      const pitch = WHITE_PITCHES[start + i]
+      const white = labels[pitch % 12]
+      if (white) {
+        items.push(
+          <span
+            key={pitch}
+            className="legend__item"
+            style={{ left: offset + (i + 0.5) * whiteWidth }}
+          >
+            {white}
+          </span>,
+        )
+      }
+      // Чёрная клавиша видна, только если видны обе её белые соседки.
+      const black = labels[(pitch - 1) % 12]
+      if (i > 0 && isBlackKey(pitch - 1) && black) {
+        items.push(
+          <span
+            key={pitch - 1}
+            className="legend__item legend__item--black"
+            style={{ left: offset + i * whiteWidth }}
+          >
+            {black}
+          </span>,
+        )
+      }
+    }
+  }
+  return (
+    <div className="legend" aria-hidden={labels ? undefined : true}>
+      {items}
     </div>
   )
 }

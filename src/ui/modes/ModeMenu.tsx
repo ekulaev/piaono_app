@@ -8,6 +8,8 @@ import HintButton from '../hints/HintButton'
 import { modeHintId } from '../hints/hints'
 import SequenceSettingsForm from '../sequences/SequenceSettingsForm'
 import WarmupSettingsForm from '../warmup/WarmupSettingsForm'
+import IntervalsSettingsForm from '../solfege/IntervalsSettingsForm'
+import type { IntervalsSettings } from '../../engine/solfege/intervals/settings'
 import type { WarmupSettings } from '../../engine/warmup/settings'
 import './ModeMenu.css'
 import { useT } from '../i18n/useI18n'
@@ -151,6 +153,11 @@ function OpenMenu({
                   settings={menu.draft as WarmupSettings}
                   onChange={onEditDraft}
                   capacity={keyboardCapacity}
+                />
+              ) : menu.modeId === 'intervals' && menu.draft ? (
+                <IntervalsSettingsForm
+                  settings={menu.draft as IntervalsSettings}
+                  onChange={onEditDraft}
                 />
               ) : menu.draft ? (
                 <SequenceSettingsForm
