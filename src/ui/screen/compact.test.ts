@@ -17,7 +17,7 @@ describe('isCompactSize', () => {
 })
 
 describe('COMPACT_QUERY', () => {
-  it('строится из тех же порогов в rem', () => {
-    expect(COMPACT_QUERY).toBe('(height < 35rem) or (width < 60rem)')
+  it('строится из тех же порогов в CSS-пикселях, не в rem (не зависит от размера шрифта)', () => {
+    expect(COMPACT_QUERY).toBe('(height < 560px) or (width < 960px)')
   })
 })

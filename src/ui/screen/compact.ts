@@ -1,18 +1,16 @@
-// Компактный экран (C-APP-5): окно ниже порога по высоте или по ширине. Пороги — в rem, как в
-// медиазапросах (там 1rem = 16 px, а не 18 px корневого шрифта); один источник и для запроса
-// браузера, и для проверки в тестах, чтобы разметка и интерфейс не расходились.
+// Компактный экран (C-APP-5): окно ниже порога по высоте или по ширине. Пороги — в CSS-пикселях,
+// а не в rem: rem в медиазапросе считается от размера шрифта, который задал сам браузер или
+// система, и при увеличенном шрифте (а ученик со слабым зрением его увеличивает) порог рос бы и
+// обычное окно планшета становилось «компактным». Масштаб страницы по-прежнему влияет: он
+// меняет и размер окна в CSS-пикселях. Один источник и для запроса браузера, и для тестов.
 
-export const COMPACT_MAX_HEIGHT_REM = 35
-export const COMPACT_MAX_WIDTH_REM = 60
-
-const MEDIA_REM_PX = 16
+export const COMPACT_MAX_HEIGHT_PX = 560
+export const COMPACT_MAX_WIDTH_PX = 960
 
 /** Медиазапрос «окно компактное»: строго ниже любого из порогов. */
-export const COMPACT_QUERY = `(height < ${COMPACT_MAX_HEIGHT_REM}rem) or (width < ${COMPACT_MAX_WIDTH_REM}rem)`
+export const COMPACT_QUERY = `(height < ${COMPACT_MAX_HEIGHT_PX}px) or (width < ${COMPACT_MAX_WIDTH_PX}px)`
 
 /** То же правило по размеру окна в CSS-пикселях (для тестов). */
 export function isCompactSize(width: number, height: number): boolean {
-  return (
-    height < COMPACT_MAX_HEIGHT_REM * MEDIA_REM_PX || width < COMPACT_MAX_WIDTH_REM * MEDIA_REM_PX
-  )
+  return height < COMPACT_MAX_HEIGHT_PX || width < COMPACT_MAX_WIDTH_PX
 }
