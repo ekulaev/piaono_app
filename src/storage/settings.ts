@@ -48,6 +48,8 @@ export interface Settings {
   noteEchoMs: number
   /** Подписи нот на белых клавишах (C-KBD-3): одно значение на все режимы; по умолчанию выключено. */
   keyLabels: boolean
+  /** Экранная клавиатура: показывать или скрывать (C-APP-5); на компактном экране не действует. */
+  keyboardVisible: boolean
   /** Режим, который запускает «Старт» на главном экране. */
   activeMode: ModeId
   /**
@@ -80,6 +82,7 @@ const DEFAULT_SETTINGS: Settings = {
   noteEchoEnabled: true,
   noteEchoMs: DEFAULT_NOTE_ECHO_MS,
   keyLabels: false,
+  keyboardVisible: true,
   activeMode: DEFAULT_MODE,
   modeSettings: {
     sequences: DEFAULT_SEQUENCE_SETTINGS,
@@ -111,6 +114,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
       noteEchoEnabled,
       noteEchoMs,
       keyLabels,
+      keyboardVisible,
       activeMode,
       modeSettings,
     } = parsed as Record<string, unknown>
@@ -124,6 +128,9 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
       noteEchoMs: readNoteEchoMs(noteEchoMs),
       // Нет поля или не boolean — выключено: старые данные не меняют привычный вид клавиатуры.
       keyLabels: typeof keyLabels === 'boolean' ? keyLabels : DEFAULT_SETTINGS.keyLabels,
+      // Нет поля или не boolean — клавиатура показана: старые данные не прячут её сами.
+      keyboardVisible:
+        typeof keyboardVisible === 'boolean' ? keyboardVisible : DEFAULT_SETTINGS.keyboardVisible,
       // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
       activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
       modeSettings: {

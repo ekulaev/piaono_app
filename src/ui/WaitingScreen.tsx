@@ -28,8 +28,10 @@ interface Props {
   staff: ReactNode
   /** Полоса нажатых нот: между станом и рядом кнопок; null — показ выключен (C-STF-8, OB-23). */
   noteEcho: ReactNode
-  /** Экранная клавиатура: видна внизу во всех состояниях связи. */
+  /** Экранная клавиатура: видна внизу во всех состояниях связи; null — клавиатуры нет (C-APP-5). */
   keyboard: ReactNode
+  /** Нечем играть: «Старт» отключена и ничего не запускает (C-APP-5, OB-5). */
+  startDisabled: boolean
 }
 
 /**
@@ -49,6 +51,7 @@ function WaitingScreen({
   staff,
   noteEcho,
   keyboard,
+  startDisabled,
 }: Props) {
   const t = useT()
   return (
@@ -70,7 +73,10 @@ function WaitingScreen({
           <button
             type="button"
             className="button button--primary waiting__start"
-            onClick={onToggleExercise}
+            // aria-disabled, а не disabled: кнопка остаётся в порядке фокуса (C-APP-5, OB-5).
+            // «Стоп» не блокируется: упражнение, которое идёт, можно остановить всегда.
+            onClick={startDisabled && !exerciseRunning ? undefined : onToggleExercise}
+            aria-disabled={startDisabled && !exerciseRunning}
           >
             {exerciseRunning ? t('main.stop') : t('main.start')}
           </button>
@@ -97,7 +103,7 @@ function WaitingScreen({
           </div>
         )}
       </main>
-      <div className="waiting-screen__keyboard">{keyboard}</div>
+      {keyboard && <div className="waiting-screen__keyboard">{keyboard}</div>}
     </div>
   )
 }

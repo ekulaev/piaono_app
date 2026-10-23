@@ -161,3 +161,26 @@ describe('Время нажатия (C-STF-6)', () => {
     expect(played.map((note) => note.time)).toEqual([1000.5, 1250, 1300])
   })
 })
+
+describe('releaseTouches (C-APP-5)', () => {
+  it('снимает все касания, ноты не играются', () => {
+    const { state } = run([touchDown(1, C4), touchDown(2, E4)])
+    const result = reduce(state, { kind: 'releaseTouches' })
+    expect(result.playedNote).toBeNull()
+    expect(isPressed(result.state, C4)).toBe(false)
+    expect(isPressed(result.state, E4)).toBe(false)
+    expect(result.state.touches.size).toBe(0)
+  })
+
+  it('пианино не трогает: клавиша под пальцем и пианино остаётся нажатой', () => {
+    const { state } = run([pianoDown(C4), touchDown(1, C4), touchDown(2, E4)])
+    const { state: after } = reduce(state, { kind: 'releaseTouches' })
+    expect(isPressed(after, C4)).toBe(true)
+    expect(isPressed(after, E4)).toBe(false)
+  })
+
+  it('без касаний возвращает то же состояние', () => {
+    const { state } = run([pianoDown(C4)])
+    expect(reduce(state, { kind: 'releaseTouches' }).state).toBe(state)
+  })
+})

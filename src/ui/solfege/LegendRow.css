@@ -1,0 +1,31 @@
+/* Ряд «клавиша — значение» под станом, когда экранной клавиатуры нет (C-APP-5, OB-17). */
+.legend-row {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1rem;
+}
+
+.legend-row__item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.legend-row__key {
+  font-weight: 700;
+}
+
+.legend-row__value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}

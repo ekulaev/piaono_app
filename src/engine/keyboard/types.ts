@@ -18,6 +18,8 @@ export type KeyInput =
   /** Палец сдвинулся; pitch — клавиша под ним сейчас или null, если палец вне клавиш. */
   | { kind: 'touchMove'; pointerId: number; pitch: number | null; time: number }
   | { kind: 'touchUp'; pointerId: number }
+  /** Все пальцы сняты разом (клавиатура ушла с экрана): касания отпускаются, пианино не трогаем. */
+  | { kind: 'releaseTouches' }
   | { kind: 'setGlissando'; enabled: boolean }
 
 /** Один палец на экране. */
