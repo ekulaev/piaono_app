@@ -3,6 +3,7 @@ import { emptyModeStats } from '../stats/stats'
 import {
   COUNTDOWN_MS,
   countdownSeconds,
+  hasValueAnswers,
   next,
   press,
   repeat,
@@ -138,5 +139,41 @@ describe('Пропустить, Далее, автопереход, итог (C-
 
   it('«Стоп» — без итога, незавершённое не записано', () => {
     expect(stop()).toEqual({ phase: 'idle' })
+  })
+})
+
+describe('Полоса легенды по составу сессии (C-SOL-1, OB-21)', () => {
+  const notes = [noteTask('a', [64]), noteTask('b', [67])]
+  const values = [valueTask('m3', 'm3'), valueTask('M3', 'M3')]
+  const mixed = [noteTask('a', [64]), valueTask('m3', 'm3')]
+
+  it('до «Старт» и после «Стоп» — полосы нет', () => {
+    expect(hasValueAnswers({ phase: 'idle' })).toBe(false)
+    expect(hasValueAnswers(stop())).toBe(false)
+  })
+
+  it('только ответы-ноты — полосы нет всю сессию', () => {
+    const state = start(notes)
+    expect(hasValueAnswers(state)).toBe(false)
+    expect(hasValueAnswers(skip(state, 1100))).toBe(false)
+  })
+
+  it('только ответы-значения — полоса есть', () => {
+    expect(hasValueAnswers(start(values))).toBe(true)
+  })
+
+  it('смесь — полоса держится и в задании с ответом-нотой', () => {
+    const first = start(mixed)
+    expect(first.phase === 'asking' && first.tasks[first.index].answer.kind).toBe('note')
+    expect(hasValueAnswers(first)).toBe(true)
+    expect(hasValueAnswers(skip(first, 1100))).toBe(true)
+    expect(hasValueAnswers(next(skip(first, 1100), 1200))).toBe(true)
+  })
+
+  it('итог — полосы нет', () => {
+    let state = start(values)
+    state = next(skip(state, 1100), 1200)
+    state = next(skip(state, 1300), 1400)
+    expect(expectPhase(state, 'summary') && hasValueAnswers(state)).toBe(false)
   })
 })
