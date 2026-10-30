@@ -5,6 +5,7 @@ import { aggregate, emptyModeStats } from '../engine/stats/stats'
 import {
   loadHintProgress,
   loadProgress,
+  readProgress,
   resetHintProgress,
   resetModeStats,
   saveHintProgress,
@@ -203,5 +204,24 @@ describe('Статистика «Длительностей» (C-SOL-3, OB-12)',
     )
     expect(loadProgress(storage).stats.durations).toEqual(emptyModeStats())
     expect(loadProgress(storage).stats.intervals).toEqual(intervals)
+  })
+})
+
+describe('Чтение прогресса из объекта (C-APP-4, резервная копия)', () => {
+  const empty = loadProgress(memoryStorage())
+
+  it('не объект — пустой прогресс', () => {
+    expect(readProgress(null)).toEqual(empty)
+    expect(readProgress('прогресс')).toEqual(empty)
+  })
+
+  it('повреждённая статистика одного режима — пустая только у него', () => {
+    const storage = memoryStorage()
+    const stats = aggregate([{ kind: 'figure', key: 'dotted', outcome: 'error', ms: null }])
+    saveModeStats('rhythm', stats, storage)
+    const saved = JSON.parse(storage.getItem('piaono.progress.v1')!)
+    const progress = readProgress({ ...saved, stats: { ...saved.stats, intervals: 'мусор' } })
+    expect(progress.stats.intervals).toEqual(emptyModeStats())
+    expect(progress.stats.rhythm).toEqual(loadProgress(storage).stats.rhythm)
   })
 })

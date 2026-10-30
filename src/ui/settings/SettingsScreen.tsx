@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import type { ConnectionState, MidiDeviceInfo } from '../../midi/types'
 import { StatusIcon } from '../ConnectionStatus'
 import { STATUS_TITLE_KEY, statusClass } from '../connectionTexts'
@@ -6,10 +6,13 @@ import HintButton from '../hints/HintButton'
 import { connectionHintId } from '../hints/hints'
 import { Stepper, Toggle } from '../controls/Controls'
 import { MAX_NOTE_ECHO_MS, MIN_NOTE_ECHO_MS, NOTE_ECHO_STEP_MS } from '../../storage/settings'
+import type { Backup, BackupDate } from '../../storage/backup'
 import ScreenHeader from '../ScreenHeader'
 import { CollapseIcon } from '../icons/Icons'
 import { SETTINGS_GROUPS, type SettingsGroupId } from './groups'
 import { useNarrowWindow } from './useNarrowWindow'
+import BackupGroup, { type BackupResult } from './BackupGroup'
+import SettingsRow from './SettingsRow'
 import './SettingsScreen.css'
 import { useI18n } from '../i18n/useI18n'
 
@@ -40,26 +43,11 @@ interface Props {
   /** Бар групп свёрнут до значков (C-APP-6); на узком окне бара нет — там панель поверх экрана. */
   barCollapsed: boolean
   onChangeBarCollapsed: (collapsed: boolean) => void
+  /** Заменить данные копией (C-APP-4); true — получилось, приложение пересоздаётся. */
+  onRestoreBackup: (backup: Backup) => boolean
+  /** Приложение только что восстановлено из копии от этой даты: открыть «Копию» с итогом. */
+  restoredFrom: BackupDate | null
   onBack: () => void
-}
-
-interface RowProps {
-  label: string
-  /** Настройка сейчас не действует: название приглушено. */
-  disabled?: boolean
-  children: ReactNode
-}
-
-/** Одна настройка — одна строка: название слева, значение или кнопка справа (C-APP-1, OB-8). */
-function SettingsRow({ label, disabled = false, children }: RowProps) {
-  return (
-    <li className={`settings-row${disabled ? ' settings-row--disabled' : ''}`}>
-      <div className="settings-row__main">
-        <span className="settings-row__label">{label}</span>
-        <div className="settings-row__value">{children}</div>
-      </div>
-    </li>
-  )
 }
 
 /**
@@ -88,13 +76,25 @@ function SettingsScreen({
   onApplyUpdate,
   barCollapsed,
   onChangeBarCollapsed,
+  onRestoreBackup,
+  restoredFrom,
   onBack,
 }: Props) {
   const { t, date, seconds } = useI18n()
   const active = devices.find((device) => device.id === activeDeviceId)
   // Экран создаётся заново при каждом входе — поэтому он всегда открывается на «Пианино»
-  // (OB-5); поворот планшета экран не пересоздаёт, и группа остаётся (OB-13).
-  const [groupId, setGroupId] = useState<SettingsGroupId>(SETTINGS_GROUPS[0].id)
+  // (OB-5); поворот планшета экран не пересоздаёт, и группа остаётся (OB-13). Исключение —
+  // приложение только что восстановлено из копии: ученик остаётся в «Копии» (C-APP-4, OB-12).
+  const [groupId, setGroupId] = useState<SettingsGroupId>(
+    restoredFrom ? 'backup' : SETTINGS_GROUPS[0].id,
+  )
+  const [restoredResult, setRestoredResult] = useState<BackupResult | null>(() =>
+    restoredFrom ? { kind: 'restored', createdAt: restoredFrom } : null,
+  )
+  // Итог живёт, пока открыта «Копия»: вернувшись в неё, ученик видит её чистой (OB-9).
+  useEffect(() => {
+    if (groupId !== 'backup') setRestoredResult(null)
+  }, [groupId])
   const group = SETTINGS_GROUPS.find((item) => item.id === groupId) ?? SETTINGS_GROUPS[0]
   const tabRefs = useRef(new Map<SettingsGroupId, HTMLButtonElement>())
   // Узкое окно (телефон в портрете): бара нет, группы — в панели поверх экрана (C-APP-6, Р-15).
@@ -206,6 +206,9 @@ function SettingsScreen({
           <ul key={group.id} className="settings__list">
             {group.id === 'piano' && pianoRows()}
             {group.id === 'keyboard' && keyboardRows()}
+            {group.id === 'backup' && (
+              <BackupGroup initialResult={restoredResult} onRestore={onRestoreBackup} />
+            )}
             {group.id === 'version' && versionRows()}
           </ul>
         </section>

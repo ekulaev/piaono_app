@@ -131,6 +131,27 @@ export function InfoIcon() {
   )
 }
 
+/** Группа «Копия»: лист с загнутым углом, на нём стрелка вниз — «сохранить в файл». */
+export function BackupIcon() {
+  return (
+    <Icon>
+      <path d="M5 2.5h9.5l4.5 4.5v14.5H5Z" />
+      <path d="M14.5 2.5V7H19" />
+      <path d="M12 10v7.5" />
+      <path d="M8.5 14.5 12 18l3.5-3.5" />
+    </Icon>
+  )
+}
+
+/** Удачный итог действия: галочка — форма, а не только цвет (CLAUDE.md §6). */
+export function CheckIcon() {
+  return (
+    <Icon>
+      <path d="M4 12.5 9.5 18 20 6.5" />
+    </Icon>
+  )
+}
+
 /** «Свернуть / развернуть» бар: двойная стрелка вправо (к краю) или влево. */
 export function CollapseIcon({ direction }: { direction: 'left' | 'right' }) {
   return (

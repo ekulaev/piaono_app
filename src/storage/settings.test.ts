@@ -5,7 +5,7 @@ import { DEFAULT_WARMUP_SETTINGS } from '../engine/warmup/settings'
 import { DEFAULT_INTERVALS_SETTINGS } from '../engine/solfege/intervals/settings'
 import { DEFAULT_DURATIONS_SETTINGS } from '../engine/solfege/durations/settings'
 import { stepOf } from '../engine/warmup/steps'
-import { loadSettings, saveSettings, type SettingsStorage } from './settings'
+import { loadSettings, readSettings, saveSettings, type SettingsStorage } from './settings'
 
 const modeSettings = {
   sequences: DEFAULT_SEQUENCE_SETTINGS,
@@ -710,5 +710,19 @@ describe('Бар групп «Настроек»: свёрнут или нет (
       expect(loaded.settingsBarCollapsed).toBe(false)
       expect(loaded.glissando).toBe(true)
     }
+  })
+})
+
+describe('Чтение настроек из объекта (C-APP-4, резервная копия)', () => {
+  const defaults = loadSettings(null)
+
+  it('не объект — настройки по умолчанию', () => {
+    expect(readSettings(null)).toEqual(defaults)
+    expect(readSettings(42)).toEqual(defaults)
+  })
+
+  it('часть полей — остальные по умолчанию', () => {
+    const settings = readSettings({ glissando: true, noteEchoMs: 'долго' })
+    expect(settings).toEqual({ ...defaults, glissando: true })
   })
 })

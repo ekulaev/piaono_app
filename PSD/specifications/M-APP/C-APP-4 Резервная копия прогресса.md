@@ -183,4 +183,4 @@
 1. `/opsx:propose progress-backup` по этому документу. Ожидаемые capability:
    - **ADDED `progress-backup`** — создание копии, проверка, диалог, восстановление, итоги (OB-2…OB-13, INV-1…INV-6).
    - **MODIFIED `app-settings`** — четвёртая группа «Копия» в баре и её строки (OB-1, OB-8).
-2. Паспорт модуля — строка компонента: «в работе, change `progress-backup`».
+2. Паспорт модуля — строка компонента: «реализована, change `progress-backup`»; capability `progress-backup`, меняет `app-settings`. Change в архиве: `openspec/changes/archive/2026-10-30-progress-backup/`.

@@ -4,8 +4,13 @@ import ru from '../../i18n/locales/ru'
 import { SETTINGS_GROUPS } from './groups'
 
 describe('Группы настроек (C-APP-6)', () => {
-  it('три группы в порядке бара: Пианино, Клавиатура, Версия', () => {
-    expect(SETTINGS_GROUPS.map((group) => group.id)).toEqual(['piano', 'keyboard', 'version'])
+  it('четыре группы в порядке бара: Пианино, Клавиатура, Копия, Версия', () => {
+    expect(SETTINGS_GROUPS.map((group) => group.id)).toEqual([
+      'piano',
+      'keyboard',
+      'backup',
+      'version',
+    ])
   })
 
   it('название каждой группы есть на обоих языках и состоит из одного слова', () => {
