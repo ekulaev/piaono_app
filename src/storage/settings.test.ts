@@ -43,6 +43,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoMs: 1000,
       keyLabels: false,
       keyboardVisible: true,
+      settingsBarCollapsed: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -59,6 +60,7 @@ describe('Глиссандо: хранение настройки', () => {
         noteEchoMs: 1000,
         keyLabels: false,
         keyboardVisible: true,
+        settingsBarCollapsed: false,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -72,6 +74,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoMs: 1000,
       keyLabels: false,
       keyboardVisible: true,
+      settingsBarCollapsed: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -88,6 +91,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoMs: 1000,
       keyLabels: false,
       keyboardVisible: true,
+      settingsBarCollapsed: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -100,6 +104,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoMs: 1000,
       keyLabels: false,
       keyboardVisible: true,
+      settingsBarCollapsed: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -112,6 +117,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoMs: 1000,
       keyLabels: false,
       keyboardVisible: true,
+      settingsBarCollapsed: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -126,6 +132,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoMs: 1000,
       keyLabels: false,
       keyboardVisible: true,
+      settingsBarCollapsed: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -139,6 +146,7 @@ describe('Глиссандо: хранение настройки', () => {
           noteEchoMs: 1000,
           keyLabels: false,
           keyboardVisible: true,
+          settingsBarCollapsed: false,
           activeMode: 'warmup',
           modeSettings,
         },
@@ -156,6 +164,7 @@ describe('Глиссандо: хранение настройки', () => {
       noteEchoMs: 1000,
       keyLabels: false,
       keyboardVisible: true,
+      settingsBarCollapsed: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -169,6 +178,7 @@ describe('Глиссандо: хранение настройки', () => {
           noteEchoMs: 1000,
           keyLabels: false,
           keyboardVisible: true,
+          settingsBarCollapsed: false,
           activeMode: 'warmup',
           modeSettings,
         },
@@ -191,6 +201,7 @@ describe('Выбор запоминается и узнаёт вход посл�
         noteEchoMs: 1000,
         keyLabels: false,
         keyboardVisible: true,
+        settingsBarCollapsed: false,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -210,6 +221,7 @@ describe('Выбор запоминается и узнаёт вход посл�
       noteEchoMs: 1000,
       keyLabels: false,
       keyboardVisible: true,
+      settingsBarCollapsed: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -236,6 +248,7 @@ describe('Активный режим запоминается', () => {
         noteEchoMs: 1000,
         keyLabels: false,
         keyboardVisible: true,
+        settingsBarCollapsed: false,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -263,6 +276,7 @@ describe('Активный режим запоминается', () => {
       noteEchoMs: 1000,
       keyLabels: false,
       keyboardVisible: true,
+      settingsBarCollapsed: false,
       activeMode: 'warmup',
       modeSettings,
     })
@@ -282,6 +296,7 @@ describe('Настройки режима «Последовательности
         noteEchoMs: 1000,
         keyLabels: false,
         keyboardVisible: true,
+        settingsBarCollapsed: false,
         activeMode: 'sequences',
         modeSettings: { ...modeSettings, sequences },
       },
@@ -317,6 +332,7 @@ describe('Настройки «Контура»: хранение (C-STF-5)', ()
         noteEchoMs: 1000,
         keyLabels: false,
         keyboardVisible: true,
+        settingsBarCollapsed: false,
         activeMode: 'contour',
         modeSettings: { ...modeSettings, contour },
       },
@@ -368,6 +384,7 @@ describe('Настройки «Ритма» (C-STF-6)', () => {
         noteEchoMs: 1000,
         keyLabels: false,
         keyboardVisible: true,
+        settingsBarCollapsed: false,
         activeMode: 'rhythm',
         modeSettings: { ...modeSettings, rhythm },
       },
@@ -394,6 +411,7 @@ describe('Язык приложения: хранение (C-APP-3, OB-6, NFR-5)
         noteEchoMs: 1000,
         keyLabels: false,
         keyboardVisible: true,
+        settingsBarCollapsed: false,
         activeMode: 'warmup',
         modeSettings,
       },
@@ -658,5 +676,39 @@ describe('Настройки «Интервалов» (C-SOL-1, NFR-3; C-SOL-2)'
     )
     expect(loadSettings(storage).modeSettings.durations).toEqual(durations)
     expect(loadSettings(storage).modeSettings.intervals).toEqual(intervals)
+  })
+})
+
+describe('Бар групп «Настроек»: свёрнут или нет (C-APP-6)', () => {
+  it('по умолчанию развёрнут, старые данные без поля читаются как «развёрнут»', () => {
+    const storage = memoryStorage()
+    expect(loadSettings(storage).settingsBarCollapsed).toBe(false)
+    storage.setItem('piaono.settings.v1', '{"glissando":true,"noteEchoMs":2000}')
+    const loaded = loadSettings(storage)
+    expect(loaded.settingsBarCollapsed).toBe(false)
+    expect(loaded.glissando).toBe(true)
+    expect(loaded.noteEchoMs).toBe(2000)
+  })
+
+  it('«свёрнут» переживает перезапуск и не стирает остальное', () => {
+    const storage = memoryStorage()
+    saveSettings(
+      { ...loadSettings(storage), settingsBarCollapsed: true, keyboardVisible: false },
+      storage,
+    )
+    const loaded = loadSettings(storage)
+    expect(loaded.settingsBarCollapsed).toBe(true)
+    expect(loaded.keyboardVisible).toBe(false)
+    expect(loaded.modeSettings).toEqual(modeSettings)
+  })
+
+  it('неподходящее значение — «развёрнут», остальное цело', () => {
+    const storage = memoryStorage()
+    for (const bad of ['"yes"', '1', 'null']) {
+      storage.setItem('piaono.settings.v1', `{"glissando":true,"settingsBarCollapsed":${bad}}`)
+      const loaded = loadSettings(storage)
+      expect(loaded.settingsBarCollapsed).toBe(false)
+      expect(loaded.glissando).toBe(true)
+    }
   })
 })

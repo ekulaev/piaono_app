@@ -101,6 +101,9 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   const [keyLabels, setKeyLabels] = useState(() => settingsRef.current!.keyLabels)
   // Экранная клавиатура (C-APP-5): настройка ученика; на компактном экране клавиатуры нет вовсе.
   const [keyboardVisible, setKeyboardVisible] = useState(() => settingsRef.current!.keyboardVisible)
+  const [settingsBarCollapsed, setSettingsBarCollapsed] = useState(
+    () => settingsRef.current!.settingsBarCollapsed,
+  )
   const compact = useCompactScreen()
   const shown = keyboardShown(compact, keyboardVisible)
   // Нечем играть: клавиатуры нет и пианино не на связи — упражнения не запускаются (C-APP-5).
@@ -336,6 +339,11 @@ function Main({ settingsRef, updateSettings }: MainProps) {
   function changeKeyboardVisible(visible: boolean) {
     setKeyboardVisible(visible)
     updateSettings({ keyboardVisible: visible })
+  }
+
+  function changeSettingsBarCollapsed(collapsed: boolean) {
+    setSettingsBarCollapsed(collapsed)
+    updateSettings({ settingsBarCollapsed: collapsed })
   }
 
   function toggleGlissando() {
@@ -626,6 +634,8 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         onChangeNoteEchoMs={changeNoteEchoMs}
         updateReady={updateReady}
         onApplyUpdate={applyUpdate}
+        barCollapsed={settingsBarCollapsed}
+        onChangeBarCollapsed={changeSettingsBarCollapsed}
         onBack={() => setScreen('main')}
       />
     )

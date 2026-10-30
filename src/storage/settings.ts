@@ -50,6 +50,8 @@ export interface Settings {
   keyLabels: boolean
   /** Экранная клавиатура: показывать или скрывать (C-APP-5); на компактном экране не действует. */
   keyboardVisible: boolean
+  /** Бар групп «Настроек» свёрнут до значков (C-APP-6); по умолчанию развёрнут. */
+  settingsBarCollapsed: boolean
   /** Режим, который запускает «Старт» на главном экране. */
   activeMode: ModeId
   /**
@@ -83,6 +85,7 @@ const DEFAULT_SETTINGS: Settings = {
   noteEchoMs: DEFAULT_NOTE_ECHO_MS,
   keyLabels: false,
   keyboardVisible: true,
+  settingsBarCollapsed: false,
   activeMode: DEFAULT_MODE,
   modeSettings: {
     sequences: DEFAULT_SEQUENCE_SETTINGS,
@@ -115,6 +118,7 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
       noteEchoMs,
       keyLabels,
       keyboardVisible,
+      settingsBarCollapsed,
       activeMode,
       modeSettings,
     } = parsed as Record<string, unknown>
@@ -131,6 +135,11 @@ export function loadSettings(storage: SettingsStorage | null = browserStorage())
       // Нет поля или не boolean — клавиатура показана: старые данные не прячут её сами.
       keyboardVisible:
         typeof keyboardVisible === 'boolean' ? keyboardVisible : DEFAULT_SETTINGS.keyboardVisible,
+      // Нет поля или не boolean — бар развёрнут: названия групп видны, как в первый раз.
+      settingsBarCollapsed:
+        typeof settingsBarCollapsed === 'boolean'
+          ? settingsBarCollapsed
+          : DEFAULT_SETTINGS.settingsBarCollapsed,
       // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
       activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
       modeSettings: {
