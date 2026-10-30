@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import type { ConnectionState, MidiDeviceInfo } from '../../midi/types'
 import { StatusIcon } from '../ConnectionStatus'
 import { STATUS_TITLE_KEY, statusClass } from '../connectionTexts'
@@ -9,6 +9,7 @@ import { MAX_NOTE_ECHO_MS, MIN_NOTE_ECHO_MS, NOTE_ECHO_STEP_MS } from '../../sto
 import ScreenHeader from '../ScreenHeader'
 import { CollapseIcon } from '../icons/Icons'
 import { SETTINGS_GROUPS, type SettingsGroupId } from './groups'
+import { useNarrowWindow } from './useNarrowWindow'
 import './SettingsScreen.css'
 import { useI18n } from '../i18n/useI18n'
 
@@ -36,7 +37,7 @@ interface Props {
   onChangeNoteEchoMs: (ms: number) => void
   updateReady: boolean
   onApplyUpdate: () => void
-  /** Бар групп свёрнут до значков (C-APP-6); на узком окне он свёрнут всегда — это делает CSS. */
+  /** Бар групп свёрнут до значков (C-APP-6); на узком окне бара нет — там панель поверх экрана. */
   barCollapsed: boolean
   onChangeBarCollapsed: (collapsed: boolean) => void
   onBack: () => void
@@ -96,6 +97,10 @@ function SettingsScreen({
   const [groupId, setGroupId] = useState<SettingsGroupId>(SETTINGS_GROUPS[0].id)
   const group = SETTINGS_GROUPS.find((item) => item.id === groupId) ?? SETTINGS_GROUPS[0]
   const tabRefs = useRef(new Map<SettingsGroupId, HTMLButtonElement>())
+  // Узкое окно (телефон в портрете): бара нет, группы — в панели поверх экрана (C-APP-6, Р-15).
+  const narrow = useNarrowWindow()
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const groupsButtonRef = useRef<HTMLButtonElement>(null)
   const ids = useId()
   const barId = `${ids}-bar`
   const panelId = `${ids}-panel`
@@ -118,6 +123,34 @@ function SettingsScreen({
     tabRefs.current.get(target)?.focus()
   }
 
+  function closeDrawer() {
+    setDrawerOpen(false)
+    groupsButtonRef.current?.focus()
+  }
+
+  // Окно стало шире — панели больше нет, при новом сужении она не должна открыться сама.
+  useEffect(() => {
+    if (!narrow) setDrawerOpen(false)
+  }, [narrow])
+
+  // Открытая панель: фокус на выбранную группу, Esc закрывает (как меню режимов).
+  useEffect(() => {
+    if (!drawerOpen) return
+    tabRefs.current.get(groupId)?.focus()
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') closeDrawer()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+    // Фокус — только при открытии: стрелки внутри панели переносят его сами.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerOpen])
+
+  function selectGroup(id: SettingsGroupId) {
+    setGroupId(id)
+    if (drawerOpen) closeDrawer()
+  }
+
   const collapseLabel = t(barCollapsed ? 'settings.bar.expand' : 'settings.bar.collapse')
   // Кнопка над баром, а не в нём: высота бара нужна пунктам на низком окне (C-APP-6, Р-9).
   const collapseButton = (
@@ -134,9 +167,32 @@ function SettingsScreen({
     </button>
   )
 
+  // Кнопка узкого окна: значок открытой группы — видно, где ты и что здесь выбор группы.
+  const groupsButton = (
+    <button
+      ref={groupsButtonRef}
+      type="button"
+      className="button settings__collapse"
+      aria-expanded={drawerOpen}
+      aria-controls={barId}
+      aria-label={t('settings.bar.list')}
+      title={t('settings.bar.list')}
+      onClick={() => (drawerOpen ? closeDrawer() : setDrawerOpen(true))}
+    >
+      <CollapseIcon direction="left" />
+      <group.Icon />
+    </button>
+  )
+
+  const screenClass = narrow ? ' settings--narrow' : barCollapsed ? ' settings--collapsed' : ''
+
   return (
-    <main className={`screen settings${barCollapsed ? ' settings--collapsed' : ''}`}>
-      <ScreenHeader title={t('settings.title')} onBack={onBack} actions={collapseButton} />
+    <main className={`screen settings${screenClass}`}>
+      <ScreenHeader
+        title={t('settings.title')}
+        onBack={onBack}
+        actions={narrow ? groupsButton : collapseButton}
+      />
 
       <div className="settings__body">
         <section
@@ -154,8 +210,21 @@ function SettingsScreen({
           </ul>
         </section>
 
+        {drawerOpen && (
+          <div
+            className="settings__backdrop"
+            // Как у меню режимов: касание мимо панели целиком достаётся подложке, закрываем по
+            // click — иначе click достался бы кнопке под подложкой.
+            onPointerDown={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+            }}
+            onClick={closeDrawer}
+          />
+        )}
         <div
-          className="settings__bar"
+          className={`settings__bar${narrow ? ' settings__bar--drawer' : ''}`}
+          hidden={narrow && !drawerOpen}
           id={barId}
           role="tablist"
           aria-orientation="vertical"
@@ -180,7 +249,7 @@ function SettingsScreen({
                 title={t(labelKey)}
                 tabIndex={selected ? 0 : -1}
                 className={`settings__tab${selected ? ' settings__tab--selected' : ''}`}
-                onClick={() => setGroupId(id)}
+                onClick={() => selectGroup(id)}
               >
                 <Icon />
                 <span className="settings__tab-label">{t(labelKey)}</span>

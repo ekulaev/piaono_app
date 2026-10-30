@@ -174,23 +174,44 @@
   display: none;
 }
 
-/* Телефон: название над значением, чтобы значению хватало ширины. Бар всегда свёрнут, кнопки
-   «свернуть / развернуть» нет; сохранённый выбор не трогаем (OB-11). */
+/* Узкое окно (C-APP-6, OB-11, OB-14): строки на всю ширину, группы — в панели у правого края
+   поверх экрана, как меню режимов. Появляется сразу, без анимации; строки под ней не сдвигаются. */
+.settings--narrow .settings__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.settings__bar[hidden] {
+  display: none;
+}
+
+.settings__bar--drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 11;
+  padding: clamp(0.75rem, 2svh, 1.5rem);
+  background: var(--paper);
+  border-left: 0.25rem solid var(--ink);
+}
+
+/* Прозрачная подложка ловит касание мимо панели. Без затемнения — контраст экрана не падает. */
+.settings__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.settings--narrow .settings__collapse {
+  gap: 0.25rem;
+}
+
+/* Телефон: название над значением, чтобы значению хватало ширины. */
 @media (max-width: 37.5rem) {
   .settings-row__label {
     flex-basis: 100%;
   }
   .settings-row__value {
     justify-content: flex-start;
-  }
-  .settings__body {
-    column-gap: 1rem;
-  }
-  .settings__tab {
-    padding-inline: 0.75rem;
-  }
-  .settings__tab-label,
-  .settings__collapse {
-    display: none;
   }
 }
