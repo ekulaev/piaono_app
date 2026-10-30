@@ -60,12 +60,12 @@ import { useSolfegeSession } from './solfege/useSolfegeSession'
 import SolfegeStaff from './solfege/SolfegeStaff'
 import SolfegeSummary from './solfege/SolfegeSummary'
 import SolfegeInvite from './solfege/SolfegeInvite'
-import { SOLFEGE_VIEWS, viewOf } from './solfege/views'
+import { viewOf } from './solfege/views'
 import { buildIntervalTasks } from '../engine/solfege/intervals/generate'
 import type { IntervalsSettings } from '../engine/solfege/intervals/settings'
 import { buildDurationTasks } from '../engine/solfege/durations/generate'
 import type { DurationsSettings } from '../engine/solfege/durations/settings'
-import { summarize as summarizeSolfege } from '../engine/solfege/session'
+import { hasValueAnswers, summarize as summarizeSolfege } from '../engine/solfege/session'
 import { isSolfegeModeId, type Task } from '../engine/solfege/types'
 import { taskWeights } from '../engine/stats/weights'
 import { canPlay, keyboardShown } from '../engine/keyboard/availability'
@@ -723,13 +723,13 @@ function Main({ settingsRef, updateSettings }: MainProps) {
               onCapacity={setKeyboardCapacity}
               labels={keyLabels}
               // Сольфеджио: прокрутка в пределах диапазона режима, если он его задаёт (C-SOL-2,
-              // OB-10); полоса легенды держит место, пока режим активен, кроме итога: так стан не
-              // прыгает между заданиями, а итогу хватает высоты (OB-14).
+              // OB-10); полоса легенды — только в сессии, где есть ответ-значение: внутри сессии она
+              // держит место и в заданиях с ответом-нотой, чтобы стан не прыгал (C-SOL-1, OB-21).
               bounds={solfegeView?.bounds ?? null}
               marks={solfegeActive && solfegeView ? solfegeView.marks(solfegeActive) : null}
               legend={
-                isSolfegeModeId(activeMode) && solfegeState.phase !== 'summary'
-                  ? { labels: legendLabels, glyphs: SOLFEGE_VIEWS[activeMode].legendGlyphs }
+                hasValueAnswers(solfegeState) && solfegeView
+                  ? { labels: legendLabels, glyphs: solfegeView.legendGlyphs }
                   : null
               }
             />

@@ -217,6 +217,16 @@ export function repeat(state: SolfegeState, now: number): SolfegeState {
   return startSession(state.tasks, state.autoAdvance, stats, now)
 }
 
+/**
+ * Нужна ли полоса легенды над клавишами (C-SOL-1, OB-21): только в идущей сессии, где есть хотя
+ * бы одно задание с ответом-значением. Ответ зависит от состава сессии, а не от текущего задания:
+ * полоса не появляется и не исчезает между заданиями, и стан не прыгает.
+ */
+export function hasValueAnswers(state: SolfegeState): boolean {
+  if (state.phase !== 'asking' && state.phase !== 'done') return false
+  return state.tasks.some((task) => task.answer.kind === 'value')
+}
+
 /** Сколько секунд показать на кнопке «Далее (N)»; null — отсчёта нет. */
 export function countdownSeconds(state: SolfegeState, now: number): number | null {
   if (state.phase !== 'done' || state.countdownUntil === null) return null
