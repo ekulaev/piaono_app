@@ -12,4 +12,4 @@
 ## 3. Сдача
 
 - [x] 3.1 Прогнать `npm run build`, `npm run lint`, `npm test`, `npm run format:check`, `npx openspec validate --all --strict` — все зелёные; описание PR по-русски с инструкцией проверки на планшете
-- [ ] 3.2 После проверки владельцем — `/opsx:archive solfege-legend-gap` последним коммитом ветки `apply/solfege-legend-gap`; паспорта M-SOL и M-KBD обновлены
+- [x] 3.2 После проверки владельцем — `/opsx:archive solfege-legend-gap` последним коммитом ветки `apply/solfege-legend-gap`; паспорта M-SOL и M-KBD обновлены

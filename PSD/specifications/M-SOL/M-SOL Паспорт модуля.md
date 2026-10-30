@@ -10,7 +10,7 @@
 
 | ID | Компонент | Назначение (1 строка) | Веха | Спецификация | Реализация | Capability OpenSpec |
 |----|-----------|------------------------|------|--------------|------------|---------------------|
-| `C-SOL-1` | Общее ядро заданий | Задание, ответ, оценка, легенда, авто-сдвиг, статистика по типу задания | — | [`C-SOL-1 Общее ядро заданий.md`](<C-SOL-1 Общее ядро заданий.md>) · ready | реализована, change `add-solfege-core`; в работе: полоса легенды (OB-21), change `solfege-legend-gap` | `solfege-tasks`; меняет `practice-stats`, `progress-screen`, `piano-keyboard`, `mini-keyboard`, `hint`, `localization` |
+| `C-SOL-1` | Общее ядро заданий | Задание, ответ, оценка, легенда, авто-сдвиг, статистика по типу задания | — | [`C-SOL-1 Общее ядро заданий.md`](<C-SOL-1 Общее ядро заданий.md>) · ready | реализована, change `add-solfege-core`; полоса легенды (OB-21) — change `solfege-legend-gap` | `solfege-tasks`; меняет `practice-stats`, `progress-screen`, `piano-keyboard`, `mini-keyboard`, `hint`, `localization` |
 | `C-SOL-2` | Режим «Интервалы» | Сыграть вторую ноту интервала или узнать интервал по двум нотам | — | [`C-SOL-2 Режим «Интервалы».md`](<C-SOL-2 Режим «Интервалы».md>) · ready | реализована, change `add-solfege-core` | `intervals-mode`; меняет `mode-menu` |
 | `C-SOL-3` | Режим «Длительности» | Назвать длительность ноты, паузы или группы клавишей с легендой | — | [`C-SOL-3 Режим «Длительности».md`](<C-SOL-3 Режим «Длительности».md>) · ready | реализована, change `add-durations-mode` | `durations-mode`; меняет `solfege-tasks`, `mode-menu`, `practice-stats`, `progress-screen`, `hint`, `localization` |
 
