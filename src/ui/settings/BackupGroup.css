@@ -1,0 +1,39 @@
+/* Итог действия группы «Копия» (C-APP-4, OB-9): крупно, значок формой и рамка, не только цвет.
+   Пустая область не занимает места — строки над ней не сдвигаются. */
+.backup-result-slot:empty {
+  display: none;
+}
+
+.backup-result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 0.1875rem solid;
+  border-radius: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.backup-result .line-icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+}
+
+.backup-result--good {
+  border-color: var(--note-correct);
+  color: var(--ink);
+}
+
+.backup-result--good .line-icon {
+  color: var(--note-correct);
+}
+
+.backup-result--bad {
+  border-color: var(--alert);
+  background: var(--alert-bg);
+  color: var(--alert);
+}

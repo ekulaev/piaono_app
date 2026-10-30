@@ -86,6 +86,15 @@ export const HINTS = {
     title: 'hint.connection.no-device.title',
     blocks: [CONNECT_STEPS],
   },
+  /** Группа «Копия» в «Настройках» (C-APP-4): зачем копия, где файл, как вернуть. */
+  backup: {
+    title: 'hint.backup.title',
+    blocks: [
+      { kind: 'text', text: 'hint.backup.1' },
+      { kind: 'steps', steps: ['hint.backup.step1', 'hint.backup.step2', 'hint.backup.step3'] },
+      { kind: 'text', text: 'hint.backup.2' },
+    ],
+  },
   'connection.lost': {
     title: 'hint.connection.lost.title',
     blocks: [{ kind: 'text', text: 'hint.connection.lost.1' }],

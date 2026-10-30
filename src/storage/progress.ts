@@ -38,7 +38,12 @@ function readRaw(storage: SettingsStorage | null): Record<string, unknown> {
  * повреждённый режим статистики — пустой. Запись этапа 5 без статистики тоже читается.
  */
 export function loadProgress(storage: SettingsStorage | null = browserStorage()): Progress {
-  const raw = readRaw(storage)
+  return readProgress(readRaw(storage))
+}
+
+/** Прогресс из уже разобранного объекта — с устройства или из резервной копии (C-APP-4). */
+export function readProgress(value: unknown): Progress {
+  const raw = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
   return { hints: readHintProgress(raw.hints), stats: readPracticeStats(raw.stats) }
 }
 

@@ -107,52 +107,58 @@ const STORAGE_KEY = 'piaono.settings.v1'
 export function loadSettings(storage: SettingsStorage | null = browserStorage()): Settings {
   try {
     const raw = storage?.getItem(STORAGE_KEY)
-    if (!raw) return { ...DEFAULT_SETTINGS }
-    const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS }
-    const {
-      glissando,
-      preferredInput,
-      language,
-      noteEchoEnabled,
-      noteEchoMs,
-      keyLabels,
-      keyboardVisible,
-      settingsBarCollapsed,
-      activeMode,
-      modeSettings,
-    } = parsed as Record<string, unknown>
-    const savedModes = typeof modeSettings === 'object' && modeSettings !== null ? modeSettings : {}
-    return {
-      glissando: typeof glissando === 'boolean' ? glissando : DEFAULT_SETTINGS.glissando,
-      preferredInput: readPreferredInput(preferredInput),
-      language: typeof language === 'string' && language !== '' ? language : null,
-      // Нет поля или не boolean — показ включён: старые данные не выключают новую функцию.
-      noteEchoEnabled: typeof noteEchoEnabled === 'boolean' ? noteEchoEnabled : true,
-      noteEchoMs: readNoteEchoMs(noteEchoMs),
-      // Нет поля или не boolean — выключено: старые данные не меняют привычный вид клавиатуры.
-      keyLabels: typeof keyLabels === 'boolean' ? keyLabels : DEFAULT_SETTINGS.keyLabels,
-      // Нет поля или не boolean — клавиатура показана: старые данные не прячут её сами.
-      keyboardVisible:
-        typeof keyboardVisible === 'boolean' ? keyboardVisible : DEFAULT_SETTINGS.keyboardVisible,
-      // Нет поля или не boolean — бар развёрнут: названия групп видны, как в первый раз.
-      settingsBarCollapsed:
-        typeof settingsBarCollapsed === 'boolean'
-          ? settingsBarCollapsed
-          : DEFAULT_SETTINGS.settingsBarCollapsed,
-      // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
-      activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
-      modeSettings: {
-        sequences: readSequenceSettings((savedModes as Record<string, unknown>).sequences),
-        contour: readSequenceSettings((savedModes as Record<string, unknown>).contour),
-        rhythm: readRhythmSettings((savedModes as Record<string, unknown>).rhythm),
-        warmup: readWarmupSettings((savedModes as Record<string, unknown>).warmup),
-        intervals: readIntervalsSettings((savedModes as Record<string, unknown>).intervals),
-        durations: readDurationsSettings((savedModes as Record<string, unknown>).durations),
-      },
-    }
+    return raw ? readSettings(JSON.parse(raw)) : { ...DEFAULT_SETTINGS }
   } catch {
     return { ...DEFAULT_SETTINGS }
+  }
+}
+
+/**
+ * Настройки из уже разобранного объекта — с устройства или из резервной копии (C-APP-4).
+ * Каждое поле читается отдельно: повреждённое получает значение по умолчанию, остальные целы.
+ */
+export function readSettings(parsed: unknown): Settings {
+  if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SETTINGS }
+  const {
+    glissando,
+    preferredInput,
+    language,
+    noteEchoEnabled,
+    noteEchoMs,
+    keyLabels,
+    keyboardVisible,
+    settingsBarCollapsed,
+    activeMode,
+    modeSettings,
+  } = parsed as Record<string, unknown>
+  const savedModes = typeof modeSettings === 'object' && modeSettings !== null ? modeSettings : {}
+  return {
+    glissando: typeof glissando === 'boolean' ? glissando : DEFAULT_SETTINGS.glissando,
+    preferredInput: readPreferredInput(preferredInput),
+    language: typeof language === 'string' && language !== '' ? language : null,
+    // Нет поля или не boolean — показ включён: старые данные не выключают новую функцию.
+    noteEchoEnabled: typeof noteEchoEnabled === 'boolean' ? noteEchoEnabled : true,
+    noteEchoMs: readNoteEchoMs(noteEchoMs),
+    // Нет поля или не boolean — выключено: старые данные не меняют привычный вид клавиатуры.
+    keyLabels: typeof keyLabels === 'boolean' ? keyLabels : DEFAULT_SETTINGS.keyLabels,
+    // Нет поля или не boolean — клавиатура показана: старые данные не прячут её сами.
+    keyboardVisible:
+      typeof keyboardVisible === 'boolean' ? keyboardVisible : DEFAULT_SETTINGS.keyboardVisible,
+    // Нет поля или не boolean — бар развёрнут: названия групп видны, как в первый раз.
+    settingsBarCollapsed:
+      typeof settingsBarCollapsed === 'boolean'
+        ? settingsBarCollapsed
+        : DEFAULT_SETTINGS.settingsBarCollapsed,
+    // Неизвестный или недоступный режим — не ошибка: просто начинаем с режима по умолчанию.
+    activeMode: isModeId(activeMode) ? activeMode : DEFAULT_MODE,
+    modeSettings: {
+      sequences: readSequenceSettings((savedModes as Record<string, unknown>).sequences),
+      contour: readSequenceSettings((savedModes as Record<string, unknown>).contour),
+      rhythm: readRhythmSettings((savedModes as Record<string, unknown>).rhythm),
+      warmup: readWarmupSettings((savedModes as Record<string, unknown>).warmup),
+      intervals: readIntervalsSettings((savedModes as Record<string, unknown>).intervals),
+      durations: readDurationsSettings((savedModes as Record<string, unknown>).durations),
+    },
   }
 }
 

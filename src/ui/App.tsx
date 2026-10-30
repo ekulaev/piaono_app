@@ -4,6 +4,7 @@ import type { KeyInput } from '../engine/keyboard/types'
 import { startMidiMonitor } from '../midi/midiAccess'
 import type { ConnectionState, MidiDeviceInfo, MidiMonitor } from '../midi/types'
 import { loadSettings, saveSettings, type Settings } from '../storage/settings'
+import { restoreBackup, type Backup, type BackupDate } from '../storage/backup'
 import CheckScreen, { type LogEntry } from './CheckScreen'
 import TopBar from './topbar/TopBar'
 import SettingsScreen from './settings/SettingsScreen'
@@ -80,6 +81,10 @@ type Screen = 'main' | 'settings' | 'check' | 'progress'
 interface MainProps {
   settingsRef: MutableRefObject<Settings | null>
   updateSettings: (change: Partial<Settings>) => void
+  /** Заменить данные копией и пересоздать приложение на них (C-APP-4); false — не вышло. */
+  onRestoreBackup: (backup: Backup) => boolean
+  /** Приложение пересоздано после восстановления из копии от этой даты; иначе null. */
+  restored: BackupDate | null
 }
 
 /**
@@ -88,9 +93,15 @@ interface MainProps {
  * и не теряет журнал нот. Ноты приходят из двух источников — пианино и касания
  * экранной клавиатуры — и дальше неотличимы.
  */
-function Main({ settingsRef, updateSettings }: MainProps) {
+function Main({ settingsRef, updateSettings, onRestoreBackup, restored }: MainProps) {
   const { t } = useI18n()
-  const [screen, setScreen] = useState<Screen>('main')
+  // После восстановления из копии ученик остаётся там, где нажал «Да» (C-APP-4, OB-12).
+  const [screen, setScreen] = useState<Screen>(restored ? 'settings' : 'main')
+  // Итог «восстановлено» — только для первого показа «Настроек»: при новом входе его нет.
+  const [restoredFrom, setRestoredFrom] = useState(restored)
+  useEffect(() => {
+    if (screen !== 'settings') setRestoredFrom(null)
+  }, [screen])
   const [connectionState, setConnectionState] = useState<ConnectionState>('connecting')
   const [devices, setDevices] = useState<MidiDeviceInfo[]>([])
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null)
@@ -636,6 +647,8 @@ function Main({ settingsRef, updateSettings }: MainProps) {
         onApplyUpdate={applyUpdate}
         barCollapsed={settingsBarCollapsed}
         onChangeBarCollapsed={changeSettingsBarCollapsed}
+        onRestoreBackup={onRestoreBackup}
+        restoredFrom={restoredFrom}
         onBack={() => setScreen('main')}
       />
     )
@@ -793,6 +806,20 @@ function App() {
   const [language, setLanguage] = useState(() =>
     resolveLanguage(settingsRef.current!.language, navigator.languages, AVAILABLE_LANGUAGES),
   )
+  // Восстановление из копии (C-APP-4, Д-9): данные заменены — Main создаётся заново и читает
+  // всё с нуля, включая связь с пианино. Так ни одно состояние не останется от старых данных.
+  const [generation, setGeneration] = useState(0)
+  const [restored, setRestored] = useState<BackupDate | null>(null)
+  const onRestoreBackup = useCallback((backup: Backup) => {
+    if (!restoreBackup(backup)) return false
+    settingsRef.current = loadSettings()
+    setLanguage(
+      resolveLanguage(settingsRef.current.language, navigator.languages, AVAILABLE_LANGUAGES),
+    )
+    setRestored(backup.createdAt)
+    setGeneration((n) => n + 1)
+    return true
+  }, [])
   const selectLanguage = useCallback(
     (code: string) => {
       setLanguage(code)
@@ -803,7 +830,13 @@ function App() {
 
   return (
     <I18nProvider language={language} onSelectLanguage={selectLanguage}>
-      <Main settingsRef={settingsRef} updateSettings={updateSettings} />
+      <Main
+        key={generation}
+        settingsRef={settingsRef}
+        updateSettings={updateSettings}
+        onRestoreBackup={onRestoreBackup}
+        restored={restored}
+      />
     </I18nProvider>
   )
 }

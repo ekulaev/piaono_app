@@ -4,6 +4,7 @@ import {
   LOCALES,
   findLocale,
   formatDate,
+  formatDateTime,
   formatSeconds,
   resolveLanguage,
   translate,
@@ -105,6 +106,13 @@ describe('Числа и даты по языку (C-APP-3, OB-10)', () => {
     const iso = new Date(2026, 8, 27, 12).toISOString()
     expect(formatDate('ru', iso)).toBe('27.09.2026')
     expect(formatDate('en', iso)).toBe('27 September 2026')
+  })
+
+  it('дата копии со временем: «30.10.2026, 14:05» / «30 October 2026, 14:05», без сдвига пояса', () => {
+    const clock = { year: 2026, month: 10, day: 30, hour: 23, minute: 5 }
+    expect(formatDateTime('ru', clock)).toBe('30.10.2026, 23:05')
+    expect(formatDateTime('en', clock)).toBe('30 October 2026, 23:05')
+    expect(formatDateTime('ru', { ...clock, hour: 0 })).toBe('30.10.2026, 00:05')
   })
 })
 
