@@ -95,3 +95,51 @@ export function KeyLabelsIcon() {
     </Icon>
   )
 }
+
+/** Группа «Пианино»: штекер кабеля — два контакта сверху, корпус и провод вниз. */
+export function PlugIcon() {
+  return (
+    <Icon>
+      <path d="M9 2.5V7M15 2.5V7" />
+      <path d="M6 7h12v4a6 6 0 0 1-12 0Z" />
+      <path d="M12 17v4.5" />
+    </Icon>
+  )
+}
+
+/** Группа «Клавиатура»: рамка экрана, внизу в ней клавиши — три белые и две чёрные. */
+export function ScreenKeysIcon() {
+  return (
+    <Icon>
+      <rect x="2.5" y="3.5" width="19" height="17" rx="2" />
+      <path d="M2.5 10.5h19" />
+      <rect x="7.5" y="10.5" width="2.5" height="5" fill="currentColor" />
+      <rect x="14" y="10.5" width="2.5" height="5" fill="currentColor" />
+      <path d="M8.75 15.5v5M15.25 15.5v5" />
+    </Icon>
+  )
+}
+
+/** Группа «Версия»: буква «i» в круге (круговая стрелка занята кнопкой «Обновить»). */
+export function InfoIcon() {
+  return (
+    <Icon>
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M12 11v6" />
+      <path d="M12 7.3v.1" />
+    </Icon>
+  )
+}
+
+/** «Свернуть / развернуть» бар: двойная стрелка вправо (к краю) или влево. */
+export function CollapseIcon({ direction }: { direction: 'left' | 'right' }) {
+  return (
+    <Icon>
+      {direction === 'right' ? (
+        <path d="M6 6l6 6-6 6M13 6l6 6-6 6" />
+      ) : (
+        <path d="M18 6l-6 6 6 6M11 6l-6 6 6 6" />
+      )}
+    </Icon>
+  )
+}

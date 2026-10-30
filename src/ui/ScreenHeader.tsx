@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { HomeIcon } from './icons/Icons'
 import './ScreenHeader.css'
 import { useT } from './i18n/useI18n'
@@ -8,13 +8,15 @@ interface Props {
   onBack: () => void
   /** Только на вложенных экранах (C-APP-1, OB-15): у первого уровня «Назад» уже ведёт домой. */
   onHome?: () => void
+  /** Кнопки экрана в конце строки шапки (у «Настроек» — «свернуть / развернуть», C-APP-6). */
+  actions?: ReactNode
 }
 
 /**
  * Шапка отдельного экрана под верхней панелью: «Назад», заголовок и, на вложенном экране,
  * «Домой». Фокус клавиатуры при открытии — на «Назад»: сразу видно, где ты.
  */
-function ScreenHeader({ title, onBack, onHome }: Props) {
+function ScreenHeader({ title, onBack, onHome, actions }: Props) {
   const t = useT()
   const backRef = useRef<HTMLButtonElement>(null)
   useEffect(() => backRef.current?.focus(), [])
@@ -36,6 +38,7 @@ function ScreenHeader({ title, onBack, onHome }: Props) {
           <span className="screen__home-label">{t('header.home')}</span>
         </button>
       )}
+      {actions && <div className="screen__actions">{actions}</div>}
     </header>
   )
 }

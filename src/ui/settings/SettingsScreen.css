@@ -1,5 +1,29 @@
+/* Две колонки под шапкой: слева группа, справа бар групп (C-APP-6). Зазор — чтобы касание
+   переключателя у правого края строки не попадало в бар (LIM-2). */
+.settings__body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: 1.5rem;
+}
+
+.settings__group {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings__group-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
 /* Список строк забирает оставшуюся высоту и прокручивается сам — экран целиком нет. */
 .settings__list {
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
   margin: 0;
@@ -93,6 +117,93 @@
   border: 0.1875rem solid currentColor;
   border-radius: 0.5rem;
   font-size: 1.125rem;
+}
+
+/* Бар групп: стоит на месте, пока строки прокручиваются. Прокручивается сам, только если
+   пункты не помещаются по высоте (телефон в ландшафте, OB-12). Ширина — по самому длинному
+   названию. */
+.settings__bar {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  /* Место для рамки фокуса: иначе её обрежет прокрутка. */
+  padding: 0.3125rem;
+}
+
+/* Пункт бара — значок и одно слово, не ниже 56 px (LIM-1). */
+.settings__tab {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 1rem;
+  border: 0.1875rem solid var(--ink-soft);
+  border-radius: 0.75rem;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Выбранная группа — тёмная заливка, как активное устройство: видно не только по цвету. */
+.settings__tab--selected {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.settings__collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.5rem;
+  padding-inline: 0.75rem;
+}
+
+/* Свёрнутый бар: одни значки, ширина уходит строкам (OB-9). */
+.settings--collapsed .settings__tab {
+  padding-inline: 0.75rem;
+}
+.settings--collapsed .settings__tab-label {
+  display: none;
+}
+
+/* Узкое окно (C-APP-6, OB-11, OB-14): строки на всю ширину, группы — в панели у правого края
+   поверх экрана, как меню режимов. Появляется сразу, без анимации; строки под ней не сдвигаются. */
+.settings--narrow .settings__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.settings__bar[hidden] {
+  display: none;
+}
+
+.settings__bar--drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 11;
+  padding: clamp(0.75rem, 2svh, 1.5rem);
+  background: var(--paper);
+  border-left: 0.25rem solid var(--ink);
+}
+
+/* Прозрачная подложка ловит касание мимо панели. Без затемнения — контраст экрана не падает. */
+.settings__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.settings--narrow .settings__collapse {
+  gap: 0.25rem;
 }
 
 /* Телефон: название над значением, чтобы значению хватало ширины. */
